@@ -82,8 +82,8 @@
       flex-wrap: nowrap;
       overflow-x: auto;
       overflow-y: hidden;
-      gap: 120px;
-      padding: 60px 100px;
+      gap: 80px;
+      padding: 20px 5vw;
       width: 100vw;
       height: calc(100vh - 120px);
       align-items: center;
@@ -106,10 +106,13 @@
 
     .gallery-item {
       flex-shrink: 0;
-      width: auto;
+      width: 90%;
+      max-width: 400px;
+      height: auto;
+      margin: 0 auto;
       text-align: center;
       position: relative;
-      padding: 48px 12px 24px;
+      padding: 48px 0 24px;
     }
 
     .gallery-item::before {
@@ -161,8 +164,9 @@
     .museum-frame-sculpted {
       position: relative;
       box-sizing: border-box;
-      width: fit-content;
-      height: fit-content;
+      width: 100%;
+      max-width: 100%;
+      height: auto;
       margin: 0 auto;
       padding: 40px;
       background: #fbf9f5;
@@ -192,6 +196,8 @@
 
     .art-surface {
       position: relative;
+      width: 100%;
+      height: auto;
       overflow: hidden;
       z-index: 1;
       line-height: 0;
@@ -203,8 +209,7 @@
     .gallery-art-canvas {
       display: block;
       width: 100%;
-      height: 100%;
-      object-fit: fill;
+      height: auto;
       vertical-align: top;
       background-color: #f7f4eb;
       background-image:
@@ -270,7 +275,6 @@
       const GALLERY_KEY = 'inscape_gallery';
       const SPLAT_IMAGE = 'splat.png';
       const CANVAS_BG = '#f7f4eb';
-      const GALLERY_ART_MAX_W = 300;
       const DEFAULT_CANVAS_W = 400;
       const DEFAULT_CANVAS_H = 300;
 
@@ -353,18 +357,15 @@
       function getArtDimensions(item) {
         const srcW = item.canvasW > 0 ? Math.round(item.canvasW) : DEFAULT_CANVAS_W;
         const srcH = item.canvasH > 0 ? Math.round(item.canvasH) : DEFAULT_CANVAS_H;
-        const scale = GALLERY_ART_MAX_W / srcW;
-        const displayW = Math.max(1, Math.round(srcW * scale));
-        const displayH = Math.max(1, Math.round(srcH * scale));
-        return { srcW, srcH, displayW, displayH };
+        return { srcW, srcH };
       }
 
-      function renderRecipeToCanvas(canvasEl, splats, srcW, srcH, displayW, displayH) {
+      function renderRecipeToCanvas(canvasEl, splats, srcW, srcH) {
         const dpr = Math.min(2, window.devicePixelRatio || 1);
         canvasEl.width = Math.round(srcW * dpr);
         canvasEl.height = Math.round(srcH * dpr);
-        canvasEl.style.width = `${displayW}px`;
-        canvasEl.style.height = `${displayH}px`;
+        canvasEl.style.width = '100%';
+        canvasEl.style.height = 'auto';
 
         const c = canvasEl.getContext('2d');
         c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -390,7 +391,7 @@
       }
 
       function createFramedArtwork(item) {
-        const { srcW, srcH, displayW, displayH } = getArtDimensions(item);
+        const { srcW, srcH } = getArtDimensions(item);
         const artWrapper = document.createElement('div');
         artWrapper.className = 'gallery-item';
 
@@ -399,12 +400,11 @@
 
         const surface = document.createElement('div');
         surface.className = 'art-surface';
-        surface.style.width = `${displayW}px`;
-        surface.style.height = `${displayH}px`;
+        surface.style.aspectRatio = `${srcW} / ${srcH}`;
 
         const artCanvas = document.createElement('canvas');
         artCanvas.className = 'gallery-art-canvas';
-        renderRecipeToCanvas(artCanvas, item.splats, srcW, srcH, displayW, displayH);
+        renderRecipeToCanvas(artCanvas, item.splats, srcW, srcH);
 
         const texture = document.createElement('div');
         texture.className = 'paper-texture-overlay';
