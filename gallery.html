@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#000000">
+  <title>感情の回廊 — INSCAPE</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --paper-antique: #f7f4eb;
+      --mat-ivory: #fbf9f5;
+      --gold-antique: #b8860b;
+      --wood-walnut: #1c110a;
+      --canvas-fabric-url: url('canvas-fabric.png');
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      background: #030303;
+      color: #e8e6e2;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      background:
+        radial-gradient(ellipse 90% 55% at 50% -8%, rgba(201, 169, 98, 0.07) 0%, transparent 50%),
+        radial-gradient(ellipse 70% 40% at 50% 105%, rgba(255, 255, 255, 0.02) 0%, transparent 45%),
+        #030303;
+    }
+
+    .corridor-top {
+      position: relative;
+      z-index: 2;
+      padding:
+        calc(1.1rem + env(safe-area-inset-top))
+        calc(1.25rem + env(safe-area-inset-right))
+        0
+        calc(1.25rem + env(safe-area-inset-left));
+    }
+
+    .back-link {
+      display: inline-block;
+      font-size: 0.52rem;
+      letter-spacing: 0.22em;
+      color: rgba(232, 230, 226, 0.52);
+      text-decoration: none;
+      padding: 0.5rem 0.75rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.03);
+      margin-bottom: 1.5rem;
+    }
+
+    .museum-header {
+      text-align: center;
+      margin-bottom: 0.5rem;
+    }
+
+    .museum-title {
+      font-size: 0.72rem;
+      font-weight: 400;
+      letter-spacing: 0.55em;
+      text-indent: 0.55em;
+      color: rgba(232, 230, 226, 0.52);
+      margin-bottom: 0.65rem;
+    }
+
+    .museum-subtitle {
+      font-size: 0.5rem;
+      letter-spacing: 0.35em;
+      color: rgba(232, 230, 226, 0.28);
+    }
+
+    #gallery-container {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      overflow-y: hidden;
+      gap: 120px;
+      padding: 60px 100px;
+      width: 100vw;
+      height: calc(100vh - 120px);
+      align-items: center;
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    #gallery-container::-webkit-scrollbar {
+      height: 6px;
+    }
+
+    #gallery-container::-webkit-scrollbar-track {
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    #gallery-container::-webkit-scrollbar-thumb {
+      background: rgba(201, 169, 98, 0.35);
+      border-radius: 3px;
+    }
+
+    .gallery-item {
+      flex-shrink: 0;
+      width: auto;
+      text-align: center;
+      position: relative;
+      padding: 48px 12px 24px;
+    }
+
+    .gallery-item::before {
+      content: '';
+      position: absolute;
+      top: -8%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 220%;
+      height: 130%;
+      background:
+        radial-gradient(
+          ellipse 38% 48% at 50% 0%,
+          rgba(255, 252, 240, 0.42) 0%,
+          rgba(255, 245, 210, 0.22) 18%,
+          rgba(212, 175, 55, 0.1) 38%,
+          rgba(201, 169, 98, 0.04) 55%,
+          transparent 72%
+        ),
+        radial-gradient(
+          ellipse 55% 35% at 50% 12%,
+          rgba(255, 255, 255, 0.08) 0%,
+          transparent 55%
+        );
+      pointer-events: none;
+      z-index: 0;
+      filter: blur(0.5px);
+    }
+
+    .gallery-item::after {
+      content: '';
+      position: absolute;
+      bottom: 18%;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 75%;
+      height: 48px;
+      background: radial-gradient(ellipse 55% 100% at 50% 0%, rgba(0, 0, 0, 0.55) 0%, transparent 72%);
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.7;
+    }
+
+    .gallery-item > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .museum-frame-sculpted {
+      position: relative;
+      box-sizing: border-box;
+      width: fit-content;
+      height: fit-content;
+      margin: 0 auto;
+      padding: 40px;
+      background: #fbf9f5;
+      border: 24px solid #1c110a;
+      border-top-color: #f3e5ab;
+      border-left-color: #d4af37;
+      border-right-color: #8a640f;
+      border-bottom-color: #5c430a;
+      outline: 4px solid #aa7c11;
+      outline-offset: -24px;
+      box-shadow:
+        inset 0 4px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.8),
+        0 50px 100px rgba(0, 0, 0, 0.95),
+        0 15px 30px rgba(0, 0, 0, 0.7);
+    }
+
+    .museum-frame-sculpted::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border: 24px solid transparent;
+      border-image: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%, rgba(0, 0, 0, 0.35) 100%) 1;
+      opacity: 0.85;
+    }
+
+    .art-surface {
+      position: relative;
+      overflow: hidden;
+      z-index: 1;
+      line-height: 0;
+      font-size: 0;
+      padding: 0;
+      margin: 0;
+    }
+
+    .gallery-art-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      vertical-align: top;
+      background-color: #f7f4eb;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        var(--canvas-fabric-url);
+      background-blend-mode: multiply;
+      background-size: auto, auto, cover;
+      box-shadow:
+        inset 5px 5px 15px rgba(0, 0, 0, 0.4),
+        inset -3px -3px 10px rgba(255, 255, 255, 0.6);
+    }
+
+    .paper-texture-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background-color: transparent;
+      background-image: var(--canvas-fabric-url);
+      background-size: cover;
+      background-blend-mode: multiply;
+      mix-blend-mode: multiply;
+      opacity: 0.35;
+    }
+
+    .art-date {
+      margin-top: 18px;
+      color: #888;
+      font-size: 14px;
+      letter-spacing: 1px;
+      font-family: sans-serif;
+    }
+
+    .no-data {
+      flex-shrink: 0;
+      width: 100%;
+      color: #666;
+      text-align: center;
+      padding: 2rem;
+      line-height: 2;
+      letter-spacing: 0.08em;
+      font-size: 0.72rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="corridor-top">
+    <a class="back-link" href="index.html">キャンバスに戻る</a>
+
+    <header class="museum-header">
+      <h1 class="museum-title">感情の回廊</h1>
+      <p class="museum-subtitle">CORRIDOR OF EMOTIONS</p>
+    </header>
+  </div>
+
+  <div id="gallery-container"></div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const GALLERY_KEY = 'inscape_gallery';
+      const SPLAT_IMAGE = 'splat.png';
+      const CANVAS_BG = '#f7f4eb';
+      const GALLERY_ART_MAX_W = 300;
+      const DEFAULT_CANVAS_W = 400;
+      const DEFAULT_CANVAS_H = 300;
+
+      const splatImg = new Image();
+      const stampCache = {};
+      let splatReady = false;
+
+      function migrateSplash(s) {
+        let baseSize = s.baseSize || 220;
+        if (baseSize < 150) baseSize *= 2.5;
+        return {
+          nx: s.nx,
+          ny: s.ny,
+          color: s.color,
+          baseSize,
+          rotation: s.rotation ?? 0,
+          scaleFactor: s.scaleFactor ?? 1,
+          opacity: s.opacity ?? 0.75
+        };
+      }
+
+      function loadSplatImage() {
+        return new Promise((resolve, reject) => {
+          splatImg.onload = () => {
+            if (splatImg.naturalWidth > 0) {
+              splatReady = true;
+              resolve();
+            } else {
+              reject(new Error('splat.png invalid'));
+            }
+          };
+          splatImg.onerror = () => reject(new Error('splat.png load failed'));
+          splatImg.src = SPLAT_IMAGE;
+          if (splatImg.complete && splatImg.naturalWidth > 0) {
+            splatReady = true;
+            resolve();
+          }
+        });
+      }
+
+      function createColorStamp(color) {
+        if (!splatReady || !splatImg.naturalWidth) return null;
+        if (stampCache[color]) return stampCache[color];
+
+        const w = splatImg.naturalWidth;
+        const h = splatImg.naturalHeight;
+        const work = document.createElement('canvas');
+        work.width = w;
+        work.height = h;
+        const wctx = work.getContext('2d');
+
+        wctx.fillStyle = color;
+        wctx.fillRect(0, 0, w, h);
+        wctx.globalCompositeOperation = 'screen';
+        wctx.drawImage(splatImg, 0, 0);
+        wctx.globalCompositeOperation = 'source-over';
+
+        stampCache[color] = work;
+        return work;
+      }
+
+      function drawSplatter(c, splash, w, h) {
+        const stamp = createColorStamp(splash.color);
+        if (!stamp) return;
+
+        const cx = splash.nx * w;
+        const cy = splash.ny * h;
+        const size = splash.baseSize * (splash.scaleFactor || 1);
+
+        c.save();
+        c.translate(cx, cy);
+        c.rotate(splash.rotation || 0);
+        c.globalAlpha = splash.opacity ?? 1;
+        c.globalCompositeOperation = 'multiply';
+        c.drawImage(stamp, -size / 2, -size / 2, size, size);
+        c.restore();
+        c.globalCompositeOperation = 'source-over';
+      }
+
+      function getArtDimensions(item) {
+        const srcW = item.canvasW > 0 ? Math.round(item.canvasW) : DEFAULT_CANVAS_W;
+        const srcH = item.canvasH > 0 ? Math.round(item.canvasH) : DEFAULT_CANVAS_H;
+        const scale = GALLERY_ART_MAX_W / srcW;
+        const displayW = Math.max(1, Math.round(srcW * scale));
+        const displayH = Math.max(1, Math.round(srcH * scale));
+        return { srcW, srcH, displayW, displayH };
+      }
+
+      function renderRecipeToCanvas(canvasEl, splats, srcW, srcH, displayW, displayH) {
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvasEl.width = Math.round(srcW * dpr);
+        canvasEl.height = Math.round(srcH * dpr);
+        canvasEl.style.width = `${displayW}px`;
+        canvasEl.style.height = `${displayH}px`;
+
+        const c = canvasEl.getContext('2d');
+        c.setTransform(dpr, 0, 0, dpr, 0, 0);
+        c.fillStyle = CANVAS_BG;
+        c.fillRect(0, 0, srcW, srcH);
+
+        if (!Array.isArray(splats)) return;
+
+        splats.map(migrateSplash).forEach((splash) => {
+          drawSplatter(c, splash, srcW, srcH);
+        });
+      }
+
+      function loadGallery() {
+        let galleryData = [];
+        try {
+          galleryData = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
+        } catch (e) {
+          galleryData = [];
+        }
+        if (!Array.isArray(galleryData)) galleryData = [];
+        return galleryData.filter(entry => entry && Array.isArray(entry.splats) && entry.splats.length > 0);
+      }
+
+      function createFramedArtwork(item) {
+        const { srcW, srcH, displayW, displayH } = getArtDimensions(item);
+        const artWrapper = document.createElement('div');
+        artWrapper.className = 'gallery-item';
+
+        const sculpted = document.createElement('div');
+        sculpted.className = 'museum-frame-sculpted';
+
+        const surface = document.createElement('div');
+        surface.className = 'art-surface';
+        surface.style.width = `${displayW}px`;
+        surface.style.height = `${displayH}px`;
+
+        const artCanvas = document.createElement('canvas');
+        artCanvas.className = 'gallery-art-canvas';
+        renderRecipeToCanvas(artCanvas, item.splats, srcW, srcH, displayW, displayH);
+
+        const texture = document.createElement('div');
+        texture.className = 'paper-texture-overlay';
+        texture.setAttribute('aria-hidden', 'true');
+
+        const dateEl = document.createElement('p');
+        dateEl.className = 'art-date';
+        dateEl.textContent = item.date || '';
+
+        surface.appendChild(artCanvas);
+        surface.appendChild(texture);
+        sculpted.appendChild(surface);
+        artWrapper.appendChild(sculpted);
+        artWrapper.appendChild(dateEl);
+
+        return artWrapper;
+      }
+
+      function renderGallery() {
+        const galleryContainer = document.getElementById('gallery-container');
+        const galleryData = loadGallery();
+
+        if (galleryData.length === 0) {
+          galleryContainer.innerHTML = '<p class="no-data">まだ額装された作品がありません。7日間の言葉をキャンバスに投げ、作品を完成させてください。</p>';
+          return;
+        }
+
+        galleryContainer.innerHTML = '';
+        galleryData.slice().reverse().forEach((item) => {
+          galleryContainer.appendChild(createFramedArtwork(item));
+        });
+      }
+
+      window.addEventListener('DOMContentLoaded', () => {
+        loadSplatImage()
+          .then(renderGallery)
+          .catch(() => {
+            const galleryContainer = document.getElementById('gallery-container');
+            galleryContainer.innerHTML = '<p class="no-data">splat.png を読み込めませんでした。index.html と同じフォルダに置いてください。</p>';
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

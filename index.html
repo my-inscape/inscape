@@ -1,0 +1,2876 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#121316">
+  <title>INSCAPE</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg-outer: #121316;
+      --bg: #121316;
+      --text: #e8e6e2;
+      --text-soft: rgba(232, 230, 226, 0.55);
+      --muted: #5a5854;
+      --canvas-bg: #f7f4eb;
+      --paper-antique: #f7f4eb;
+      --mat-ivory: #fbf9f5;
+      --gold-antique: #b8860b;
+      --wood-walnut: #1c110a;
+      --accent: #b8a07a;
+      --frame-max: 450px;
+      --canvas-fabric-url: url('canvas-fabric.png');
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", "Yu Gothic", sans-serif;
+      background: var(--bg-outer);
+      color: var(--text);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .phone-shell {
+      width: 100%;
+      max-width: var(--frame-max);
+      height: 100%;
+      height: 100dvh;
+      margin: 0 auto;
+      position: relative;
+      overflow: hidden;
+      background: var(--bg);
+    }
+
+    .app {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      min-height: 0;
+      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    }
+
+    .top-area {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: 58vh;
+      display: flex;
+      flex-direction: column;
+      padding: 0.85rem 0 0;
+    }
+
+    @media (min-height: 700px) {
+      .top-area { max-height: 62vh; }
+    }
+
+    .logo {
+      font-size: 0.6rem;
+      letter-spacing: 0.48em;
+      font-weight: 400;
+      color: var(--text-soft);
+      margin-bottom: 0.85rem;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .mid-panel {
+      flex-shrink: 0;
+      padding: 0.65rem 1.25rem 0.55rem;
+    }
+
+    .controls {
+      flex-shrink: 0;
+      padding: 0.5rem 1.25rem calc(1rem + env(safe-area-inset-bottom, 0px));
+      min-height: 4.5rem;
+    }
+
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .input-wrap {
+      position: relative;
+    }
+
+    #wordInput {
+      width: 100%;
+      min-height: 5.5rem;
+      max-height: 11rem;
+      padding: 0.85rem 0.5rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", "Yu Gothic", serif;
+      font-size: 0.88rem;
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      line-height: 1.65;
+      outline: none;
+      resize: none;
+      overflow-y: auto;
+      transition:
+        border-color 0.55s ease,
+        box-shadow 0.55s ease,
+        background 0.55s ease,
+        color 0.4s ease;
+    }
+
+    #wordInput::placeholder {
+      color: rgba(255, 255, 255, 0.25);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", "Yu Gothic", serif;
+      font-weight: 300;
+      letter-spacing: 0.1em;
+    }
+
+    #wordInput.word-sucking {
+      color: transparent;
+      caret-color: transparent;
+    }
+
+    .word-suck-ghost {
+      position: fixed;
+      z-index: 56;
+      pointer-events: none;
+      padding: 0.85rem 0.5rem;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", "Yu Gothic", serif;
+      font-size: 0.88rem;
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      line-height: 1.65;
+      color: var(--text);
+      white-space: pre-wrap;
+      word-break: break-word;
+      overflow: hidden;
+      opacity: 1;
+      transform: translate(0, 0) scale(1);
+      transform-origin: center center;
+      transition:
+        transform 1.5s cubic-bezier(0.45, 0.05, 0.2, 1),
+        opacity 1.5s cubic-bezier(0.4, 0, 0.6, 1);
+      will-change: transform, opacity;
+    }
+
+    #wordInput:hover:not(:disabled) {
+      border-color: rgba(255, 255, 255, 0.14);
+      box-shadow: 0 0 24px rgba(184, 160, 122, 0.06);
+    }
+
+    #wordInput:focus {
+      border-color: rgba(184, 160, 122, 0.35);
+      background: rgba(255, 255, 255, 0.035);
+      box-shadow: 0 0 32px rgba(184, 160, 122, 0.1);
+    }
+
+    #wordInput:disabled { opacity: 0.28; cursor: not-allowed; }
+
+    .smoke-text {
+      position: absolute;
+      left: 0.5rem;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 0.92rem;
+      font-weight: 300;
+      letter-spacing: 0.06em;
+      color: var(--text);
+      pointer-events: none;
+      opacity: 0;
+      white-space: nowrap;
+      z-index: 5;
+    }
+
+    .smoke-text.active {
+      animation: smoke 1.4s ease-out forwards;
+    }
+
+    @keyframes smoke {
+      0%   { opacity: 1; transform: translateY(-50%) scale(1); filter: blur(0); }
+      40%  { opacity: 0.7; transform: translateY(-80%) scale(1.05); filter: blur(1px); }
+      100% { opacity: 0; transform: translateY(-160%) scale(1.2); filter: blur(6px); }
+    }
+
+    .color-wheel-host {
+      position: relative;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 2.5rem;
+      height: 2.5rem;
+      flex-shrink: 0;
+    }
+
+    .color-indicator {
+      position: relative;
+      z-index: 3;
+      width: 2.5rem;
+      height: 2.5rem;
+      padding: 0;
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      background:
+        radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 42%),
+        radial-gradient(circle at 68% 78%, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0) 48%),
+        radial-gradient(circle at 48% 52%, color-mix(in srgb, var(--picked-color, #3d4f5f) 75%, white) 0%, var(--picked-color, #3d4f5f) 52%, color-mix(in srgb, var(--picked-color, #3d4f5f) 55%, black) 100%);
+      box-shadow:
+        inset 0 3px 6px rgba(255, 255, 255, 0.28),
+        inset 0 -4px 9px rgba(0, 0, 0, 0.38),
+        0 5px 14px rgba(0, 0, 0, 0.42),
+        0 2px 4px rgba(0, 0, 0, 0.22);
+      transition:
+        transform 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 0.45s ease;
+    }
+
+    .color-indicator::after {
+      content: '';
+      position: absolute;
+      inset: 12%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, rgba(255, 255, 255, 0.22) 0%, transparent 65%);
+      pointer-events: none;
+    }
+
+    .color-indicator:disabled {
+      opacity: 0.22;
+      cursor: not-allowed;
+    }
+
+    .color-wheel-host.open .color-indicator {
+      transform: scale(0.88);
+    }
+
+    .condense-text {
+      display: none;
+    }
+
+    .bh-fx-canvas {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 55;
+    }
+
+    .paint-ball {
+      position: fixed;
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 60;
+      will-change: transform, left, top, opacity;
+      background:
+        radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 40%),
+        radial-gradient(circle at 70% 80%, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 50%),
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--ball-color, #3d4f5f) 80%, white) 0%, var(--ball-color, #3d4f5f) 55%, color-mix(in srgb, var(--ball-color, #3d4f5f) 50%, black) 100%);
+      box-shadow:
+        inset 0 3px 7px rgba(255, 255, 255, 0.35),
+        inset 0 -5px 10px rgba(0, 0, 0, 0.4),
+        0 8px 24px rgba(0, 0, 0, 0.45),
+        0 0 20px color-mix(in srgb, var(--ball-color, #3d4f5f) 40%, transparent);
+    }
+
+    .paint-ball.glow {
+      animation: ballGlow 0.2s ease-out forwards;
+    }
+
+    .paint-ball.crystallize {
+      animation: ballCrystallize 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+    }
+
+    @keyframes ballGlow {
+      from { filter: brightness(1.4); }
+      to   { filter: brightness(1); }
+    }
+
+    @keyframes ballCrystallize {
+      0%   { transform: scale(0); opacity: 0; filter: brightness(2.2); }
+      55%  { transform: scale(1.22); opacity: 1; filter: brightness(1.6); }
+      100% { transform: scale(1); opacity: 1; filter: brightness(1); }
+    }
+
+    @media (hover: hover) {
+      .color-wheel-host:not(.disabled):hover .color-indicator:not(:disabled) {
+        box-shadow:
+          inset 0 3px 7px rgba(255, 255, 255, 0.32),
+          inset 0 -4px 9px rgba(0, 0, 0, 0.38),
+          0 6px 20px color-mix(in srgb, var(--picked-color, #3d4f5f) 35%, transparent),
+          0 3px 8px rgba(0, 0, 0, 0.3);
+      }
+    }
+
+    .wheel-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 160;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .wheel-backdrop {
+      position: absolute;
+      inset: 0;
+      background: rgba(18, 19, 22, 0.62);
+      opacity: 0;
+      transition: opacity 0.45s ease;
+    }
+
+    .phone-shell.wheel-open .wheel-backdrop {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .wheel-stage {
+      position: relative;
+      width: min(16rem, 78vw);
+      height: min(16rem, 78vw);
+      max-width: calc(var(--frame-max) - 2rem);
+      max-height: calc(var(--frame-max) - 2rem);
+      padding: 1.75rem;
+      transform: scale(0);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 2;
+      transition:
+        transform 0.58s cubic-bezier(0.22, 1, 0.36, 1),
+        opacity 0.42s ease;
+    }
+
+    .phone-shell.wheel-open .wheel-stage {
+      transform: scale(1);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .phone-shell.wheel-closing .wheel-stage {
+      transform: scale(0);
+      opacity: 0;
+      transition-duration: 0.42s;
+      transition-timing-function: cubic-bezier(0.55, 0, 0.85, 0.36);
+    }
+
+    .phone-shell.wheel-open .wheel-overlay {
+      pointer-events: auto;
+    }
+
+    #wheelCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 0.5px rgba(255, 255, 255, 0.12),
+        0 8px 40px rgba(0, 0, 0, 0.45),
+        0 0 80px rgba(184, 160, 122, 0.08);
+      touch-action: none;
+      cursor: crosshair;
+    }
+
+    #inscapeBtn {
+      flex: 1;
+      display: block;
+      padding: 1.05rem 0;
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.015);
+      color: rgba(232, 230, 226, 0.78);
+      font-size: 0.62rem;
+      font-weight: 400;
+      letter-spacing: 0.52em;
+      text-indent: 0.52em;
+      cursor: pointer;
+      transition:
+        background 0.55s ease,
+        border-color 0.55s ease,
+        color 0.55s ease,
+        box-shadow 0.55s ease;
+    }
+
+    #inscapeBtn:hover:not(:disabled) {
+      border-color: rgba(184, 160, 122, 0.4);
+      color: rgba(232, 230, 226, 0.95);
+      background: rgba(184, 160, 122, 0.06);
+      box-shadow:
+        0 0 28px rgba(184, 160, 122, 0.12),
+        inset 0 0 24px rgba(255, 255, 255, 0.02);
+    }
+
+    #inscapeBtn:active:not(:disabled) {
+      background: rgba(184, 160, 122, 0.1);
+      box-shadow: 0 0 16px rgba(184, 160, 122, 0.08);
+    }
+
+    #inscapeBtn:disabled {
+      opacity: 0.2;
+      cursor: not-allowed;
+    }
+
+    .lock-message {
+      text-align: center;
+      font-size: 0.72rem;
+      font-weight: 300;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      padding: 0.55rem 0 0;
+      line-height: 1.7;
+      display: none;
+    }
+
+    .lock-message.visible { display: block; }
+
+    .canvas-wrap {
+      flex: 1;
+      position: relative;
+      min-height: 0;
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      border-radius: 0;
+      overflow: hidden;
+      box-shadow: none;
+      border: none;
+      transform: translateZ(0);
+    }
+
+    .canvas-wrap.is-framed,
+    .canvas-wrap.framing-active {
+      overflow: visible;
+    }
+
+    .museum-frame {
+      width: 100%;
+      height: 100%;
+      transform-origin: center center;
+      transition: transform 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .canvas-wrap.is-framed .museum-frame,
+    .museum-frame.framing-animate {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .museum-frame.framing-animate {
+      transform: scale(0.85);
+    }
+
+    /* 通常時：麻布キャンバスのみが闇に浮かぶ（余白・枠・影なし） */
+    .museum-frame-sculpted {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      box-sizing: border-box;
+      padding: 0;
+      margin: 0;
+      background: transparent;
+      border: none;
+      outline: none;
+      box-shadow: none;
+      transition:
+        padding 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+        background 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+        border-color 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+        outline 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+        box-shadow 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+        width 1.5s cubic-bezier(0.4, 0, 0.2, 1),
+        height 1.5s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* 完成準備 or 額装アニメーション時：マット・木枠・金枠を出現 */
+    .canvas-wrap.is-framed .museum-frame-sculpted,
+    .museum-frame.framing-animate .museum-frame-sculpted {
+      width: fit-content;
+      height: fit-content;
+      max-width: 100%;
+      max-height: 100%;
+      margin: auto;
+      display: block;
+      padding: 40px;
+      background: #fbf9f5;
+      border: 24px solid #1c110a;
+      border-top-color: #f3e5ab;
+      border-left-color: #d4af37;
+      border-right-color: #8a640f;
+      border-bottom-color: #5c430a;
+      outline: 4px solid #aa7c11;
+      outline-offset: -24px;
+      box-shadow:
+        inset 0 4px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.8),
+        0 50px 100px rgba(0, 0, 0, 0.95),
+        0 15px 30px rgba(0, 0, 0, 0.7);
+    }
+
+    .canvas-wrap.is-framed .museum-frame-sculpted::before,
+    .museum-frame.framing-animate .museum-frame-sculpted::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border: 24px solid transparent;
+      border-image: linear-gradient(145deg, rgba(255,255,255,0.08) 0%, transparent 40%, rgba(0,0,0,0.35) 100%) 1;
+      opacity: 0.85;
+    }
+
+    .art-surface {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      min-height: 0;
+      overflow: hidden;
+      z-index: 1;
+      line-height: 0;
+      font-size: 0;
+    }
+
+    .canvas-wrap.is-framed .art-surface,
+    .museum-frame.framing-animate .art-surface {
+      width: var(--framed-art-w);
+      height: var(--framed-art-h);
+      flex-shrink: 0;
+      padding: 0;
+      margin: 0;
+    }
+
+    .paper-texture-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background-color: transparent;
+      background-image: var(--canvas-fabric-url);
+      background-size: cover;
+      background-blend-mode: multiply;
+      mix-blend-mode: multiply;
+      opacity: 0.35;
+    }
+
+    #mainCanvas,
+    .gallery-art-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      cursor: default;
+      position: relative;
+      z-index: 1;
+      vertical-align: top;
+      background-color: #f7f4eb;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        var(--canvas-fabric-url);
+      background-blend-mode: multiply;
+      background-size: auto, auto, cover;
+    }
+
+    /* 通常時：キャンバス単体が闇に浮かぶ微かな落ち影のみ */
+    .canvas-wrap:not(.is-framed):not(.framing-active) #mainCanvas {
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+    }
+
+    /* 額装時：額縁の奥に嵌まった布地の陰影 */
+    .canvas-wrap.is-framed #mainCanvas,
+    .canvas-wrap.framing-active #mainCanvas,
+    .gallery-art-canvas {
+      box-shadow:
+        inset 5px 5px 15px rgba(0, 0, 0, 0.4),
+        inset -3px -3px 10px rgba(255, 255, 255, 0.6);
+    }
+
+    #mainCanvas {
+      cursor: default;
+    }
+
+    .canvas-wrap.shaking {
+      animation: canvasShake 0.44s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+    }
+
+    @keyframes canvasShake {
+      0%   { transform: translate(0, 0); }
+      12%  { transform: translate(-6px, 4px); }
+      24%  { transform: translate(7px, -5px); }
+      36%  { transform: translate(-5px, -4px); }
+      48%  { transform: translate(5px, 3px); }
+      60%  { transform: translate(-3px, 2px); }
+      72%  { transform: translate(3px, -2px); }
+      84%  { transform: translate(-1px, 1px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    .shock-overlay {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 2;
+    }
+
+    .zen-target {
+      transition: opacity 2s ease, visibility 2s ease;
+    }
+
+    .phone-shell.zen-fading .zen-target,
+    .phone-shell.zen-mode .zen-target {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .phone-shell.zen-mode .top-area {
+      flex: 1 1 auto;
+      max-height: none;
+    }
+
+    .gallery-link {
+      position: absolute;
+      top: calc(0.85rem + env(safe-area-inset-top));
+      right: calc(1.15rem + env(safe-area-inset-right));
+      z-index: 180;
+      font-size: 0.5rem;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      color: rgba(232, 230, 226, 0.45);
+      text-decoration: none;
+      padding: 0.5rem 0.7rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      background: rgba(18, 19, 22, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease, opacity 2s ease;
+      white-space: nowrap;
+    }
+
+    .gallery-link:hover {
+      color: rgba(232, 230, 226, 0.82);
+      border-color: rgba(184, 160, 122, 0.35);
+      background: rgba(24, 25, 28, 0.88);
+    }
+
+    .phone-shell.zen-fading .gallery-link,
+    .phone-shell.zen-mode .gallery-link {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .frame-cta-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 9998;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.35rem;
+      pointer-events: none;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 1.2s ease, visibility 1.2s ease;
+    }
+
+    .frame-cta-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .frame-cta-overlay.ready {
+      pointer-events: none;
+    }
+
+    .frame-btn {
+      position: relative;
+      z-index: 9999;
+      pointer-events: auto;
+      display: block;
+      width: 100%;
+      max-width: 17rem;
+      margin: 0;
+      padding: 1.05rem 0.75rem;
+      border: 0.5px solid rgba(184, 160, 122, 0.18);
+      border-radius: 1px;
+      background: rgba(18, 19, 22, 0.82);
+      color: rgba(232, 230, 226, 0.55);
+      cursor: pointer;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(12px) scale(0.96);
+      transition:
+        opacity 1.1s ease,
+        transform 1.1s cubic-bezier(0.22, 1, 0.36, 1),
+        visibility 1.1s ease,
+        border-color 0.5s ease,
+        background 0.5s ease,
+        box-shadow 0.5s ease;
+      box-shadow: 0 20px 64px rgba(0, 0, 0, 0.45);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .frame-cta-overlay.visible .frame-btn {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0) scale(1);
+    }
+
+    .frame-btn.locked {
+      opacity: 0.26;
+      pointer-events: none;
+      cursor: default;
+    }
+
+    .frame-btn.ready {
+      position: relative;
+      z-index: 9999;
+      pointer-events: auto !important;
+      cursor: pointer !important;
+      opacity: 1 !important;
+      visibility: visible !important;
+      border-color: rgba(201, 169, 98, 0.48);
+      background: linear-gradient(180deg, rgba(28, 26, 24, 0.95) 0%, rgba(18, 19, 22, 0.92) 100%);
+      color: rgba(232, 230, 226, 0.92);
+      box-shadow:
+        0 0 48px rgba(201, 169, 98, 0.18),
+        0 24px 80px rgba(0, 0, 0, 0.55),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+      animation: frameBtnGlow 2.4s ease-in-out infinite;
+    }
+
+    .frame-btn.processing {
+      pointer-events: none;
+      cursor: wait !important;
+      animation: none;
+    }
+
+    .frame-progress-hint {
+      text-align: center;
+      font-size: 0.52rem;
+      letter-spacing: 0.14em;
+      color: rgba(232, 230, 226, 0.28);
+      margin-top: 0.55rem;
+      display: none;
+    }
+
+    .frame-progress-hint.visible {
+      display: block;
+    }
+
+    @keyframes frameBtnGlow {
+      0%, 100% { box-shadow: 0 0 24px rgba(184, 160, 122, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.05); }
+      50%      { box-shadow: 0 0 40px rgba(201, 169, 98, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.08); }
+    }
+
+    .frame-btn-main {
+      display: block;
+      font-size: 0.68rem;
+      letter-spacing: 0.55em;
+      text-indent: 0.55em;
+      margin-bottom: 0.2rem;
+    }
+
+    .frame-btn-en {
+      display: block;
+      font-size: 0.48rem;
+      letter-spacing: 0.28em;
+      text-indent: 0.28em;
+      color: rgba(201, 169, 98, 0.75);
+      margin-bottom: 0.35rem;
+    }
+
+    .frame-btn-progress {
+      display: block;
+      font-size: 0.52rem;
+      letter-spacing: 0.12em;
+      color: rgba(232, 230, 226, 0.35);
+    }
+
+    .frame-btn.ready .frame-btn-progress {
+      color: rgba(201, 169, 98, 0.65);
+    }
+
+    .frame-modal {
+      position: absolute;
+      inset: 0;
+      z-index: 210;
+      background: rgba(8, 9, 11, 0.94);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: calc(1rem + env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom));
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+
+    .frame-modal.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .frame-modal-inner {
+      width: 100%;
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .frame-preview-wrap {
+      flex: 1;
+      min-height: 0;
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: auto;
+    }
+
+    #framePreview {
+      max-width: 100%;
+      max-height: 52vh;
+      display: block;
+      box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.45),
+        0 24px 80px rgba(0, 0, 0, 0.35);
+    }
+
+    .frame-modal-title {
+      font-size: 0.56rem;
+      letter-spacing: 0.42em;
+      text-indent: 0.42em;
+      color: var(--text-soft);
+      text-align: center;
+    }
+
+    .frame-modal-actions {
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      flex-shrink: 0;
+    }
+
+    .frame-action-btn {
+      width: 100%;
+      padding: 0.85rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.35);
+      border-radius: 1px;
+      background: rgba(201, 169, 98, 0.08);
+      color: rgba(232, 230, 226, 0.85);
+      font-size: 0.62rem;
+      letter-spacing: 0.35em;
+      text-indent: 0.35em;
+      cursor: pointer;
+      text-align: center;
+      text-decoration: none;
+      display: block;
+    }
+
+    .frame-action-btn.secondary {
+      border-color: rgba(255, 255, 255, 0.12);
+      background: transparent;
+      color: rgba(232, 230, 226, 0.55);
+      letter-spacing: 0.2em;
+      text-indent: 0.2em;
+    }
+
+    .frame-action-btn.primary {
+      background: linear-gradient(180deg, rgba(201, 169, 98, 0.18) 0%, rgba(184, 160, 122, 0.08) 100%);
+    }
+
+    .frame-complete-dialog {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background: rgba(0, 0, 0, 0.72);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    .frame-complete-dialog.open {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .frame-complete-inner {
+      width: min(100%, 20rem);
+      padding: 1.75rem 1.5rem 1.35rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.28);
+      border-radius: 3px;
+      background: linear-gradient(180deg, rgba(28, 28, 30, 0.98) 0%, rgba(14, 14, 16, 0.98) 100%);
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.55);
+      text-align: center;
+    }
+
+    .frame-complete-inner p {
+      font-size: 0.72rem;
+      font-weight: 300;
+      letter-spacing: 0.18em;
+      line-height: 1.9;
+      color: rgba(232, 230, 226, 0.88);
+      margin-bottom: 1.35rem;
+    }
+
+    .frame-complete-btn {
+      padding: 0.55rem 1.35rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.4);
+      border-radius: 2px;
+      background: rgba(201, 169, 98, 0.1);
+      color: #e8d5a3;
+      font-size: 0.58rem;
+      letter-spacing: 0.28em;
+      text-indent: 0.28em;
+      cursor: pointer;
+      font-family: inherit;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    .frame-complete-btn:hover {
+      background: rgba(201, 169, 98, 0.18);
+      border-color: rgba(201, 169, 98, 0.55);
+    }
+
+    .tooltip {
+      position: fixed;
+      padding: 0.4rem 0.65rem;
+      background: rgba(18, 19, 22, 0.88);
+      color: #f7f7f5;
+      font-size: 0.62rem;
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      border-radius: 2px;
+      pointer-events: none;
+      z-index: 100;
+      opacity: 0;
+      transition: opacity 0.25s ease;
+      white-space: nowrap;
+      transform: translate(-50%, -120%);
+    }
+
+    .tooltip.visible { opacity: 1; }
+
+    .debug-btn {
+      position: absolute;
+      bottom: calc(1.45rem + env(safe-area-inset-bottom));
+      right: calc(1.35rem + env(safe-area-inset-right));
+      width: 1.75rem;
+      height: 1.75rem;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(18, 19, 22, 0.75);
+      color: rgba(232, 230, 226, 0.35);
+      font-size: 0.6rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
+    }
+
+    .debug-btn.active {
+      background: rgba(184, 160, 122, 0.2);
+      color: var(--accent);
+      border-color: rgba(184, 160, 122, 0.45);
+    }
+  </style>
+</head>
+<body>
+  <div class="phone-shell" id="phoneShell">
+    <a class="gallery-link" href="gallery.html">感情の回廊へ移動</a>
+
+    <div class="frame-cta-overlay" id="frameCtaOverlay" aria-hidden="true">
+      <button type="button" class="frame-btn" id="frameBtn" aria-label="作品を額装する">
+        <span class="frame-btn-main">完成</span>
+        <span class="frame-btn-en">Frame the Artwork</span>
+        <span class="frame-btn-progress" id="frameProgress">0 / 7</span>
+      </button>
+    </div>
+
+    <div class="frame-modal" id="frameModal" aria-hidden="true">
+      <div class="frame-modal-inner">
+        <p class="frame-modal-title">7日間の心の色 — 額装完了</p>
+        <div class="frame-preview-wrap">
+          <img id="framePreview" alt="額装された作品">
+        </div>
+        <div class="frame-modal-actions">
+          <button type="button" class="frame-action-btn primary" id="frameDownload">PNGで保存</button>
+          <button type="button" class="frame-action-btn" id="frameShare">シェアする</button>
+          <a class="frame-action-btn secondary" id="frameTweet" href="#" target="_blank" rel="noopener noreferrer">Xで投稿</a>
+          <button type="button" class="frame-action-btn secondary" id="frameModalClose">閉じる</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="wheel-overlay" id="wheelOverlay" aria-hidden="true">
+      <div class="wheel-backdrop" id="wheelBackdrop"></div>
+      <div class="wheel-stage" id="wheelStage">
+        <canvas id="wheelCanvas" width="280" height="280" aria-label="カラーホイール"></canvas>
+      </div>
+    </div>
+
+    <div class="app">
+      <div class="top-area">
+        <p class="logo zen-target">INSCAPE</p>
+        <div class="canvas-wrap" id="canvasWrap">
+          <div class="museum-frame" id="museumFrame">
+            <div class="museum-frame-sculpted">
+              <div class="art-surface">
+                <canvas id="mainCanvas"></canvas>
+                <div class="paper-texture-overlay" aria-hidden="true"></div>
+              </div>
+            </div>
+          </div>
+          <canvas id="shockCanvas" class="shock-overlay" aria-hidden="true"></canvas>
+        </div>
+      </div>
+
+      <div class="mid-panel zen-target">
+        <div class="input-wrap">
+          <textarea id="wordInput" placeholder="今日はどんな1日だった？今の言葉と気分をキャンバスに" maxlength="10000" autocomplete="off" rows="4"></textarea>
+          <span class="smoke-text" id="smokeText"></span>
+        </div>
+      </div>
+
+      <footer class="controls zen-target">
+        <div class="controls-row">
+          <div class="color-wheel-host" id="colorWheelHost">
+            <button type="button" class="color-indicator" id="colorIndicator" aria-label="色を選ぶ"></button>
+          </div>
+          <button id="inscapeBtn" disabled>INSCAPE</button>
+        </div>
+        <p class="lock-message" id="lockMessage">今は閲覧と共有のみの時間です</p>
+        <p class="frame-progress-hint zen-target" id="frameProgressHint"></p>
+      </footer>
+    </div>
+
+    <div class="tooltip" id="tooltip"></div>
+    <div class="frame-complete-dialog" id="frameCompleteDialog" aria-hidden="true">
+      <div class="frame-complete-inner">
+        <p>作品を感情の回廊に大切に飾りました</p>
+        <button type="button" class="frame-complete-btn" id="frameCompleteOk">OK</button>
+      </div>
+    </div>
+    <button class="debug-btn" id="debugBtn" title="時間制限を解除">⏱</button>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const STORAGE_KEY = 'inscape_splashes';
+      const HISTORY_KEY = 'histories';
+      const GALLERY_KEY = 'inscape_gallery';
+      const MAX_ENTRIES = 7;
+      const GALLERY_MAX = 28;
+      const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+      const GALLERY_RETENTION_MS = RETENTION_MS;
+      const FRAME_ENTRIES_REQUIRED = 7;
+      const ZEN_IDLE_MS = 5000;
+      const ZEN_FADE_MS = 2000;
+
+      const wordInput = document.getElementById('wordInput');
+      const smokeText = document.getElementById('smokeText');
+      const phoneShell = document.getElementById('phoneShell');
+      const colorWheelHost = document.getElementById('colorWheelHost');
+      const colorIndicator = document.getElementById('colorIndicator');
+      const wheelStage = document.getElementById('wheelStage');
+      const wheelCanvas = document.getElementById('wheelCanvas');
+      const wheelBackdrop = document.getElementById('wheelBackdrop');
+      const wheelOverlay = document.getElementById('wheelOverlay');
+      const inscapeBtn = document.getElementById('inscapeBtn');
+      const lockMessage = document.getElementById('lockMessage');
+      const canvas = document.getElementById('mainCanvas');
+      const ctx = canvas.getContext('2d');
+      const canvasWrap = document.getElementById('canvasWrap');
+      const museumFrame = document.getElementById('museumFrame');
+      const shockCanvas = document.getElementById('shockCanvas');
+      const shockCtx = shockCanvas.getContext('2d');
+      const tooltip = document.getElementById('tooltip');
+      const debugBtn = document.getElementById('debugBtn');
+      const frameBtn = document.getElementById('frameBtn');
+      const frameCtaOverlay = document.getElementById('frameCtaOverlay');
+      const frameProgress = document.getElementById('frameProgress');
+      const frameProgressHint = document.getElementById('frameProgressHint');
+      const frameModal = document.getElementById('frameModal');
+      const framePreview = document.getElementById('framePreview');
+      const frameDownload = document.getElementById('frameDownload');
+      const frameShare = document.getElementById('frameShare');
+      const frameTweet = document.getElementById('frameTweet');
+      const frameModalClose = document.getElementById('frameModalClose');
+      const frameCompleteDialog = document.getElementById('frameCompleteDialog');
+      const frameCompleteOk = document.getElementById('frameCompleteOk');
+
+      let selectedColor = '#3d4f5f';
+      let debugMode = false;
+      let splashes = [];
+      let audioCtx = null;
+      let noiseBuffer = null;
+      let activeSuckSound = null;
+      let wheelOpen = false;
+      let wheelPicking = false;
+      let wheelBuilt = false;
+      let shockwaves = [];
+      let ambientLoopId = null;
+      let zenTimer = null;
+      let zenFadeTimer = null;
+      let zenArmed = false;
+      let isZenMode = false;
+      let framedPngDataUrl = null;
+      let framedPngBlob = null;
+      let framingCompleted = false;
+      let frameProcessing = false;
+
+      const WORD_MAX_LEN = 10000;
+      const OPACITY_FULL_LEN = 400;
+      const WHEEL_SIZE = 280;
+      const WHEEL_R = WHEEL_SIZE / 2 - 2;
+
+      function hslToRgb(h, s, l) {
+        h = ((h % 360) + 360) % 360;
+        s /= 100;
+        l /= 100;
+        const c = (1 - Math.abs(2 * l - 1)) * s;
+        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
+        const m = l - c / 2;
+        let r = 0, g = 0, b = 0;
+        if (h < 60) { r = c; g = x; }
+        else if (h < 120) { r = x; g = c; }
+        else if (h < 180) { g = c; b = x; }
+        else if (h < 240) { g = x; b = c; }
+        else if (h < 300) { r = x; b = c; }
+        else { r = c; b = x; }
+        return {
+          r: Math.round((r + m) * 255),
+          g: Math.round((g + m) * 255),
+          b: Math.round((b + m) * 255)
+        };
+      }
+
+      function rgbToHex(r, g, b) {
+        return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+      }
+
+      // 中心=漆黒/白、外側=ニュアンスカラー（角度=色相、距離=彩度）
+      function wheelColorAt(hueDeg, t) {
+        if (t < 0.055) return { r: 0, g: 0, b: 0 };
+
+        const whiteWave = (Math.sin(hueDeg * (Math.PI / 180) * 2.2) + 1) / 2;
+        if (t < 0.2) {
+          const u = (t - 0.055) / 0.145;
+          const target = whiteWave > 0.62 ? 255 : 48;
+          const v = Math.round(u * target * (0.35 + whiteWave * 0.65));
+          return { r: v, g: v, b: v };
+        }
+
+        const u = (t - 0.2) / 0.8;
+        const sat = 28 + u * 42;
+        const lit = 22 + u * 36;
+        return hslToRgb(hueDeg, sat, lit);
+      }
+
+      function buildColorWheel() {
+        if (wheelBuilt) return;
+        const wctx = wheelCanvas.getContext('2d');
+        const cx = WHEEL_SIZE / 2;
+        const cy = WHEEL_SIZE / 2;
+        const img = wctx.createImageData(WHEEL_SIZE, WHEEL_SIZE);
+        const d = img.data;
+
+        for (let y = 0; y < WHEEL_SIZE; y++) {
+          for (let x = 0; x < WHEEL_SIZE; x++) {
+            const dx = x - cx + 0.5;
+            const dy = y - cy + 0.5;
+            const dist = Math.hypot(dx, dy);
+            const i = (y * WHEEL_SIZE + x) * 4;
+
+            if (dist > WHEEL_R) {
+              d[i + 3] = 0;
+              continue;
+            }
+
+            const t = dist / WHEEL_R;
+            const hue = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+            const { r, g, b } = wheelColorAt(hue, t);
+            d[i] = r;
+            d[i + 1] = g;
+            d[i + 2] = b;
+            d[i + 3] = 255;
+          }
+        }
+
+        wctx.putImageData(img, 0, 0);
+        wheelBuilt = true;
+      }
+
+      function colorFromWheelPoint(clientX, clientY) {
+        const rect = wheelCanvas.getBoundingClientRect();
+        const scaleX = WHEEL_SIZE / rect.width;
+        const scaleY = WHEEL_SIZE / rect.height;
+        const x = (clientX - rect.left) * scaleX;
+        const y = (clientY - rect.top) * scaleY;
+        const cx = WHEEL_SIZE / 2;
+        const cy = WHEEL_SIZE / 2;
+        const dx = x - cx;
+        const dy = y - cy;
+        const dist = Math.hypot(dx, dy);
+        if (dist > WHEEL_R) return null;
+        const t = dist / WHEEL_R;
+        const hue = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
+        const { r, g, b } = wheelColorAt(hue, t);
+        return rgbToHex(r, g, b);
+      }
+
+      function applySelectedColor(color) {
+        if (!color) return;
+        selectedColor = color;
+        colorWheelHost.style.setProperty('--picked-color', color);
+      }
+
+      function openColorWheel() {
+        if (colorIndicator.disabled || wheelOpen) return;
+        buildColorWheel();
+        wheelOpen = true;
+        phoneShell.classList.remove('wheel-closing');
+        phoneShell.classList.add('wheel-open');
+        colorWheelHost.classList.add('open');
+      }
+
+      function closeColorWheel() {
+        if (!wheelOpen) return;
+        wheelOpen = false;
+        wheelPicking = false;
+        phoneShell.classList.add('wheel-closing');
+        phoneShell.classList.remove('wheel-open');
+        colorWheelHost.classList.remove('open');
+        setTimeout(() => phoneShell.classList.remove('wheel-closing'), 450);
+      }
+
+      function pickColorAt(clientX, clientY) {
+        const color = colorFromWheelPoint(clientX, clientY);
+        if (color) applySelectedColor(color);
+      }
+
+      // 言葉の長さ → 本音の熱量（短い=淡く、長い=濃く）
+      function wordIntensity(len) {
+        return Math.min(1, Math.log1p(len) / Math.log1p(OPACITY_FULL_LEN));
+      }
+
+      function opacityFromWordLength(len) {
+        const normalized = wordIntensity(len);
+        const faint = 0.3 + Math.random() * 0.2;
+        const bold = 0.9 + Math.random() * 0.1;
+        return faint + normalized * (bold - faint);
+      }
+
+      const SPLAT_IMAGE = 'splat.png';
+      const CANVAS_BG = '#f7f4eb';
+      const splatImg = new Image();
+      const stampCache = {};
+      let splatReady = false;
+      let splatLoadPromise = null;
+
+      function clearStampCache() {
+        Object.keys(stampCache).forEach(k => { delete stampCache[k]; });
+      }
+
+      function loadSplatImage() {
+        if (splatReady && splatImg.naturalWidth > 0) return Promise.resolve();
+        if (splatLoadPromise) return splatLoadPromise;
+
+        splatLoadPromise = new Promise((resolve, reject) => {
+          const onReady = () => {
+            if (!splatImg.naturalWidth || !splatImg.naturalHeight) {
+              splatLoadPromise = null;
+              reject(new Error('splat.png: 画像サイズが取得できませんでした'));
+              return;
+            }
+            splatReady = true;
+            clearStampCache();
+            redrawCanvas();
+            resolve();
+          };
+
+          const onFail = () => {
+            splatLoadPromise = null;
+            console.error('splat.png の読み込みに失敗しました。index.html と同じフォルダにあるか確認してください。');
+            reject(new Error('splat.png load failed'));
+          };
+
+          splatImg.onload = onReady;
+          splatImg.onerror = onFail;
+          splatImg.src = SPLAT_IMAGE;
+
+          if (splatImg.complete) {
+            if (splatImg.naturalWidth > 0) onReady();
+            else onFail();
+          }
+        });
+
+        return splatLoadPromise;
+      }
+
+      function ensureSplatLoaded() {
+        return loadSplatImage();
+      }
+
+      // getImageData 不使用: screen で色染め → multiply で白背景を壁色に溶かす
+      function createColorStamp(color) {
+        if (!splatReady || !splatImg.naturalWidth) return null;
+        if (stampCache[color]) return stampCache[color];
+
+        try {
+          const w = splatImg.naturalWidth;
+          const h = splatImg.naturalHeight;
+          const work = document.createElement('canvas');
+          work.width = w;
+          work.height = h;
+          const wctx = work.getContext('2d');
+
+          wctx.fillStyle = color;
+          wctx.fillRect(0, 0, w, h);
+          wctx.globalCompositeOperation = 'screen';
+          wctx.drawImage(splatImg, 0, 0);
+          wctx.globalCompositeOperation = 'source-over';
+
+          stampCache[color] = work;
+          return work;
+        } catch (err) {
+          console.error('スタンプ生成エラー:', err);
+          return null;
+        }
+      }
+
+      function fillCanvasBackground() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = CANVAS_BG;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      // スタンプ用メタデータ（大きさ・不透明度・角度を毎回ランダム化）
+      function createSplashData(wordLen) {
+        const intensity = wordIntensity(wordLen);
+        const baseSize = 220 + Math.random() * 140 + intensity * 50;
+        return {
+          v: 8,
+          baseSize,
+          rotation: Math.random() * Math.PI * 2,
+          scaleFactor: 0.9 + Math.random() * 0.45 + intensity * 0.12,
+          opacity: opacityFromWordLength(wordLen),
+          hitRadius: baseSize * 0.16
+        };
+      }
+
+      function migrateSplash(s) {
+        let baseSize = s.baseSize || (220 + Math.random() * 140);
+        if (baseSize < 150) baseSize *= 2.5;
+        return {
+          id: s.id || Date.now().toString(36),
+          nx: s.nx,
+          ny: s.ny,
+          color: s.color,
+          timestamp: s.timestamp,
+          v: 8,
+          baseSize,
+          rotation: s.rotation ?? Math.random() * Math.PI * 2,
+          scaleFactor: s.scaleFactor ?? (0.9 + Math.random() * 0.45),
+          opacity: s.opacity ?? 0.75,
+          hitRadius: s.hitRadius || baseSize * 0.16,
+          drip: null
+        };
+      }
+
+      function initDrip(splash) {
+        const size = splash.baseSize * (splash.scaleFactor || 1);
+        splash.drip = {
+          offsetX: (Math.random() - 0.5) * size * 0.1,
+          offsetY: size * (0.16 + Math.random() * 0.1),
+          length: 0,
+          maxLength: 22 + Math.random() * 38,
+          speed: 0.32 + Math.random() * 0.48,
+          width: 1.6 + Math.random() * 2.8,
+          active: true
+        };
+      }
+
+      function updateDrips(dt) {
+        let active = false;
+        splashes.forEach(s => {
+          if (!s.drip || !s.drip.active) return;
+          if (s.drip.length < s.drip.maxLength) {
+            s.drip.length = Math.min(s.drip.maxLength, s.drip.length + s.drip.speed * dt);
+            active = true;
+          } else {
+            s.drip.active = false;
+          }
+        });
+        return active;
+      }
+
+      function spawnShockwave(px, py) {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        shockwaves.push({
+          x: px,
+          y: py,
+          radius: 0,
+          maxRadius: Math.min(w, h) * 0.42,
+          alpha: 0.52,
+          start: performance.now(),
+          duration: 520
+        });
+      }
+
+      function drawShockwaves() {
+        const w = shockCanvas.clientWidth;
+        const h = shockCanvas.clientHeight;
+        shockCtx.clearRect(0, 0, w, h);
+        const now = performance.now();
+        shockwaves = shockwaves.filter(sw => {
+          const t = Math.min(1, (now - sw.start) / sw.duration);
+          if (t >= 1) return false;
+          const radius = sw.maxRadius * easeOutCubic(t);
+          const alpha = sw.alpha * (1 - t);
+          shockCtx.strokeStyle = `rgba(72, 68, 62, ${alpha})`;
+          shockCtx.lineWidth = 2.5 * (1 - t * 0.65);
+          shockCtx.beginPath();
+          shockCtx.arc(sw.x, sw.y, radius, 0, Math.PI * 2);
+          shockCtx.stroke();
+          shockCtx.strokeStyle = `rgba(120, 112, 100, ${alpha * 0.35})`;
+          shockCtx.lineWidth = 1.2 * (1 - t);
+          shockCtx.beginPath();
+          shockCtx.arc(sw.x, sw.y, radius * 0.72, 0, Math.PI * 2);
+          shockCtx.stroke();
+          return true;
+        });
+        return shockwaves.length > 0;
+      }
+
+      function triggerCanvasShake() {
+        canvasWrap.classList.remove('shaking');
+        void canvasWrap.offsetWidth;
+        canvasWrap.classList.add('shaking');
+        setTimeout(() => canvasWrap.classList.remove('shaking'), 460);
+      }
+
+      function ensureAmbientLoop() {
+        if (ambientLoopId) return;
+        let last = performance.now();
+        function frame(now) {
+          const dt = Math.min(0.05, (now - last) / 1000);
+          last = now;
+          const dripsActive = updateDrips(dt);
+          const shocksActive = drawShockwaves();
+          if (dripsActive || shocksActive) {
+            redrawCanvas();
+            ambientLoopId = requestAnimationFrame(frame);
+          } else {
+            ambientLoopId = null;
+            shockCtx.clearRect(0, 0, shockCanvas.clientWidth, shockCanvas.clientHeight);
+          }
+        }
+        ambientLoopId = requestAnimationFrame(frame);
+      }
+
+      function exitZenMode() {
+        clearTimeout(zenTimer);
+        clearTimeout(zenFadeTimer);
+        zenTimer = null;
+        zenFadeTimer = null;
+        isZenMode = false;
+        phoneShell.classList.remove('zen-mode', 'zen-fading');
+      }
+
+      function resetZenTimer() {
+        if (!zenArmed || frameModal.classList.contains('open') || getGalleryProgress().ready) return;
+        exitZenMode();
+        zenTimer = setTimeout(() => {
+          phoneShell.classList.add('zen-fading');
+          zenFadeTimer = setTimeout(() => {
+            isZenMode = true;
+            phoneShell.classList.remove('zen-fading');
+            phoneShell.classList.add('zen-mode');
+          }, ZEN_FADE_MS);
+        }, ZEN_IDLE_MS);
+      }
+
+      function scheduleZenAfterImpact() {
+        if (getGalleryProgress().ready) {
+          updateFrameButtonState();
+          return;
+        }
+        zenArmed = true;
+        resetZenTimer();
+      }
+
+      function onUserActivity() {
+        if (isZenMode || phoneShell.classList.contains('zen-fading')) {
+          exitZenMode();
+        }
+        if (zenArmed && !frameModal.classList.contains('open') && !getGalleryProgress().ready) {
+          resetZenTimer();
+        }
+      }
+
+      function migrateHistoriesToRecipes() {
+        try {
+          const raw = localStorage.getItem(HISTORY_KEY);
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data) || !data.length) return;
+          if (data[0].image && data[0].timestamp != null && typeof data[0].nx !== 'number') {
+            localStorage.removeItem(HISTORY_KEY);
+          }
+        } catch (_) {}
+      }
+
+      function migrateGalleryStorage() {
+        try {
+          const raw = localStorage.getItem(GALLERY_KEY);
+          if (!raw) return;
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return;
+          const recipeOnly = data.filter(entry => entry && Array.isArray(entry.splats));
+          if (recipeOnly.length !== data.length) {
+            localStorage.setItem(GALLERY_KEY, JSON.stringify(recipeOnly));
+          }
+        } catch (_) {}
+      }
+
+      function loadHistoryRecipes() {
+        try {
+          const raw = localStorage.getItem(HISTORY_KEY);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return [];
+          return data.filter(s => s && typeof s.nx === 'number' && s.color);
+        } catch { return []; }
+      }
+
+      function saveGallerySnapshot() {
+        try {
+          syncHistoriesFromSplashes();
+          updateFrameButtonState();
+        } catch (err) {
+          console.warn('履歴保存に失敗:', err);
+        }
+      }
+
+      function syncHistoriesFromSplashes() {
+        const recipes = splashes.map(({ drip, ...rest }) => rest);
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(recipes));
+      }
+
+      function saveRecipeToGallery() {
+        syncHistoriesFromSplashes();
+        let gallery = JSON.parse(localStorage.getItem('inscape_gallery')) || [];
+        if (!Array.isArray(gallery)) gallery = [];
+        gallery.push({
+          date: new Date().toLocaleDateString(),
+          splats: JSON.parse(localStorage.getItem('histories')) || [],
+          canvasW: parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth,
+          canvasH: parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight
+        });
+        localStorage.setItem('inscape_gallery', JSON.stringify(gallery));
+      }
+
+      const FRAME_MAT_PADDING = 40;
+      const FRAME_BORDER_WIDTH = 24;
+
+      function updateCanvasAspectVars() {
+        const cw = canvas.clientWidth || canvasWrap.clientWidth;
+        const ch = canvas.clientHeight || canvasWrap.clientHeight;
+        if (cw > 0 && ch > 0) {
+          canvasWrap.style.setProperty('--canvas-aspect-w', String(cw));
+          canvasWrap.style.setProperty('--canvas-aspect-h', String(ch));
+        }
+      }
+
+      function updateFramedArtSize() {
+        const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth || canvasWrap.clientWidth;
+        const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight || canvasWrap.clientHeight;
+        if (!aspectW || !aspectH) return;
+
+        const frameInset = 2 * (FRAME_MAT_PADDING + FRAME_BORDER_WIDTH);
+        const availW = Math.max(1, canvasWrap.clientWidth - frameInset);
+        const availH = Math.max(1, canvasWrap.clientHeight - frameInset);
+
+        let artW = availW;
+        let artH = (artW * aspectH) / aspectW;
+        if (artH > availH) {
+          artH = availH;
+          artW = (artH * aspectW) / aspectH;
+        }
+
+        canvasWrap.style.setProperty('--framed-art-w', `${Math.round(artW)}px`);
+        canvasWrap.style.setProperty('--framed-art-h', `${Math.round(artH)}px`);
+      }
+
+      function waitForFrameAnimation(el, durationMs) {
+        return new Promise(resolve => {
+          let finished = false;
+          const done = () => {
+            if (finished) return;
+            finished = true;
+            el.removeEventListener('transitionend', onEnd);
+            resolve();
+          };
+          const onEnd = (e) => {
+            if (e.target === el) done();
+          };
+          el.addEventListener('transitionend', onEnd);
+          setTimeout(done, durationMs + 120);
+        });
+      }
+
+      function showFrameCompleteDialog() {
+        return new Promise(resolve => {
+          if (!frameCompleteDialog || !frameCompleteOk) {
+            resolve();
+            return;
+          }
+          const close = () => {
+            frameCompleteDialog.classList.remove('open');
+            frameCompleteDialog.setAttribute('aria-hidden', 'true');
+            frameCompleteOk.removeEventListener('click', close);
+            resolve();
+          };
+          frameCompleteDialog.classList.add('open');
+          frameCompleteDialog.setAttribute('aria-hidden', 'false');
+          frameCompleteOk.addEventListener('click', close);
+        });
+      }
+
+      const FRAME_SHARE_TEXT = '#INSCAPE で7日間の心の色を額装しました';
+
+      function dayKeyFromTimestamp(ts) {
+        const d = new Date(ts);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      }
+
+      function getGalleryEntryCount() {
+        const history = loadHistoryRecipes();
+        return Math.max(history.length, splashes.length);
+      }
+
+      function getGalleryProgress() {
+        const entryCount = getGalleryEntryCount();
+        return {
+          entryCount,
+          ready: entryCount >= FRAME_ENTRIES_REQUIRED
+        };
+      }
+
+      function showFrameCtaReady() {
+        exitZenMode();
+        zenArmed = false;
+        clearTimeout(zenTimer);
+        clearTimeout(zenFadeTimer);
+        zenTimer = null;
+        zenFadeTimer = null;
+
+        updateCanvasAspectVars();
+        updateFramedArtSize();
+        canvasWrap.classList.add('is-framed');
+
+        frameCtaOverlay.classList.add('visible', 'ready');
+        frameCtaOverlay.setAttribute('aria-hidden', 'false');
+        frameBtn.classList.add('ready');
+        frameBtn.classList.remove('locked', 'processing');
+        frameBtn.removeAttribute('disabled');
+        frameBtn.removeAttribute('aria-disabled');
+        frameProgress.textContent = '7つの記録が揃いました';
+        frameProgressHint.classList.remove('visible');
+        frameProgressHint.textContent = '';
+        bindFrameButtonClick();
+
+        requestAnimationFrame(resizeCanvas);
+      }
+
+      function hideFrameCta() {
+        frameCtaOverlay.classList.remove('visible', 'ready');
+        frameCtaOverlay.setAttribute('aria-hidden', 'true');
+        frameBtn.classList.remove('ready', 'locked', 'processing');
+        frameBtn.setAttribute('aria-disabled', 'true');
+        if (!canvasWrap.classList.contains('framing-active')) {
+          canvasWrap.classList.remove('is-framed');
+          canvasWrap.style.removeProperty('--framed-art-w');
+          canvasWrap.style.removeProperty('--framed-art-h');
+          requestAnimationFrame(resizeCanvas);
+        }
+      }
+
+      function updateFrameButtonState() {
+        const entryCount = getGalleryEntryCount();
+        const { ready } = getGalleryProgress();
+
+        if (framingCompleted || frameModal.classList.contains('open')) return;
+
+        if (!entryCount) {
+          hideFrameCta();
+          frameProgressHint.classList.remove('visible');
+          frameProgressHint.textContent = '';
+          return;
+        }
+
+        if (ready) {
+          showFrameCtaReady();
+          return;
+        }
+
+        hideFrameCta();
+        frameProgressHint.textContent = `${entryCount} / ${FRAME_ENTRIES_REQUIRED} 回`;
+        frameProgressHint.classList.add('visible');
+      }
+
+      function clearMainCanvasToWhite() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      function restartAppCycle() {
+        splashes = [];
+        saveSplashes();
+        localStorage.removeItem(HISTORY_KEY);
+
+        if (ambientLoopId) {
+          cancelAnimationFrame(ambientLoopId);
+          ambientLoopId = null;
+        }
+        shockwaves = [];
+        shockCtx.clearRect(0, 0, shockCanvas.width, shockCanvas.height);
+
+        framedPngDataUrl = null;
+        framedPngBlob = null;
+        framingCompleted = false;
+        zenArmed = false;
+        exitZenMode();
+
+        hideFrameCta();
+        frameProgressHint.classList.remove('visible');
+        frameProgressHint.textContent = '';
+        frameProgress.textContent = '0 / 7';
+
+        clearCssFrameFromCanvas();
+        clearMainCanvasToWhite();
+
+        wordInput.value = '';
+        updateUIState();
+        updateFrameButtonState();
+      }
+
+      function clearCssFrameFromCanvas() {
+        museumFrame.classList.remove('framing-animate');
+        canvasWrap.classList.remove('framing-active', 'is-framed');
+        canvasWrap.style.removeProperty('--framed-art-w');
+        canvasWrap.style.removeProperty('--framed-art-h');
+        requestAnimationFrame(resizeCanvas);
+      }
+
+      function bindFrameButtonClick() {
+        if (!frameBtn) return;
+        frameBtn.onclick = function(e) {
+          if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+          }
+          executeFrameArtworkFlow();
+        };
+      }
+
+      function executeFrameArtworkFlow() {
+        if (frameProcessing) return;
+        if (!getGalleryProgress().ready) return;
+
+        frameProcessing = true;
+        frameBtn.classList.add('processing');
+        frameBtn.setAttribute('aria-disabled', 'true');
+        frameProgress.textContent = '額装中...';
+        hideFrameCta();
+        updateCanvasAspectVars();
+        updateFramedArtSize();
+        canvasWrap.classList.add('framing-active', 'is-framed');
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            museumFrame.classList.add('framing-animate');
+            resizeCanvas();
+          });
+        });
+
+        waitForFrameAnimation(museumFrame, 1500).then(() => {
+          try {
+            saveRecipeToGallery();
+            frameProgress.textContent = '額装完了';
+            return showFrameCompleteDialog();
+          } catch (err) {
+            console.error('額装処理エラー:', err);
+            clearCssFrameFromCanvas();
+            alert('額装処理中にエラーが発生しました。もう一度お試しください。');
+            frameProcessing = false;
+            frameBtn.classList.remove('processing');
+            updateFrameButtonState();
+            return null;
+          }
+        }).then((dialogResult) => {
+          if (dialogResult === null || !frameProcessing) return;
+          restartAppCycle();
+          frameProcessing = false;
+          frameBtn.classList.remove('processing');
+        });
+      }
+
+      async function shareFramedArtwork() {
+        if (!framedPngBlob && !framedPngDataUrl) return;
+        try {
+          if (navigator.share) {
+            const blob = framedPngBlob || await (await fetch(framedPngDataUrl)).blob();
+            const file = new File([blob], 'INSCAPE_framed.png', { type: 'image/png' });
+            if (navigator.canShare && navigator.canShare({ files: [file] })) {
+              await navigator.share({
+                files: [file],
+                title: 'INSCAPE',
+                text: FRAME_SHARE_TEXT
+              });
+              return;
+            }
+            await navigator.share({
+              title: 'INSCAPE',
+              text: FRAME_SHARE_TEXT,
+              url: window.location.href
+            });
+            return;
+          }
+        } catch (err) {
+          if (err.name !== 'AbortError') console.warn('シェアに失敗:', err);
+        }
+        window.open(frameTweet.href, '_blank', 'noopener,noreferrer');
+      }
+
+      // キャンバス全体（上下左右）にダイナミックに散らす
+      function randomSplashPosition(w, h, splashMeta) {
+        const half = splashMeta.baseSize * splashMeta.scaleFactor * 0.5;
+        const padX = Math.max(8, Math.min(half * 0.18, w * 0.06));
+        const padY = Math.max(8, Math.min(half * 0.18, h * 0.06));
+        return {
+          x: padX + Math.random() * Math.max(1, w - padX * 2),
+          y: padY + Math.random() * Math.max(1, h - padY * 2)
+        };
+      }
+
+      function isActiveHours() {
+        return new Date().getHours() >= 21;
+      }
+
+      function canPost() {
+        return debugMode || isActiveHours();
+      }
+
+      function updateUIState() {
+        const allowed = canPost();
+        wordInput.disabled = !allowed;
+        inscapeBtn.disabled = !allowed || !wordInput.value.trim();
+        colorIndicator.disabled = !allowed;
+        colorWheelHost.classList.toggle('disabled', !allowed);
+        if (!allowed) closeColorWheel();
+        lockMessage.classList.toggle('visible', !allowed);
+      }
+
+      function loadSplashes() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          const now = Date.now();
+          return data
+            .filter(s => now - s.timestamp < RETENTION_MS)
+            .slice(-MAX_ENTRIES)
+            .map(migrateSplash);
+        } catch { return []; }
+      }
+
+      function saveSplashes() {
+        const data = splashes.map(({ drip, ...rest }) => rest);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      }
+
+      function resizeCanvas() {
+        const wrap = canvasWrap;
+        const dpr = window.devicePixelRatio || 1;
+        const isFramed = canvasWrap.classList.contains('is-framed') || museumFrame.classList.contains('framing-animate');
+        const artSurface = wrap.querySelector('.art-surface');
+
+        let cw;
+        let ch;
+        if (isFramed) {
+          const styledW = parseFloat(wrap.style.getPropertyValue('--framed-art-w'));
+          const styledH = parseFloat(wrap.style.getPropertyValue('--framed-art-h'));
+          cw = styledW || artSurface.clientWidth || wrap.clientWidth;
+          ch = styledH || artSurface.clientHeight || wrap.clientHeight;
+        } else {
+          cw = wrap.clientWidth;
+          ch = wrap.clientHeight;
+          wrap.style.setProperty('--canvas-aspect-w', String(cw));
+          wrap.style.setProperty('--canvas-aspect-h', String(ch));
+        }
+
+        if (cw < 1 || ch < 1) return;
+
+        canvas.width = cw * dpr;
+        canvas.height = ch * dpr;
+        canvas.style.width = cw + 'px';
+        canvas.style.height = ch + 'px';
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        shockCanvas.width = cw * dpr;
+        shockCanvas.height = ch * dpr;
+        shockCanvas.style.width = cw + 'px';
+        shockCanvas.style.height = ch + 'px';
+        shockCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        redrawCanvas();
+        drawShockwaves();
+
+        if (isFramed) {
+          updateFramedArtSize();
+        }
+      }
+
+      function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
+      function easeInExpo(t) { return t <= 0 ? 0 : Math.pow(2, 10 * t - 10); }
+      function easeInCubic(t) { return t * t * t; }
+      function easeSlowSpiral(t) { return t * t * (3 - 2 * t); }
+
+      // 85%距離までゆっくり → 残り15%で指数関数的に急加速
+      function easeBlackHolePull(t) {
+        const distSlow = 0.85;
+        const timeSlowEnd = 0.68;
+        if (t <= timeSlowEnd) {
+          const u = t / timeSlowEnd;
+          return distSlow * easeSlowSpiral(u);
+        }
+        const u = (t - timeSlowEnd) / (1 - timeSlowEnd);
+        return distSlow + (1 - distSlow) * easeInExpo(u);
+      }
+
+      // 初速爆発 → 着弾直前のタメ → スナップ着弾
+      function easeFlightBurst(t) {
+        if (t <= 0.07) {
+          const u = t / 0.07;
+          return 0.58 * u;
+        }
+        if (t <= 0.84) {
+          const u = (t - 0.07) / 0.77;
+          return 0.58 + 0.30 * (1 - Math.pow(1 - u, 0.42));
+        }
+        const u = (t - 0.84) / 0.16;
+        if (u < 0.42) {
+          return 0.88 + 0.035 * (u / 0.42);
+        }
+        const snap = (u - 0.42) / 0.58;
+        return 0.915 + 0.085 * easeInExpo(snap);
+      }
+
+      function ensureAudio() {
+        try {
+          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          if (audioCtx.state === 'suspended') audioCtx.resume();
+          return audioCtx;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      function getNoiseBuffer(ctx) {
+        if (noiseBuffer) return noiseBuffer;
+        const len = ctx.sampleRate * 2;
+        noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
+        const data = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
+        return noiseBuffer;
+      }
+
+      function startSuckSound(durationMs) {
+        const ctx = ensureAudio();
+        if (!ctx) return;
+        stopSuckSound(true);
+
+        const now = ctx.currentTime;
+        const dur = durationMs / 1000;
+
+        const src = ctx.createBufferSource();
+        src.buffer = getNoiseBuffer(ctx);
+        src.loop = true;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(160, now);
+        filter.frequency.exponentialRampToValueAtTime(520, now + dur * 0.92);
+        filter.Q.setValueAtTime(0.8, now);
+        filter.Q.linearRampToValueAtTime(1.2, now + dur * 0.85);
+
+        const sub = ctx.createOscillator();
+        sub.type = 'sine';
+        sub.frequency.setValueAtTime(38, now);
+        sub.frequency.linearRampToValueAtTime(58, now + dur * 0.88);
+        const subGain = ctx.createGain();
+        subGain.gain.setValueAtTime(0.0001, now);
+        subGain.gain.exponentialRampToValueAtTime(0.045, now + dur * 0.75);
+
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0.0001, now);
+        gain.gain.exponentialRampToValueAtTime(0.07, now + dur * 0.35);
+        gain.gain.exponentialRampToValueAtTime(0.13, now + dur * 0.88);
+
+        src.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+        sub.connect(subGain);
+        subGain.connect(ctx.destination);
+        src.start(now);
+        sub.start(now);
+
+        activeSuckSound = { src, gain, filter, sub, subGain, ctx };
+      }
+
+      function stopSuckSound(silent) {
+        if (!activeSuckSound) return;
+        const { src, gain, sub, subGain, ctx } = activeSuckSound;
+        const now = ctx.currentTime;
+        try {
+          gain.gain.cancelScheduledValues(now);
+          gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now);
+          gain.gain.exponentialRampToValueAtTime(0.0001, now + (silent ? 0.05 : 0.07));
+          subGain.gain.cancelScheduledValues(now);
+          subGain.gain.setValueAtTime(Math.max(subGain.gain.value, 0.0001), now);
+          subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+          src.stop(now + 0.09);
+          sub.stop(now + 0.09);
+        } catch (_) {}
+        activeSuckSound = null;
+      }
+
+      function playLaunchWhoosh() {
+        const ctx = ensureAudio();
+        if (!ctx) return;
+        stopSuckSound(false);
+
+        const now = ctx.currentTime;
+
+        const wind = ctx.createBufferSource();
+        wind.buffer = getNoiseBuffer(ctx);
+        const windLp = ctx.createBiquadFilter();
+        windLp.type = 'lowpass';
+        windLp.frequency.setValueAtTime(340, now);
+        windLp.frequency.exponentialRampToValueAtTime(72, now + 0.3);
+        windLp.Q.value = 0.85;
+        const windGain = ctx.createGain();
+        windGain.gain.setValueAtTime(0.0001, now);
+        windGain.gain.linearRampToValueAtTime(0.16, now + 0.022);
+        windGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
+
+        const body = ctx.createOscillator();
+        body.type = 'sine';
+        body.frequency.setValueAtTime(98, now);
+        body.frequency.exponentialRampToValueAtTime(38, now + 0.26);
+        const bodyGain = ctx.createGain();
+        bodyGain.gain.setValueAtTime(0.0001, now);
+        bodyGain.gain.linearRampToValueAtTime(0.14, now + 0.028);
+        bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+
+        const friction = ctx.createBufferSource();
+        friction.buffer = getNoiseBuffer(ctx);
+        const frictionBp = ctx.createBiquadFilter();
+        frictionBp.type = 'bandpass';
+        frictionBp.frequency.setValueAtTime(210, now);
+        frictionBp.frequency.exponentialRampToValueAtTime(58, now + 0.28);
+        frictionBp.Q.value = 1.15;
+        const frictionGain = ctx.createGain();
+        frictionGain.gain.setValueAtTime(0.0001, now);
+        frictionGain.gain.linearRampToValueAtTime(0.1, now + 0.018);
+        frictionGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
+
+        wind.connect(windLp);
+        windLp.connect(windGain);
+        windGain.connect(ctx.destination);
+        body.connect(bodyGain);
+        bodyGain.connect(ctx.destination);
+        friction.connect(frictionBp);
+        frictionBp.connect(frictionGain);
+        frictionGain.connect(ctx.destination);
+
+        wind.start(now);
+        wind.stop(now + 0.38);
+        body.start(now);
+        body.stop(now + 0.36);
+        friction.start(now);
+        friction.stop(now + 0.34);
+      }
+
+      function playImpactSplash() {
+        const ctx = ensureAudio();
+        if (!ctx) return;
+
+        const now = ctx.currentTime;
+
+        const impact = ctx.createOscillator();
+        impact.type = 'sine';
+        impact.frequency.setValueAtTime(68, now);
+        impact.frequency.exponentialRampToValueAtTime(20, now + 0.24);
+
+        const impactGain = ctx.createGain();
+        impactGain.gain.setValueAtTime(0.72, now);
+        impactGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+
+        const subThud = ctx.createOscillator();
+        subThud.type = 'triangle';
+        subThud.frequency.setValueAtTime(44, now);
+        subThud.frequency.exponentialRampToValueAtTime(16, now + 0.2);
+
+        const subGain = ctx.createGain();
+        subGain.gain.setValueAtTime(0.52, now);
+        subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
+
+        const mass = ctx.createBufferSource();
+        mass.buffer = getNoiseBuffer(ctx);
+        const massLp = ctx.createBiquadFilter();
+        massLp.type = 'lowpass';
+        massLp.frequency.setValueAtTime(380, now);
+        massLp.frequency.exponentialRampToValueAtTime(85, now + 0.28);
+        massLp.Q.value = 0.6;
+        const massGain = ctx.createGain();
+        massGain.gain.setValueAtTime(0.0001, now);
+        massGain.gain.linearRampToValueAtTime(0.42, now + 0.007);
+        massGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+
+        const viscous = ctx.createBufferSource();
+        viscous.buffer = getNoiseBuffer(ctx);
+        const viscousBp = ctx.createBiquadFilter();
+        viscousBp.type = 'bandpass';
+        viscousBp.frequency.setValueAtTime(280, now);
+        viscousBp.frequency.exponentialRampToValueAtTime(75, now + 0.22);
+        viscousBp.Q.value = 0.75;
+        const viscousGain = ctx.createGain();
+        viscousGain.gain.setValueAtTime(0.0001, now);
+        viscousGain.gain.linearRampToValueAtTime(0.32, now + 0.01);
+        viscousGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
+
+        const rumble = ctx.createBufferSource();
+        rumble.buffer = getNoiseBuffer(ctx);
+        const rumbleLp = ctx.createBiquadFilter();
+        rumbleLp.type = 'lowpass';
+        rumbleLp.frequency.value = 140;
+        const rumbleGain = ctx.createGain();
+        rumbleGain.gain.setValueAtTime(0.28, now);
+        rumbleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
+
+        impact.connect(impactGain);
+        impactGain.connect(ctx.destination);
+        subThud.connect(subGain);
+        subGain.connect(ctx.destination);
+        mass.connect(massLp);
+        massLp.connect(massGain);
+        massGain.connect(ctx.destination);
+        viscous.connect(viscousBp);
+        viscousBp.connect(viscousGain);
+        viscousGain.connect(ctx.destination);
+        rumble.connect(rumbleLp);
+        rumbleLp.connect(rumbleGain);
+        rumbleGain.connect(ctx.destination);
+
+        impact.start(now);
+        impact.stop(now + 0.52);
+        subThud.start(now);
+        subThud.stop(now + 0.44);
+        mass.start(now);
+        mass.stop(now + 0.42);
+        viscous.start(now + 0.012);
+        viscous.stop(now + 0.36);
+        rumble.start(now);
+        rumble.stop(now + 0.58);
+      }
+
+      function hexToRgb(hex) {
+        const n = parseInt(hex.replace('#', ''), 16);
+        return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+      }
+
+      function createPaintBallEl(startX, startY, color, size) {
+        const half = size / 2;
+        const ball = document.createElement('div');
+        ball.className = 'paint-ball';
+        ball.style.setProperty('--ball-color', color);
+        ball.style.width = size + 'px';
+        ball.style.height = size + 'px';
+        ball.style.left = (startX - half) + 'px';
+        ball.style.top = (startY - half) + 'px';
+        document.body.appendChild(ball);
+        return ball;
+      }
+
+      function wrapTextLines(tctx, text, maxWidth, letterSpacing) {
+        const lines = [];
+        text.split('\n').forEach((paragraph) => {
+          if (!paragraph) {
+            lines.push('');
+            return;
+          }
+          let line = '';
+          for (const ch of paragraph) {
+            const next = line + ch;
+            const extra = line.length > 0 ? letterSpacing : 0;
+            if (tctx.measureText(next).width + extra > maxWidth && line) {
+              lines.push(line);
+              line = ch;
+            } else {
+              line = next;
+            }
+          }
+          if (line) lines.push(line);
+        });
+        return lines;
+      }
+
+      function sampleTextParticles(word, inputRect, color) {
+        const style = getComputedStyle(wordInput);
+        const fontSize = parseFloat(style.fontSize);
+        const fontFamily = style.fontFamily;
+        const fontWeight = style.fontWeight;
+        const letterSpacing = parseFloat(style.letterSpacing) || fontSize * 0.12;
+        const font = `${fontWeight} ${fontSize}px ${fontFamily}`;
+        const lineHeight = fontSize * 1.65;
+
+        const w = Math.max(1, Math.ceil(inputRect.width));
+        const h = Math.max(1, Math.ceil(inputRect.height));
+        const padX = fontSize * 0.55;
+        const padTop = fontSize * 0.85;
+        const maxLineWidth = w - padX * 2;
+
+        const tc = document.createElement('canvas');
+        tc.width = w;
+        tc.height = h;
+        const tctx = tc.getContext('2d');
+        tctx.font = font;
+        tctx.fillStyle = '#ffffff';
+        tctx.textBaseline = 'top';
+
+        const lines = wrapTextLines(tctx, word, maxLineWidth, letterSpacing);
+        let y = padTop;
+        for (const line of lines) {
+          let x = padX;
+          for (const ch of line) {
+            tctx.fillText(ch, x, y);
+            x += tctx.measureText(ch).width + letterSpacing;
+          }
+          y += lineHeight;
+        }
+
+        const data = tctx.getImageData(0, 0, w, h).data;
+        const rgb = hexToRgb(color);
+        const particles = [];
+        const step = word.length > 800 ? 5 : word.length > 200 ? 4 : word.length > 50 ? 3 : 2;
+
+        for (let py = 0; py < h; py += step) {
+          for (let px = 0; px < w; px += step) {
+            const i = (py * w + px) * 4;
+            if (data[i + 3] > 100) {
+              const ox = inputRect.left + px + Math.random() * step;
+              const oy = inputRect.top + py + Math.random() * step;
+              const startAngle = Math.atan2(oy - (inputRect.top + h * 0.5), ox - (inputRect.left + w * 0.5));
+              particles.push({
+                ox,
+                oy,
+                x: ox,
+                y: oy,
+                size: 1 + Math.random() * 2.2,
+                delay: Math.random() * 0.38,
+                startAngle,
+                burstOffset: Math.random() * Math.PI * 2,
+                burstMag: 0.3 + Math.random() * 0.55,
+                spin: (Math.random() > 0.5 ? 1 : -1) * (2 + Math.random() * 2.2),
+                rgb,
+                alpha: 1
+              });
+            }
+          }
+        }
+
+        const maxParticles = word.length > 2000 ? 1200 : 900;
+        if (particles.length > maxParticles) {
+          for (let i = particles.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [particles[i], particles[j]] = [particles[j], particles[i]];
+          }
+          particles.length = maxParticles;
+        }
+
+        return particles;
+      }
+
+      function animateWordSuckIn(word, onComplete) {
+        const inputRect = wordInput.getBoundingClientRect();
+        const indicatorRect = colorIndicator.getBoundingClientRect();
+        const targetX = indicatorRect.left + indicatorRect.width / 2;
+        const targetY = indicatorRect.top + indicatorRect.height / 2;
+        const startCX = inputRect.left + inputRect.width / 2;
+        const startCY = inputRect.top + inputRect.height / 2;
+        const dx = targetX - startCX;
+        const dy = targetY - startCY;
+
+        const ghost = document.createElement('div');
+        ghost.className = 'word-suck-ghost';
+        ghost.textContent = word;
+        ghost.style.left = inputRect.left + 'px';
+        ghost.style.top = inputRect.top + 'px';
+        ghost.style.width = inputRect.width + 'px';
+        ghost.style.height = inputRect.height + 'px';
+        document.body.appendChild(ghost);
+
+        wordInput.classList.add('word-sucking');
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            ghost.style.transform = `translate(${dx}px, ${dy}px) scale(0.5)`;
+            ghost.style.opacity = '0';
+          });
+        });
+
+        setTimeout(() => {
+          ghost.remove();
+          wordInput.classList.remove('word-sucking');
+          wordInput.value = '';
+          updateUIState();
+          if (onComplete) onComplete();
+        }, 1500);
+      }
+
+      function animateBlackHoleCondense(word, color, onComplete) {
+        const inputRect = wordInput.getBoundingClientRect();
+        const indicatorRect = colorIndicator.getBoundingClientRect();
+        const targetX = indicatorRect.left + indicatorRect.width / 2;
+        const targetY = indicatorRect.top + indicatorRect.height / 2;
+
+        const particles = sampleTextParticles(word, inputRect, color);
+        if (!particles.length) {
+          onComplete(targetX, targetY, null);
+          return;
+        }
+
+        const fxCanvas = document.createElement('canvas');
+        fxCanvas.className = 'bh-fx-canvas';
+        fxCanvas.width = window.innerWidth * (window.devicePixelRatio || 1);
+        fxCanvas.height = window.innerHeight * (window.devicePixelRatio || 1);
+        fxCanvas.style.width = window.innerWidth + 'px';
+        fxCanvas.style.height = window.innerHeight + 'px';
+        document.body.appendChild(fxCanvas);
+
+        const fxCtx = fxCanvas.getContext('2d');
+        const dpr = window.devicePixelRatio || 1;
+        fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const BURST_MS = 520;
+        const SUCK_MS = 2450;
+        const FUSE_MS = 380;
+        const TOTAL_MS = BURST_MS + SUCK_MS + FUSE_MS;
+        const start = performance.now();
+        let ballEl = null;
+
+        startSuckSound(TOTAL_MS);
+
+        function drawVortex(intensity) {
+          if (intensity <= 0) return;
+          const grad = fxCtx.createRadialGradient(targetX, targetY, 0, targetX, targetY, 42 * intensity);
+          grad.addColorStop(0, `rgba(0, 0, 0, ${0.35 * intensity})`);
+          grad.addColorStop(0.45, `rgba(0, 0, 0, ${0.12 * intensity})`);
+          grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          fxCtx.fillStyle = grad;
+          fxCtx.beginPath();
+          fxCtx.arc(targetX, targetY, 42 * intensity, 0, Math.PI * 2);
+          fxCtx.fill();
+        }
+
+        function tick(now) {
+          const elapsed = now - start;
+          fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+
+          if (elapsed < BURST_MS) {
+            const t = elapsed / BURST_MS;
+            const burst = Math.sin(t * Math.PI) * 10;
+            particles.forEach(p => {
+              p.x = p.ox + Math.cos(p.startAngle + p.burstOffset) * burst * p.burstMag;
+              p.y = p.oy + Math.sin(p.startAngle + p.burstOffset) * burst * p.burstMag;
+              p.alpha = 1;
+            });
+            drawVortex(t * 0.18);
+          } else if (elapsed < BURST_MS + SUCK_MS) {
+            const suckT = (elapsed - BURST_MS) / SUCK_MS;
+            const vortexStrength = Math.min(1, suckT * 0.75);
+            drawVortex(vortexStrength);
+
+            particles.forEach(p => {
+              const localT = Math.max(0, Math.min(1, (suckT - p.delay) / (1 - p.delay * 0.45)));
+              const e = easeBlackHolePull(localT);
+              const startR = Math.hypot(p.ox - targetX, p.oy - targetY);
+              const r = startR * (1 - e);
+              const theta = p.startAngle + p.spin * Math.PI * 3.2 * e;
+              p.x = targetX + r * Math.cos(theta);
+              p.y = targetY + r * Math.sin(theta);
+              p.alpha = 0.6 + 0.4 * (1 - e * 0.25);
+              p.size = Math.max(0.6, p.size * (1 - e * 0.28));
+            });
+          } else if (elapsed < TOTAL_MS) {
+            const fuseT = (elapsed - BURST_MS - SUCK_MS) / FUSE_MS;
+            const e = easeInCubic(fuseT);
+            drawVortex(1 - fuseT * 0.6);
+
+            particles.forEach(p => {
+              p.x = targetX + (p.x - targetX) * (1 - e);
+              p.y = targetY + (p.y - targetY) * (1 - e);
+              p.alpha = 1 - e;
+              p.size = Math.max(0.3, p.size * (1 - e));
+            });
+
+            if (!ballEl && fuseT > 0.55) {
+              ballEl = createPaintBallEl(targetX, targetY, color, 38);
+              ballEl.classList.add('crystallize');
+              ballEl.style.opacity = '1';
+            }
+          } else {
+            fxCanvas.remove();
+            if (!ballEl) {
+              ballEl = createPaintBallEl(targetX, targetY, color, 38);
+              ballEl.classList.add('crystallize');
+            }
+            onComplete(targetX, targetY, ballEl);
+            return;
+          }
+
+          particles.forEach(p => {
+            if (p.alpha <= 0.02) return;
+            const { r, g, b } = p.rgb;
+            fxCtx.globalAlpha = p.alpha;
+            fxCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
+            fxCtx.shadowColor = `rgba(${r}, ${g}, ${b}, 0.85)`;
+            fxCtx.shadowBlur = 4;
+            fxCtx.beginPath();
+            fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+            fxCtx.fill();
+          });
+          fxCtx.shadowBlur = 0;
+          fxCtx.globalAlpha = 1;
+
+          requestAnimationFrame(tick);
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      function drawDrip(splash, w, h, targetCtx) {
+        if (!splash.drip || splash.drip.length <= 0.5) return;
+        const stamp = createColorStamp(splash.color);
+        if (!stamp) return;
+        const c = targetCtx || ctx;
+
+        const cx = splash.nx * w;
+        const cy = splash.ny * h;
+        const drip = splash.drip;
+        const originX = cx + drip.offsetX;
+        const originY = cy + drip.offsetY;
+        const dripH = drip.length;
+        const dripW = drip.width;
+
+        c.save();
+        c.translate(originX, originY);
+        c.globalAlpha = (splash.opacity ?? 1) * 0.88;
+        c.globalCompositeOperation = 'multiply';
+        c.drawImage(stamp, -dripW / 2, 0, dripW, dripH);
+        c.globalCompositeOperation = 'source-over';
+        c.globalAlpha = (splash.opacity ?? 1) * 0.55;
+        c.fillStyle = splash.color;
+        c.fillRect(-dripW * 0.35, dripH * 0.85, dripW * 0.7, dripH * 0.15);
+        c.restore();
+        c.globalCompositeOperation = 'source-over';
+      }
+
+      function drawSplatter(splash, w, h, scale, targetCtx) {
+        if (!splatReady) return;
+
+        const stamp = createColorStamp(splash.color);
+        if (!stamp) return;
+        const c = targetCtx || ctx;
+
+        const cx = splash.nx * w;
+        const cy = splash.ny * h;
+        const s = scale !== undefined ? scale : 1;
+        const size = splash.baseSize * (splash.scaleFactor || 1) * s;
+
+        c.save();
+        c.translate(cx, cy);
+        c.rotate(splash.rotation || 0);
+        c.globalAlpha = splash.opacity ?? 1;
+        c.globalCompositeOperation = 'multiply';
+        c.drawImage(stamp, -size / 2, -size / 2, size, size);
+        c.restore();
+        c.globalCompositeOperation = 'source-over';
+      }
+
+      function redrawCanvas() {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        fillCanvasBackground();
+        splashes.forEach(s => {
+          drawSplatter(s, w, h);
+          drawDrip(s, w, h);
+        });
+      }
+
+      function playBeep() {
+        playImpactSplash();
+      }
+
+      function vibrate() {
+        if (navigator.vibrate) navigator.vibrate(40);
+      }
+
+      // ── 激突アニメーション（インクスタンプが拡大） ──
+      function animateSplash(splash, w, h, onComplete) {
+        let frame = 0;
+        const maxFrames = 52;
+
+        function tick() {
+          frame++;
+          const t = frame / maxFrames;
+          const scale = easeOutCubic(Math.min(1, t * 1.15));
+
+          fillCanvasBackground();
+          splashes.forEach(s => {
+            if (s !== splash) {
+              drawSplatter(s, w, h);
+              drawDrip(s, w, h);
+            }
+          });
+          drawSplatter(splash, w, h, scale);
+          drawShockwaves();
+
+          if (frame < maxFrames) {
+            requestAnimationFrame(tick);
+          } else {
+            redrawCanvas();
+            if (onComplete) onComplete();
+          }
+        }
+
+        requestAnimationFrame(tick);
+      }
+
+      function launchPaintBall(startX, startY, targetX, targetY, color, onImpact, existingBall) {
+        const size = 38;
+        const half = size / 2;
+        const ball = existingBall || createPaintBallEl(startX, startY, color, size);
+
+        function startFlight(fast) {
+          ball.style.transform = 'scale(1)';
+          playLaunchWhoosh();
+          const duration = fast ? 300 : 680;
+          const startTime = performance.now();
+          let prevE = 0;
+
+          function fly(now) {
+            const t = Math.min(1, (now - startTime) / duration);
+            const e = fast ? easeFlightBurst(t) : easeOutCubic(t);
+            const x = startX + (targetX - startX) * e;
+            const y = startY + (targetY - startY) * e - Math.sin(t * Math.PI) * 75;
+            const velocity = Math.max(0, e - prevE);
+            prevE = e;
+
+            ball.style.transition = 'none';
+            ball.style.left = (x - half) + 'px';
+            ball.style.top = (y - half) + 'px';
+            const stretch = fast ? Math.min(1.45, 1 + velocity * 5.5) : 1;
+            const squash = fast ? Math.max(0.78, 2 - stretch) : 1;
+            ball.style.transform = `scale(${1 + t * 0.2}) scaleX(${stretch}) scaleY(${squash})`;
+
+            if (t < 1) {
+              requestAnimationFrame(fly);
+            } else {
+              ball.style.transition = 'transform 0.07s ease-out, opacity 0.07s ease-out';
+              ball.style.transform = 'scale(2)';
+              ball.style.opacity = '0';
+              setTimeout(() => {
+                ball.remove();
+                onImpact();
+              }, 70);
+            }
+          }
+
+          requestAnimationFrame(fly);
+        }
+
+        if (existingBall) {
+          setTimeout(() => startFlight(true), 480);
+          return;
+        }
+
+        ball.style.transform = 'scale(0.12)';
+        ball.style.opacity = '0';
+        ball.classList.add('glow');
+
+        requestAnimationFrame(() => {
+          ball.style.transition = 'transform 0.13s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.1s ease';
+          ball.style.transform = 'scale(1.14)';
+          ball.style.opacity = '1';
+        });
+
+        setTimeout(() => startFlight(false), 120);
+      }
+
+      function handleInscape() {
+        const word = wordInput.value.trim();
+        if (!word || !canPost()) return;
+
+        onUserActivity();
+        ensureAudio();
+        const savedWord = word;
+        inscapeBtn.disabled = true;
+
+        animateWordSuckIn(savedWord, () => {
+          animateBlackHoleCondense(savedWord, selectedColor, (startX, startY, ballEl) => {
+          ensureSplatLoaded().then(() => {
+            const w = canvas.clientWidth;
+            const h = canvas.clientHeight;
+            const splashMeta = createSplashData(savedWord.length);
+            const pos = randomSplashPosition(w, h, splashMeta);
+            const canvasRect = canvas.getBoundingClientRect();
+            const targetX = canvasRect.left + pos.x;
+            const targetY = canvasRect.top + pos.y;
+
+            launchPaintBall(startX, startY, targetX, targetY, selectedColor, () => {
+              vibrate();
+              playBeep();
+              triggerCanvasShake();
+              spawnShockwave(pos.x, pos.y);
+
+              const splash = {
+                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                nx: pos.x / w,
+                ny: pos.y / h,
+                color: selectedColor,
+                timestamp: Date.now(),
+                ...splashMeta
+              };
+
+              initDrip(splash);
+              splashes.push(splash);
+              const now = Date.now();
+              splashes = splashes
+                .filter(s => now - s.timestamp < RETENTION_MS)
+                .slice(-MAX_ENTRIES);
+              saveSplashes();
+
+              animateSplash(splash, w, h, () => {
+                redrawCanvas();
+                ensureAmbientLoop();
+                saveGallerySnapshot();
+                if (getGalleryProgress().ready) {
+                  updateFrameButtonState();
+                } else {
+                  scheduleZenAfterImpact();
+                }
+                updateUIState();
+              });
+            }, ballEl);
+          }).catch((err) => {
+            console.error(err);
+          });
+        });
+        });
+      }
+
+      function formatDate(ts) {
+        const d = new Date(ts);
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        const hr = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return `${y}/${mo}/${da} ${hr}:${mi}`;
+      }
+
+      // 中心付近のみヒット判定
+      function findSplashAt(px, py) {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        for (let i = splashes.length - 1; i >= 0; i--) {
+          const s = splashes[i];
+          const sx = s.nx * w;
+          const sy = s.ny * h;
+          const dist = Math.hypot(px - sx, py - sy);
+          if (dist <= s.hitRadius) return s;
+        }
+        return null;
+      }
+
+      function showTooltip(s, clientX, clientY) {
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        const sx = s.nx * w + canvas.getBoundingClientRect().left;
+        const sy = s.ny * h + canvas.getBoundingClientRect().top;
+        tooltip.textContent = formatDate(s.timestamp);
+        tooltip.style.left = sx + 'px';
+        tooltip.style.top = sy + 'px';
+        tooltip.classList.add('visible');
+      }
+
+      function hideTooltip() {
+        tooltip.classList.remove('visible');
+      }
+
+      function canvasCoords(e) {
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches ? e.touches[0] : e;
+        return {
+          x: touch.clientX - rect.left,
+          y: touch.clientY - rect.top,
+          clientX: touch.clientX,
+          clientY: touch.clientY
+        };
+      }
+
+      canvas.addEventListener('mousemove', (e) => {
+        onUserActivity();
+        const { x, y } = canvasCoords(e);
+        const s = findSplashAt(x, y);
+        if (s) showTooltip(s);
+        else hideTooltip();
+      });
+
+      canvas.addEventListener('mouseleave', hideTooltip);
+
+      canvas.addEventListener('touchstart', (e) => {
+        onUserActivity();
+        const { x, y } = canvasCoords(e);
+        const s = findSplashAt(x, y);
+        if (s) {
+          e.preventDefault();
+          showTooltip(s);
+        }
+      }, { passive: false });
+
+      canvas.addEventListener('touchend', () => {
+        setTimeout(hideTooltip, 1800);
+      });
+
+      colorIndicator.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (colorIndicator.disabled) return;
+        if (wheelOpen) closeColorWheel();
+        else openColorWheel();
+      });
+
+      wheelCanvas.addEventListener('pointerdown', (e) => {
+        if (!wheelOpen) return;
+        e.preventDefault();
+        wheelPicking = true;
+        wheelCanvas.setPointerCapture(e.pointerId);
+        pickColorAt(e.clientX, e.clientY);
+      });
+
+      wheelCanvas.addEventListener('pointermove', (e) => {
+        if (!wheelPicking) return;
+        pickColorAt(e.clientX, e.clientY);
+      });
+
+      function finishWheelPick(e) {
+        if (!wheelPicking) return;
+        wheelPicking = false;
+        if (wheelCanvas.hasPointerCapture(e.pointerId)) {
+          wheelCanvas.releasePointerCapture(e.pointerId);
+        }
+        pickColorAt(e.clientX, e.clientY);
+        closeColorWheel();
+      }
+
+      wheelCanvas.addEventListener('pointerup', finishWheelPick);
+
+      wheelCanvas.addEventListener('pointercancel', (e) => {
+        wheelPicking = false;
+        if (wheelCanvas.hasPointerCapture(e.pointerId)) {
+          wheelCanvas.releasePointerCapture(e.pointerId);
+        }
+      });
+
+      wheelOverlay.addEventListener('click', (e) => {
+        if (!wheelOpen || wheelPicking) return;
+        if (e.target === wheelBackdrop) closeColorWheel();
+      });
+
+      if (window.matchMedia('(hover: hover)').matches) {
+        colorIndicator.addEventListener('mouseenter', () => {
+          if (!colorIndicator.disabled && !wheelOpen) openColorWheel();
+        });
+      }
+
+      wordInput.addEventListener('input', () => {
+        onUserActivity();
+        updateUIState();
+      });
+      inscapeBtn.addEventListener('click', handleInscape);
+
+      bindFrameButtonClick();
+
+      document.addEventListener('mousemove', onUserActivity, { passive: true });
+      document.addEventListener('touchstart', onUserActivity, { passive: true });
+
+      debugBtn.addEventListener('click', () => {
+        debugMode = !debugMode;
+        debugBtn.classList.toggle('active', debugMode);
+        updateUIState();
+      });
+
+      window.addEventListener('resize', resizeCanvas);
+      setInterval(updateUIState, 30000);
+
+      migrateHistoriesToRecipes();
+      migrateGalleryStorage();
+      splashes = loadSplashes();
+      saveSplashes();
+      if (!loadHistoryRecipes().length && splashes.length) {
+        syncHistoriesFromSplashes();
+      }
+      loadSplatImage().catch(() => {});
+      buildColorWheel();
+      applySelectedColor(selectedColor);
+      resizeCanvas();
+      updateUIState();
+      updateFrameButtonState();
+      bindFrameButtonClick();
+
+      document.addEventListener('touchstart', () => { ensureAudio(); }, { once: true });
+      document.addEventListener('click', () => { ensureAudio(); }, { once: true });
+    })();
+  </script>
+</body>
+</html>
