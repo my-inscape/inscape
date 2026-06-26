@@ -414,17 +414,69 @@
     }
 
     .lock-message {
-      text-align: center;
-      font-size: 0.72rem;
-      font-weight: 300;
-      letter-spacing: 0.04em;
-      color: var(--muted);
-      padding: 0.55rem 0 0;
-      line-height: 1.7;
       display: none;
     }
 
-    .lock-message.visible { display: block; }
+    .diary-zone {
+      position: relative;
+      flex-shrink: 0;
+    }
+
+    .hours-closed-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 140;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem 1.25rem;
+      background: rgba(12, 12, 14, 0.78);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+
+    .hours-closed-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .hours-closed-card {
+      text-align: center;
+      max-width: 17rem;
+      padding: 1.25rem 0.5rem;
+      border-top: 0.5px solid rgba(201, 169, 98, 0.22);
+      border-bottom: 0.5px solid rgba(201, 169, 98, 0.22);
+    }
+
+    .hours-closed-title {
+      font-size: 0.58rem;
+      font-weight: 400;
+      letter-spacing: 0.48em;
+      text-indent: 0.48em;
+      color: rgba(201, 169, 98, 0.72);
+      margin-bottom: 1.1rem;
+    }
+
+    .hours-closed-text {
+      font-size: 0.72rem;
+      font-weight: 300;
+      line-height: 2;
+      letter-spacing: 0.08em;
+      color: rgba(232, 230, 226, 0.58);
+    }
+
+    .hours-closed-hours {
+      display: block;
+      margin-top: 0.85rem;
+      font-size: 0.62rem;
+      letter-spacing: 0.22em;
+      color: rgba(184, 160, 122, 0.55);
+    }
 
     .canvas-wrap {
       flex: 1;
@@ -1045,23 +1097,33 @@
         </div>
       </div>
 
-      <div class="mid-panel zen-target">
-        <div class="input-wrap">
-          <textarea id="wordInput" placeholder="今日はどんな1日だった？今の言葉と気分をキャンバスに" maxlength="10000" autocomplete="off" rows="4"></textarea>
-          <span class="smoke-text" id="smokeText"></span>
-        </div>
-      </div>
-
-      <footer class="controls zen-target">
-        <div class="controls-row">
-          <div class="color-wheel-host" id="colorWheelHost">
-            <button type="button" class="color-indicator" id="colorIndicator" aria-label="色を選ぶ"></button>
+      <div class="diary-zone" id="diaryZone">
+        <div class="hours-closed-overlay" id="hoursClosedOverlay" aria-hidden="true">
+          <div class="hours-closed-card">
+            <p class="hours-closed-title">CLOSED</p>
+            <p class="hours-closed-text">現在は開館時間外です。<br>INSCAPEは21:00〜0:00の間だけ開館します。</p>
+            <span class="hours-closed-hours">OPEN 21:00 — 24:00 JST</span>
           </div>
-          <button id="inscapeBtn" disabled>INSCAPE</button>
         </div>
-        <p class="lock-message" id="lockMessage">今は閲覧と共有のみの時間です</p>
-        <p class="frame-progress-hint zen-target" id="frameProgressHint"></p>
-      </footer>
+
+        <div class="mid-panel zen-target">
+          <div class="input-wrap">
+            <textarea id="wordInput" placeholder="今日はどんな1日だった？今の言葉と気分をキャンバスに" maxlength="10000" autocomplete="off" rows="4"></textarea>
+            <span class="smoke-text" id="smokeText"></span>
+          </div>
+        </div>
+
+        <footer class="controls zen-target">
+          <div class="controls-row">
+            <div class="color-wheel-host" id="colorWheelHost">
+              <button type="button" class="color-indicator" id="colorIndicator" aria-label="色を選ぶ"></button>
+            </div>
+            <button id="inscapeBtn" disabled>INSCAPE</button>
+          </div>
+          <p class="lock-message" id="lockMessage" aria-hidden="true">今は閲覧と共有のみの時間です</p>
+          <p class="frame-progress-hint zen-target" id="frameProgressHint"></p>
+        </footer>
+      </div>
     </div>
 
     <div class="tooltip" id="tooltip"></div>
@@ -1100,6 +1162,7 @@
       const wheelOverlay = document.getElementById('wheelOverlay');
       const inscapeBtn = document.getElementById('inscapeBtn');
       const lockMessage = document.getElementById('lockMessage');
+      const hoursClosedOverlay = document.getElementById('hoursClosedOverlay');
       const canvas = document.getElementById('mainCanvas');
       const ctx = canvas.getContext('2d');
       const canvasWrap = document.getElementById('canvasWrap');
@@ -1883,12 +1946,27 @@
         };
       }
 
-      function isActiveHours() {
-        return new Date().getHours() >= 21;
+      function getJapanTimeParts() {
+        const parts = new Intl.DateTimeFormat('en-US', {
+          timeZone: 'Asia/Tokyo',
+          hour: 'numeric',
+          minute: 'numeric',
+          hour12: false
+        }).formatToParts(new Date());
+
+        const hour = Number(parts.find((p) => p.type === 'hour').value);
+        const minute = Number(parts.find((p) => p.type === 'minute').value);
+        return { hour, minute };
+      }
+
+      /** 開館時間 21:00〜24:00（0:00）= 日本時間の 21:00〜23:59 */
+      function isOpenHours() {
+        const { hour } = getJapanTimeParts();
+        return hour >= 21;
       }
 
       function canPost() {
-        return debugMode || isActiveHours();
+        return debugMode || isOpenHours();
       }
 
       function updateUIState() {
@@ -1898,7 +1976,10 @@
         colorIndicator.disabled = !allowed;
         colorWheelHost.classList.toggle('disabled', !allowed);
         if (!allowed) closeColorWheel();
-        lockMessage.classList.toggle('visible', !allowed);
+        if (hoursClosedOverlay) {
+          hoursClosedOverlay.classList.toggle('visible', !allowed);
+          hoursClosedOverlay.setAttribute('aria-hidden', allowed ? 'true' : 'false');
+        }
       }
 
       function loadSplashes() {
@@ -2648,6 +2729,11 @@
       }
 
       function handleInscape() {
+        if (!canPost()) {
+          updateUIState();
+          return;
+        }
+
         const word = wordInput.value.trim();
         if (!word || !canPost()) return;
 
@@ -2834,8 +2920,15 @@
       }
 
       wordInput.addEventListener('input', () => {
+        if (!canPost()) {
+          updateUIState();
+          return;
+        }
         onUserActivity();
         updateUIState();
+      });
+      wordInput.addEventListener('focus', () => {
+        if (!canPost()) updateUIState();
       });
       inscapeBtn.addEventListener('click', handleInscape);
 
