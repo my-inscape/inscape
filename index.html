@@ -1100,9 +1100,9 @@
       <div class="diary-zone" id="diaryZone">
         <div class="hours-closed-overlay" id="hoursClosedOverlay" aria-hidden="true">
           <div class="hours-closed-card">
-            <p class="hours-closed-title">CLOSED</p>
-            <p class="hours-closed-text">現在は開館時間外です。<br>INSCAPEは21:00〜0:00の間だけ開館します。</p>
-            <span class="hours-closed-hours">OPEN 21:00 — 24:00 JST</span>
+            <p class="hours-closed-title" id="diaryLockTitle">CLOSED</p>
+            <p class="hours-closed-text" id="diaryLockText">現在は開館時間外です。<br>INSCAPEは21:00〜0:00の間だけ開館します。</p>
+            <span class="hours-closed-hours" id="diaryLockSub">OPEN 21:00 — 24:00 JST</span>
           </div>
         </div>
 
@@ -1143,6 +1143,7 @@
       const STORAGE_KEY = 'inscape_splashes';
       const HISTORY_KEY = 'histories';
       const GALLERY_KEY = 'inscape_gallery';
+      const DAILY_POST_KEY = 'inscape_last_post_date';
       const MAX_ENTRIES = 7;
       const GALLERY_MAX = 28;
       const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -1163,6 +1164,9 @@
       const inscapeBtn = document.getElementById('inscapeBtn');
       const lockMessage = document.getElementById('lockMessage');
       const hoursClosedOverlay = document.getElementById('hoursClosedOverlay');
+      const diaryLockTitle = document.getElementById('diaryLockTitle');
+      const diaryLockText = document.getElementById('diaryLockText');
+      const diaryLockSub = document.getElementById('diaryLockSub');
       const canvas = document.getElementById('mainCanvas');
       const ctx = canvas.getContext('2d');
       const canvasWrap = document.getElementById('canvasWrap');
@@ -1959,6 +1963,50 @@
         return { hour, minute };
       }
 
+      function getJapanDateKey(date = new Date()) {
+        return new Intl.DateTimeFormat('en-CA', {
+          timeZone: 'Asia/Tokyo',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit'
+        }).format(date);
+      }
+
+      function getLastPostDateKey() {
+        try {
+          return localStorage.getItem(DAILY_POST_KEY) || '';
+        } catch {
+          return '';
+        }
+      }
+
+      function hasPostedToday() {
+        const last = getLastPostDateKey();
+        return !!last && last === getJapanDateKey();
+      }
+
+      function markPostedToday() {
+        try {
+          localStorage.setItem(DAILY_POST_KEY, getJapanDateKey());
+        } catch (err) {
+          console.warn('日記送信日の保存に失敗:', err);
+        }
+      }
+
+      function migrateDailyPostFromSplashes() {
+        if (getLastPostDateKey()) return;
+        const today = getJapanDateKey();
+        const postedToday = splashes.some((s) => getJapanDateKey(new Date(s.timestamp)) === today);
+        if (postedToday) markPostedToday();
+      }
+
+      function getPostingBlockReason() {
+        if (debugMode) return null;
+        if (!isOpenHours()) return 'closed';
+        if (hasPostedToday()) return 'posted';
+        return null;
+      }
+
       /** 開館時間 21:00〜24:00（0:00）= 日本時間の 21:00〜23:59 */
       function isOpenHours() {
         const { hour } = getJapanTimeParts();
@@ -1966,17 +2014,33 @@
       }
 
       function canPost() {
-        return debugMode || isOpenHours();
+        return getPostingBlockReason() === null;
+      }
+
+      function updateDiaryLockOverlay(reason) {
+        if (!diaryLockTitle || !diaryLockText || !diaryLockSub) return;
+
+        if (reason === 'posted') {
+          diaryLockTitle.textContent = 'WOVEN';
+          diaryLockText.innerHTML = '今日の日記はすでに紡がれました。<br>また明日、21:00以降の開館時間にお待ちしております。';
+          diaryLockSub.textContent = 'ONE ENTRY PER DAY';
+        } else {
+          diaryLockTitle.textContent = 'CLOSED';
+          diaryLockText.innerHTML = '現在は開館時間外です。<br>INSCAPEは21:00〜0:00の間だけ開館します。';
+          diaryLockSub.textContent = 'OPEN 21:00 — 24:00 JST';
+        }
       }
 
       function updateUIState() {
-        const allowed = canPost();
+        const blockReason = getPostingBlockReason();
+        const allowed = blockReason === null;
         wordInput.disabled = !allowed;
         inscapeBtn.disabled = !allowed || !wordInput.value.trim();
         colorIndicator.disabled = !allowed;
         colorWheelHost.classList.toggle('disabled', !allowed);
         if (!allowed) closeColorWheel();
         if (hoursClosedOverlay) {
+          if (!allowed) updateDiaryLockOverlay(blockReason);
           hoursClosedOverlay.classList.toggle('visible', !allowed);
           hoursClosedOverlay.setAttribute('aria-hidden', allowed ? 'true' : 'false');
         }
@@ -2775,6 +2839,7 @@
                 .filter(s => now - s.timestamp < RETENTION_MS)
                 .slice(-MAX_ENTRIES);
               saveSplashes();
+              markPostedToday();
 
               animateSplash(splash, w, h, () => {
                 redrawCanvas();
@@ -2949,6 +3014,7 @@
       migrateHistoriesToRecipes();
       migrateGalleryStorage();
       splashes = loadSplashes();
+      migrateDailyPostFromSplashes();
       saveSplashes();
       if (!loadHistoryRecipes().length && splashes.length) {
         syncHistoriesFromSplashes();
