@@ -413,71 +413,6 @@
       cursor: not-allowed;
     }
 
-    .lock-message {
-      display: none;
-    }
-
-    .diary-zone {
-      position: relative;
-      flex-shrink: 0;
-    }
-
-    .hours-closed-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 140;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 1.5rem 1.25rem;
-      background: rgba(12, 12, 14, 0.78);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity 0.5s ease, visibility 0.5s ease;
-    }
-
-    .hours-closed-overlay.visible {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-
-    .hours-closed-card {
-      text-align: center;
-      max-width: 17rem;
-      padding: 1.25rem 0.5rem;
-      border-top: 0.5px solid rgba(201, 169, 98, 0.22);
-      border-bottom: 0.5px solid rgba(201, 169, 98, 0.22);
-    }
-
-    .hours-closed-title {
-      font-size: 0.58rem;
-      font-weight: 400;
-      letter-spacing: 0.48em;
-      text-indent: 0.48em;
-      color: rgba(201, 169, 98, 0.72);
-      margin-bottom: 1.1rem;
-    }
-
-    .hours-closed-text {
-      font-size: 0.72rem;
-      font-weight: 300;
-      line-height: 2;
-      letter-spacing: 0.08em;
-      color: rgba(232, 230, 226, 0.58);
-    }
-
-    .hours-closed-hours {
-      display: block;
-      margin-top: 0.85rem;
-      font-size: 0.62rem;
-      letter-spacing: 0.22em;
-      color: rgba(184, 160, 122, 0.55);
-    }
-
     .canvas-wrap {
       flex: 1;
       position: relative;
@@ -1020,31 +955,6 @@
     }
 
     .tooltip.visible { opacity: 1; }
-
-    .debug-btn {
-      position: absolute;
-      bottom: calc(1.45rem + env(safe-area-inset-bottom));
-      right: calc(1.35rem + env(safe-area-inset-right));
-      width: 1.75rem;
-      height: 1.75rem;
-      border-radius: 50%;
-      border: 1px solid rgba(255, 255, 255, 0.1);
-      background: rgba(18, 19, 22, 0.75);
-      color: rgba(232, 230, 226, 0.35);
-      font-size: 0.6rem;
-      cursor: pointer;
-      z-index: 200;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.25s ease, color 0.25s ease, border-color 0.25s ease;
-    }
-
-    .debug-btn.active {
-      background: rgba(184, 160, 122, 0.2);
-      color: var(--accent);
-      border-color: rgba(184, 160, 122, 0.45);
-    }
   </style>
 </head>
 <body>
@@ -1097,33 +1007,22 @@
         </div>
       </div>
 
-      <div class="diary-zone" id="diaryZone">
-        <div class="hours-closed-overlay" id="hoursClosedOverlay" aria-hidden="true">
-          <div class="hours-closed-card">
-            <p class="hours-closed-title" id="diaryLockTitle">CLOSED</p>
-            <p class="hours-closed-text" id="diaryLockText">現在は開館時間外です。<br>INSCAPEは21:00〜0:00の間だけ開館します。</p>
-            <span class="hours-closed-hours" id="diaryLockSub">OPEN 21:00 — 24:00 JST</span>
-          </div>
+      <div class="mid-panel zen-target">
+        <div class="input-wrap">
+          <textarea id="wordInput" placeholder="今日はどんな1日だった？今の言葉と気分をキャンバスに" maxlength="10000" autocomplete="off" rows="4"></textarea>
+          <span class="smoke-text" id="smokeText"></span>
         </div>
-
-        <div class="mid-panel zen-target">
-          <div class="input-wrap">
-            <textarea id="wordInput" placeholder="今日はどんな1日だった？今の言葉と気分をキャンバスに" maxlength="10000" autocomplete="off" rows="4"></textarea>
-            <span class="smoke-text" id="smokeText"></span>
-          </div>
-        </div>
-
-        <footer class="controls zen-target">
-          <div class="controls-row">
-            <div class="color-wheel-host" id="colorWheelHost">
-              <button type="button" class="color-indicator" id="colorIndicator" aria-label="色を選ぶ"></button>
-            </div>
-            <button id="inscapeBtn" disabled>INSCAPE</button>
-          </div>
-          <p class="lock-message" id="lockMessage" aria-hidden="true">今は閲覧と共有のみの時間です</p>
-          <p class="frame-progress-hint zen-target" id="frameProgressHint"></p>
-        </footer>
       </div>
+
+      <footer class="controls zen-target">
+        <div class="controls-row">
+          <div class="color-wheel-host" id="colorWheelHost">
+            <button type="button" class="color-indicator" id="colorIndicator" aria-label="色を選ぶ"></button>
+          </div>
+          <button id="inscapeBtn" disabled>INSCAPE</button>
+        </div>
+        <p class="frame-progress-hint zen-target" id="frameProgressHint"></p>
+      </footer>
     </div>
 
     <div class="tooltip" id="tooltip"></div>
@@ -1133,7 +1032,6 @@
         <button type="button" class="frame-complete-btn" id="frameCompleteOk">OK</button>
       </div>
     </div>
-    <button class="debug-btn" id="debugBtn" title="開館時間制限のみ解除（1日1回は維持）">⏱</button>
   </div>
 
   <script>
@@ -1143,7 +1041,6 @@
       const STORAGE_KEY = 'inscape_splashes';
       const HISTORY_KEY = 'histories';
       const GALLERY_KEY = 'inscape_gallery';
-      const DAILY_DIARY_KEY = 'inscape_last_diary_date';
       const MAX_ENTRIES = 7;
       const GALLERY_MAX = 28;
       const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -1162,11 +1059,6 @@
       const wheelBackdrop = document.getElementById('wheelBackdrop');
       const wheelOverlay = document.getElementById('wheelOverlay');
       const inscapeBtn = document.getElementById('inscapeBtn');
-      const lockMessage = document.getElementById('lockMessage');
-      const hoursClosedOverlay = document.getElementById('hoursClosedOverlay');
-      const diaryLockTitle = document.getElementById('diaryLockTitle');
-      const diaryLockText = document.getElementById('diaryLockText');
-      const diaryLockSub = document.getElementById('diaryLockSub');
       const canvas = document.getElementById('mainCanvas');
       const ctx = canvas.getContext('2d');
       const canvasWrap = document.getElementById('canvasWrap');
@@ -1174,7 +1066,6 @@
       const shockCanvas = document.getElementById('shockCanvas');
       const shockCtx = shockCanvas.getContext('2d');
       const tooltip = document.getElementById('tooltip');
-      const debugBtn = document.getElementById('debugBtn');
       const frameBtn = document.getElementById('frameBtn');
       const frameCtaOverlay = document.getElementById('frameCtaOverlay');
       const frameProgress = document.getElementById('frameProgress');
@@ -1189,8 +1080,6 @@
       const frameCompleteOk = document.getElementById('frameCompleteOk');
 
       let selectedColor = '#3d4f5f';
-      let debugMode = false;
-      let diarySubmitInFlight = false;
       let splashes = [];
       let audioCtx = null;
       let noiseBuffer = null;
@@ -1951,111 +1840,11 @@
         };
       }
 
-      function getJapanTimeParts() {
-        const parts = new Intl.DateTimeFormat('en-US', {
-          timeZone: 'Asia/Tokyo',
-          hour: 'numeric',
-          minute: 'numeric',
-          hour12: false
-        }).formatToParts(new Date());
-
-        const hour = Number(parts.find((p) => p.type === 'hour').value);
-        const minute = Number(parts.find((p) => p.type === 'minute').value);
-        return { hour, minute };
-      }
-
-      function getTodayDateStr() {
-        return new Date().toLocaleDateString('ja-JP');
-      }
-
-      function getSavedDiaryDate() {
-        try {
-          return localStorage.getItem(DAILY_DIARY_KEY) || '';
-        } catch {
-          return '';
-        }
-      }
-
-      function hasPostedToday() {
-        const savedDate = getSavedDiaryDate();
-        const todayStr = getTodayDateStr();
-        return savedDate === todayStr;
-      }
-
-      function markPostedToday() {
-        const todayStr = getTodayDateStr();
-        try {
-          localStorage.setItem(DAILY_DIARY_KEY, todayStr);
-        } catch (err) {
-          console.warn('日記送信日の保存に失敗:', err);
-        }
-      }
-
-      function migrateDailyPostFromSplashes() {
-        if (hasPostedToday()) return;
-        const todayStr = getTodayDateStr();
-        const postedToday = splashes.some((s) => {
-          return new Date(s.timestamp).toLocaleDateString('ja-JP') === todayStr;
-        });
-        if (postedToday) markPostedToday();
-      }
-
-      function checkDiaryPostedOnLoad() {
-        const savedDate = getSavedDiaryDate();
-        const todayStr = getTodayDateStr();
-        if (savedDate === todayStr) {
-          diarySubmitInFlight = false;
-          updateUIState();
-          return true;
-        }
-        return false;
-      }
-
-      function getPostingBlockReason() {
-        if (hasPostedToday()) return 'posted';
-        if (!debugMode && !isOpenHours()) return 'closed';
-        return null;
-      }
-
-      /** 開館時間 21:00〜24:00（0:00）= 日本時間の 21:00〜23:59 */
-      function isOpenHours() {
-        const { hour } = getJapanTimeParts();
-        return hour >= 21;
-      }
-
-      function canPost() {
-        return getPostingBlockReason() === null;
-      }
-
-      function updateDiaryLockOverlay(reason) {
-        if (!diaryLockTitle || !diaryLockText || !diaryLockSub) return;
-
-        if (reason === 'posted') {
-          diaryLockTitle.textContent = 'WOVEN';
-          diaryLockText.innerHTML = '今日の日記はすでに紡がれました。<br>また明日お待ちしております。';
-          diaryLockSub.textContent = 'ONE ENTRY PER DAY';
-        } else {
-          diaryLockTitle.textContent = 'CLOSED';
-          diaryLockText.innerHTML = '現在は開館時間外です。<br>INSCAPEは21:00〜0:00の間だけ開館します。';
-          diaryLockSub.textContent = 'OPEN 21:00 — 24:00 JST';
-        }
-      }
-
       function updateUIState() {
-        const blockReason = getPostingBlockReason();
-        const allowed = blockReason === null && !diarySubmitInFlight;
-        wordInput.disabled = !allowed;
-        wordInput.readOnly = !allowed;
-        inscapeBtn.disabled = !allowed || !wordInput.value.trim();
-        colorIndicator.disabled = !allowed;
-        colorWheelHost.classList.toggle('disabled', !allowed);
-        if (!allowed) closeColorWheel();
-        if (hoursClosedOverlay) {
-          const showOverlay = blockReason !== null;
-          if (showOverlay) updateDiaryLockOverlay(blockReason);
-          hoursClosedOverlay.classList.toggle('visible', showOverlay);
-          hoursClosedOverlay.setAttribute('aria-hidden', showOverlay ? 'false' : 'true');
-        }
+        wordInput.disabled = false;
+        inscapeBtn.disabled = !wordInput.value.trim();
+        colorIndicator.disabled = false;
+        colorWheelHost.classList.remove('disabled');
       }
 
       function loadSplashes() {
@@ -2805,25 +2594,13 @@
       }
 
       function handleInscape() {
-        if (diarySubmitInFlight || hasPostedToday() || !canPost()) {
-          updateUIState();
-          return;
-        }
-
         const word = wordInput.value.trim();
         if (!word) return;
-
-        diarySubmitInFlight = true;
-        wordInput.disabled = true;
-        wordInput.readOnly = true;
-        inscapeBtn.disabled = true;
-        colorIndicator.disabled = true;
-        colorWheelHost.classList.add('disabled');
-        closeColorWheel();
 
         onUserActivity();
         ensureAudio();
         const savedWord = word;
+        inscapeBtn.disabled = true;
 
         animateWordSuckIn(savedWord, () => {
           animateBlackHoleCondense(savedWord, selectedColor, (startX, startY, ballEl) => {
@@ -2859,11 +2636,6 @@
                 .slice(-MAX_ENTRIES);
               saveSplashes();
 
-              const todayStr = new Date().toLocaleDateString('ja-JP');
-              localStorage.setItem(DAILY_DIARY_KEY, todayStr);
-              diarySubmitInFlight = false;
-              updateUIState();
-
               animateSplash(splash, w, h, () => {
                 redrawCanvas();
                 ensureAmbientLoop();
@@ -2878,7 +2650,6 @@
             }, ballEl);
           }).catch((err) => {
             console.error(err);
-            diarySubmitInFlight = false;
             updateUIState();
           });
         });
@@ -3010,15 +2781,8 @@
       }
 
       wordInput.addEventListener('input', () => {
-        if (!canPost()) {
-          updateUIState();
-          return;
-        }
         onUserActivity();
         updateUIState();
-      });
-      wordInput.addEventListener('focus', () => {
-        if (!canPost()) updateUIState();
       });
       inscapeBtn.addEventListener('click', handleInscape);
 
@@ -3027,24 +2791,15 @@
       document.addEventListener('mousemove', onUserActivity, { passive: true });
       document.addEventListener('touchstart', onUserActivity, { passive: true });
 
-      debugBtn.addEventListener('click', () => {
-        debugMode = !debugMode;
-        debugBtn.classList.toggle('active', debugMode);
-        updateUIState();
-      });
-
       window.addEventListener('resize', resizeCanvas);
-      setInterval(updateUIState, 30000);
 
       migrateHistoriesToRecipes();
       migrateGalleryStorage();
       splashes = loadSplashes();
-      migrateDailyPostFromSplashes();
       saveSplashes();
       if (!loadHistoryRecipes().length && splashes.length) {
         syncHistoriesFromSplashes();
       }
-      checkDiaryPostedOnLoad();
       loadSplatImage().catch(() => {});
       buildColorWheel();
       applySelectedColor(selectedColor);
