@@ -1363,23 +1363,27 @@
       }
 
       function resolveArtworkHistory(item) {
+        const mapEntry = (entry, fallbackDate) => ({
+          word: entry.word || entry.text || '',
+          color: entry.color,
+          date: entry.date || formatHistoryDate(entry.timestamp, fallbackDate || item.date || ''),
+          timestamp: entry.timestamp || 0
+        });
+
         if (Array.isArray(item.history) && item.history.length) {
-          return item.history.map((e) => ({
-            word: e.word || e.text || '',
-            color: e.color,
-            date: e.date || formatHistoryDate(e.timestamp, item.date || ''),
-            timestamp: e.timestamp || 0
-          }));
+          return item.history.map((e) => mapEntry(e, item.date)).filter((e) => e.color);
         }
+
         if (Array.isArray(item.splats) && item.splats.length) {
-          return item.splats.map((s, i) => ({
+          return item.splats.map((s, i) => mapEntry({
             word: s.word || '',
             color: s.color,
-            date: formatHistoryDate(s.timestamp, item.date || ''),
-            timestamp: s.timestamp || i
-          })).filter((e) => e.color);
+            timestamp: s.timestamp || i,
+            date: formatHistoryDate(s.timestamp, item.date || '')
+          }, item.date)).filter((e) => e.color);
         }
-        return loadGlobalInscapeHistory();
+
+        return [];
       }
 
       function randBetween(min, max) {

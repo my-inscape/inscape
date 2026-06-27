@@ -623,7 +623,7 @@
       position: absolute;
       top: calc(0.85rem + env(safe-area-inset-top));
       right: calc(1.15rem + env(safe-area-inset-right));
-      z-index: 180;
+      z-index: 10035;
       font-size: 0.5rem;
       font-weight: 400;
       letter-spacing: 0.2em;
@@ -955,11 +955,290 @@
     }
 
     .tooltip.visible { opacity: 1; }
+
+    .release-share-btn {
+      position: absolute;
+      top: calc(0.85rem + env(safe-area-inset-top));
+      left: calc(1.15rem + env(safe-area-inset-left));
+      z-index: 10035;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.5rem;
+      font-weight: 400;
+      letter-spacing: 0.2em;
+      text-indent: 0.2em;
+      color: rgba(232, 230, 226, 0.45);
+      padding: 0.5rem 0.7rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      background: rgba(18, 19, 22, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      cursor: pointer;
+      transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease, opacity 2s ease;
+      white-space: nowrap;
+    }
+
+    .release-share-btn:hover:not(:disabled) {
+      color: rgba(232, 230, 226, 0.82);
+      border-color: rgba(184, 160, 122, 0.35);
+      background: rgba(24, 25, 28, 0.88);
+    }
+
+    .release-share-btn:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+
+    .phone-shell.zen-fading .release-share-btn,
+    .phone-shell.zen-mode .release-share-btn {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .daily-lock-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10030;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem 1.5rem;
+      background:
+        radial-gradient(ellipse 80% 55% at 50% 40%, rgba(18, 17, 20, 0.94) 0%, rgba(8, 7, 9, 0.98) 55%, rgba(3, 3, 4, 0.99) 100%);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.55s ease, visibility 0.55s ease;
+    }
+
+    .daily-lock-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .daily-lock-inner {
+      width: min(100%, 20rem);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      border: 0.5px solid rgba(201, 169, 98, 0.22);
+      border-radius: 2px;
+      background: rgba(14, 13, 16, 0.88);
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+    }
+
+    .daily-lock-inner p {
+      font-size: 0.72rem;
+      font-weight: 300;
+      line-height: 2.1;
+      letter-spacing: 0.14em;
+      color: rgba(232, 230, 226, 0.78);
+    }
+
+    .export-root {
+      position: fixed;
+      left: -9999px;
+      top: 0;
+      width: 400px;
+      pointer-events: none;
+      visibility: hidden;
+      z-index: -1;
+    }
+
+    .museum-wall-display {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      text-align: center;
+      overflow: visible;
+      padding: 2.75rem 1.5rem 2rem;
+      background:
+        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0) 70%),
+        radial-gradient(ellipse 88% 52% at 50% -6%, rgba(255, 252, 240, 0.09) 0%, transparent 55%),
+        #0a0a0a;
+      border-radius: 1px;
+    }
+
+    .museum-wall-display::before {
+      content: '';
+      position: absolute;
+      inset: -8% -14%;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 6%, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0) 62%),
+        radial-gradient(ellipse 65% 38% at 50% 0%, rgba(201, 169, 98, 0.05) 0%, transparent 58%);
+      opacity: 0.9;
+    }
+
+    .museum-wall-display > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .export-frame-sculpted {
+      position: relative;
+      box-sizing: border-box;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px;
+      background: #fbf9f5;
+      border: 24px solid #1c110a;
+      border-top-color: #f3e5ab;
+      border-left-color: #d4af37;
+      border-right-color: #8a640f;
+      border-bottom-color: #5c430a;
+      outline: 4px solid #aa7c11;
+      outline-offset: -24px;
+      box-shadow:
+        inset 0 5px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -3px 10px rgba(0, 0, 0, 0.65),
+        0 4px 14px rgba(0, 0, 0, 0.42),
+        0 20px 40px rgba(0, 0, 0, 0.8),
+        0 36px 72px rgba(0, 0, 0, 0.52);
+    }
+
+    .export-art-surface {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      line-height: 0;
+      font-size: 0;
+    }
+
+    .export-art-surface .gallery-art-canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      background-color: #f7f4eb;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        var(--canvas-fabric-url);
+      background-blend-mode: multiply;
+      background-size: auto, auto, cover;
+      box-shadow:
+        inset 5px 5px 15px rgba(0, 0, 0, 0.4),
+        inset -3px -3px 10px rgba(255, 255, 255, 0.6);
+    }
+
+    .art-period-caption {
+      margin-top: 1.1rem;
+      padding: 0 0.35rem;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Georgia", "Times New Roman", serif;
+      font-size: 0.85rem;
+      font-weight: 300;
+      letter-spacing: 0.16em;
+      text-indent: 0.16em;
+      color: rgba(204, 204, 204, 0.68);
+      line-height: 1.65;
+    }
+
+    .save-preview-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10050;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding:
+        calc(0.85rem + env(safe-area-inset-top))
+        calc(0.85rem + env(safe-area-inset-right))
+        calc(0.85rem + env(safe-area-inset-bottom))
+        calc(0.85rem + env(safe-area-inset-left));
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 45%, rgba(20, 18, 16, 0.97) 0%, rgba(3, 3, 4, 0.98) 100%);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    .save-preview-overlay.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .save-preview-panel {
+      position: relative;
+      width: min(92vw, 400px);
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translateY(18px) scale(0.96);
+      opacity: 0;
+      transition:
+        transform 0.55s cubic-bezier(0.34, 1.15, 0.64, 1),
+        opacity 0.45s ease;
+    }
+
+    .save-preview-overlay.active .save-preview-panel {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .save-preview-close {
+      align-self: flex-end;
+      margin-bottom: 0.85rem;
+      font-size: 0.48rem;
+      letter-spacing: 0.18em;
+      color: rgba(232, 230, 226, 0.32);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.45rem 0.5rem;
+    }
+
+    .save-preview-hint {
+      width: 100%;
+      margin-bottom: 1rem;
+      text-align: center;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.58rem;
+      font-weight: 300;
+      line-height: 2;
+      letter-spacing: 0.12em;
+      color: rgba(201, 169, 98, 0.62);
+    }
+
+    .save-preview-image-wrap {
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      max-height: min(72vh, calc(92vw * 16 / 9));
+      border-radius: 2px;
+      overflow: hidden;
+      box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.85),
+        0 0 48px rgba(201, 169, 98, 0.06);
+      background: #0a0a0a;
+    }
+
+    .save-preview-image-wrap img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      -webkit-touch-callout: default;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <div class="phone-shell" id="phoneShell">
     <a class="gallery-link" href="gallery.html">感情の回廊へ移動</a>
+    <button type="button" class="release-share-btn" id="releaseShareBtn" aria-label="この瞬間を放流する">この瞬間を放流する</button>
+
+    <div class="daily-lock-overlay" id="dailyLockOverlay" aria-hidden="true">
+      <div class="daily-lock-inner">
+        <p>今日の日記はすでに紡がれました。<br>また明日お待ちしております。</p>
+      </div>
+    </div>
 
     <div class="frame-cta-overlay" id="frameCtaOverlay" aria-hidden="true">
       <button type="button" class="frame-btn" id="frameBtn" aria-label="作品を額装する">
@@ -1032,6 +1311,18 @@
         <button type="button" class="frame-complete-btn" id="frameCompleteOk">OK</button>
       </div>
     </div>
+
+    <div class="export-root" id="exportRoot" aria-hidden="true"></div>
+  </div>
+
+  <div class="save-preview-overlay" id="savePreviewOverlay" aria-hidden="true" role="dialog" aria-label="保存プレビュー">
+    <div class="save-preview-panel">
+      <button type="button" class="save-preview-close" id="savePreviewClose" aria-label="閉じる">CLOSE</button>
+      <p class="save-preview-hint">画像を長押しして<br>「写真に追加」を選択して保存してください</p>
+      <div class="save-preview-image-wrap">
+        <img id="savePreviewImage" alt="INSCAPE — 額装作品" draggable="false">
+      </div>
+    </div>
   </div>
 
   <script>
@@ -1042,6 +1333,7 @@
       const HISTORY_KEY = 'histories';
       const INSCAPE_HISTORY_KEY = 'inscape_history';
       const GALLERY_KEY = 'inscape_gallery';
+      const LAST_DIARY_DATE_KEY = 'inscape_last_diary_date';
       const MAX_ENTRIES = 7;
       const GALLERY_MAX = 28;
       const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -1049,6 +1341,10 @@
       const FRAME_ENTRIES_REQUIRED = 7;
       const ZEN_IDLE_MS = 5000;
       const ZEN_FADE_MS = 2000;
+      const EXPORT_W = 1080;
+      const EXPORT_H = 1920;
+      const SPLAT_SIZE_MIN = 40;
+      const SPLAT_SIZE_MAX = 150;
 
       const wordInput = document.getElementById('wordInput');
       const smokeText = document.getElementById('smokeText');
@@ -1079,6 +1375,9 @@
       const frameModalClose = document.getElementById('frameModalClose');
       const frameCompleteDialog = document.getElementById('frameCompleteDialog');
       const frameCompleteOk = document.getElementById('frameCompleteOk');
+      const releaseShareBtn = document.getElementById('releaseShareBtn');
+      const dailyLockOverlay = document.getElementById('dailyLockOverlay');
+      const exportRoot = document.getElementById('exportRoot');
 
       let selectedColor = '#3d4f5f';
       let splashes = [];
@@ -1098,6 +1397,7 @@
       let framedPngBlob = null;
       let framingCompleted = false;
       let frameProcessing = false;
+      let savePreviewObjectUrl = null;
 
       const WORD_MAX_LEN = 10000;
       const OPACITY_FULL_LEN = 400;
@@ -1241,6 +1541,298 @@
         return faint + normalized * (bold - faint);
       }
 
+      function baseSizeFromWordLength(len) {
+        const t = wordIntensity(len);
+        return SPLAT_SIZE_MIN + t * (SPLAT_SIZE_MAX - SPLAT_SIZE_MIN);
+      }
+
+      function getTodayDateString() {
+        const d = new Date();
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        return `${y}/${mo}/${da}`;
+      }
+
+      function formatDotDate(d) {
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        return `${y}.${mo}.${da}`;
+      }
+
+      function hasPostedToday() {
+        try {
+          return localStorage.getItem(LAST_DIARY_DATE_KEY) === getTodayDateString();
+        } catch {
+          return false;
+        }
+      }
+
+      function lockDiaryForToday() {
+        try {
+          localStorage.setItem(LAST_DIARY_DATE_KEY, getTodayDateString());
+        } catch (err) {
+          console.warn('日記ロックの保存に失敗:', err);
+        }
+      }
+
+      function applyDailyLockUI() {
+        const locked = hasPostedToday();
+        const framingReady = getGalleryProgress().ready;
+
+        if (dailyLockOverlay) {
+          const showOverlay = locked && !framingReady;
+          dailyLockOverlay.classList.toggle('visible', showOverlay);
+          dailyLockOverlay.setAttribute('aria-hidden', showOverlay ? 'false' : 'true');
+        }
+
+        if (locked) {
+          wordInput.disabled = true;
+          inscapeBtn.disabled = true;
+          colorIndicator.disabled = true;
+          colorWheelHost.classList.add('disabled');
+          closeColorWheel();
+        }
+
+        return locked;
+      }
+
+      function drawSpacedText(ctx, text, centerX, y, spacingPx) {
+        const chars = text.split('');
+        let totalWidth = 0;
+        chars.forEach((ch, i) => {
+          totalWidth += ctx.measureText(ch).width;
+          if (i < chars.length - 1) totalWidth += spacingPx;
+        });
+        let x = centerX - totalWidth / 2;
+        chars.forEach((ch, i) => {
+          ctx.fillText(ch, x, y);
+          x += ctx.measureText(ch).width + (i < chars.length - 1 ? spacingPx : 0);
+        });
+      }
+
+      function drawMuseumSpotlightBackground(ctx, w, h) {
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, w, h);
+
+        const spotlight = ctx.createRadialGradient(
+          w * 0.5, h * 0.1, 0,
+          w * 0.5, h * 0.1, Math.max(w, h) * 0.82
+        );
+        spotlight.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
+        spotlight.addColorStop(0.32, 'rgba(255, 255, 255, 0.07)');
+        spotlight.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
+        spotlight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = spotlight;
+        ctx.fillRect(0, 0, w, h);
+
+        const warmGlow = ctx.createRadialGradient(
+          w * 0.5, h * 0.02, 0,
+          w * 0.5, h * 0.02, w * 0.58
+        );
+        warmGlow.addColorStop(0, 'rgba(255, 252, 240, 0.1)');
+        warmGlow.addColorStop(0.45, 'rgba(255, 252, 240, 0.025)');
+        warmGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = warmGlow;
+        ctx.fillRect(0, 0, w, h);
+
+        const vignette = ctx.createRadialGradient(
+          w * 0.5, h * 0.46, Math.min(w, h) * 0.16,
+          w * 0.5, h * 0.46, Math.max(w, h) * 0.96
+        );
+        vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vignette.addColorStop(0.52, 'rgba(0, 0, 0, 0.22)');
+        vignette.addColorStop(0.82, 'rgba(5, 5, 5, 0.72)');
+        vignette.addColorStop(1, 'rgba(5, 5, 5, 0.96)');
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, w, h);
+
+        const floorFade = ctx.createLinearGradient(0, h * 0.68, 0, h);
+        floorFade.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        floorFade.addColorStop(1, 'rgba(0, 0, 0, 0.52)');
+        ctx.fillStyle = floorFade;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      function htmlCanvasToBlob(canvasEl) {
+        return new Promise((resolve, reject) => {
+          if (!canvasEl || !canvasEl.width || !canvasEl.height) {
+            reject(new Error('canvas invalid'));
+            return;
+          }
+          canvasEl.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('toBlob failed'));
+          }, 'image/png', 1);
+        });
+      }
+
+      async function compositeToMuseumExport(artCanvas) {
+        const final = document.createElement('canvas');
+        final.width = EXPORT_W;
+        final.height = EXPORT_H;
+        const exportCtx = final.getContext('2d');
+
+        drawMuseumSpotlightBackground(exportCtx, EXPORT_W, EXPORT_H);
+
+        const logoReserve = 148;
+        const topMargin = 220;
+        const sidePad = 96;
+        const maxW = EXPORT_W - sidePad * 2;
+        const maxH = EXPORT_H - topMargin - logoReserve - 100;
+
+        const scale = Math.min(maxW / artCanvas.width, maxH / artCanvas.height);
+        const dw = artCanvas.width * scale;
+        const dh = artCanvas.height * scale;
+        const dx = (EXPORT_W - dw) / 2;
+        const dy = topMargin + (maxH - dh) / 2;
+
+        exportCtx.drawImage(artCanvas, dx, dy, dw, dh);
+
+        exportCtx.save();
+        const logoSize = 34;
+        exportCtx.font = `300 ${logoSize}px "Times New Roman", Georgia, serif`;
+        exportCtx.fillStyle = 'rgba(190, 190, 190, 0.62)';
+        exportCtx.textBaseline = 'middle';
+        drawSpacedText(exportCtx, 'INSCAPE', EXPORT_W / 2, EXPORT_H - 92, logoSize * 0.44);
+        exportCtx.restore();
+
+        return htmlCanvasToBlob(final);
+      }
+
+      function getExportPeriodCaption() {
+        return formatDotDate(new Date());
+      }
+
+      function buildExportWallDisplay() {
+        if (!exportRoot) throw new Error('export root missing');
+
+        const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth || 400;
+        const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight || 300;
+
+        exportRoot.innerHTML = '';
+        const wall = document.createElement('div');
+        wall.className = 'museum-wall-display museum-wall-export';
+
+        const sculpted = document.createElement('div');
+        sculpted.className = 'export-frame-sculpted';
+
+        const surface = document.createElement('div');
+        surface.className = 'export-art-surface';
+        surface.style.aspectRatio = `${aspectW} / ${aspectH}`;
+
+        const exportCanvas = document.createElement('canvas');
+        exportCanvas.className = 'gallery-art-canvas';
+        exportCanvas.width = canvas.width;
+        exportCanvas.height = canvas.height;
+        exportCanvas.style.width = '100%';
+        exportCanvas.style.height = 'auto';
+        exportCanvas.getContext('2d').drawImage(canvas, 0, 0);
+
+        const texture = document.createElement('div');
+        texture.className = 'paper-texture-overlay';
+        texture.setAttribute('aria-hidden', 'true');
+
+        const caption = document.createElement('p');
+        caption.className = 'art-period-caption';
+        caption.textContent = getExportPeriodCaption();
+
+        surface.appendChild(exportCanvas);
+        surface.appendChild(texture);
+        sculpted.appendChild(surface);
+        wall.appendChild(sculpted);
+        wall.appendChild(caption);
+        exportRoot.appendChild(wall);
+        return wall;
+      }
+
+      async function captureMuseumWallBlob(wallEl) {
+        if (!wallEl || typeof html2canvas !== 'function') {
+          throw new Error('html2canvas not loaded');
+        }
+
+        const scale = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1.5));
+        const artCanvas = await html2canvas(wallEl, {
+          scale,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: null,
+          logging: false
+        });
+
+        return compositeToMuseumExport(artCanvas);
+      }
+
+      function closeSavePreview() {
+        const overlay = document.getElementById('savePreviewOverlay');
+        const img = document.getElementById('savePreviewImage');
+        if (overlay) {
+          overlay.classList.remove('active');
+          overlay.setAttribute('aria-hidden', 'true');
+        }
+        if (img) img.removeAttribute('src');
+        if (savePreviewObjectUrl) {
+          URL.revokeObjectURL(savePreviewObjectUrl);
+          savePreviewObjectUrl = null;
+        }
+      }
+
+      function showSavePreview(blob) {
+        const overlay = document.getElementById('savePreviewOverlay');
+        const img = document.getElementById('savePreviewImage');
+        if (!overlay || !img || !blob) return;
+
+        closeSavePreview();
+        savePreviewObjectUrl = URL.createObjectURL(blob);
+        img.src = savePreviewObjectUrl;
+        overlay.classList.add('active');
+        overlay.setAttribute('aria-hidden', 'false');
+      }
+
+      async function releaseIncompleteShare() {
+        if (!releaseShareBtn) return;
+
+        const prevLabel = releaseShareBtn.textContent;
+        releaseShareBtn.disabled = true;
+        releaseShareBtn.textContent = '画像を準備中…';
+
+        try {
+          const wall = buildExportWallDisplay();
+          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+          const blob = await captureMuseumWallBlob(wall);
+          showSavePreview(blob);
+        } catch (err) {
+          console.warn('放流画像の生成に失敗:', err);
+        } finally {
+          releaseShareBtn.disabled = false;
+          releaseShareBtn.textContent = prevLabel;
+        }
+      }
+
+      function bindSavePreview() {
+        const overlay = document.getElementById('savePreviewOverlay');
+        const closeBtn = document.getElementById('savePreviewClose');
+        const panel = overlay && overlay.querySelector('.save-preview-panel');
+
+        if (closeBtn) {
+          closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeSavePreview();
+          });
+        }
+
+        if (overlay) {
+          overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeSavePreview();
+          });
+        }
+
+        if (panel) {
+          panel.addEventListener('click', (e) => e.stopPropagation());
+        }
+      }
+
       const SPLAT_IMAGE = 'splat.png';
       const CANVAS_BG = '#f7f4eb';
       const splatImg = new Image();
@@ -1330,20 +1922,26 @@
       // スタンプ用メタデータ（大きさ・不透明度・角度を毎回ランダム化）
       function createSplashData(wordLen) {
         const intensity = wordIntensity(wordLen);
-        const baseSize = 220 + Math.random() * 140 + intensity * 50;
+        const baseSize = baseSizeFromWordLength(wordLen) + Math.random() * 10;
+        const scaleFactor = 0.92 + Math.random() * 0.18 + intensity * 0.06;
         return {
           v: 8,
           baseSize,
           rotation: Math.random() * Math.PI * 2,
-          scaleFactor: 0.9 + Math.random() * 0.45 + intensity * 0.12,
+          scaleFactor,
           opacity: opacityFromWordLength(wordLen),
-          hitRadius: baseSize * 0.16
+          hitRadius: Math.max(14, baseSize * scaleFactor * 0.22)
         };
       }
 
       function migrateSplash(s) {
-        let baseSize = s.baseSize || (220 + Math.random() * 140);
-        if (baseSize < 150) baseSize *= 2.5;
+        let baseSize = s.baseSize || 95;
+        if (baseSize >= 200) {
+          // 旧仕様（220〜410px台）のデータはそのまま維持
+        } else if (baseSize > 0 && baseSize < 35) {
+          baseSize *= 2.5;
+        }
+        const scaleFactor = s.scaleFactor ?? (0.9 + Math.random() * 0.45);
         return {
           id: s.id || Date.now().toString(36),
           nx: s.nx,
@@ -1354,9 +1952,9 @@
           v: 8,
           baseSize,
           rotation: s.rotation ?? Math.random() * Math.PI * 2,
-          scaleFactor: s.scaleFactor ?? (0.9 + Math.random() * 0.45),
+          scaleFactor,
           opacity: s.opacity ?? 0.75,
-          hitRadius: s.hitRadius || baseSize * 0.16,
+          hitRadius: s.hitRadius || Math.max(14, baseSize * scaleFactor * 0.22),
           drip: null
         };
       }
@@ -1855,6 +2453,7 @@
       }
 
       function updateUIState() {
+        if (applyDailyLockUI()) return;
         wordInput.disabled = false;
         inscapeBtn.disabled = !wordInput.value.trim();
         colorIndicator.disabled = false;
@@ -2608,6 +3207,8 @@
       }
 
       function handleInscape() {
+        if (hasPostedToday()) return;
+
         const word = wordInput.value.trim();
         if (!word) return;
 
@@ -2651,6 +3252,8 @@
                 .slice(-MAX_ENTRIES);
               saveSplashes();
 
+              lockDiaryForToday();
+
               animateSplash(splash, w, h, () => {
                 redrawCanvas();
                 ensureAmbientLoop();
@@ -2660,7 +3263,7 @@
                 } else {
                   scheduleZenAfterImpact();
                 }
-                updateUIState();
+                applyDailyLockUI();
               });
             }, ballEl);
           }).catch((err) => {
@@ -2801,7 +3404,14 @@
       });
       inscapeBtn.addEventListener('click', handleInscape);
 
-      bindFrameButtonClick();
+      if (releaseShareBtn) {
+        releaseShareBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          releaseIncompleteShare();
+        });
+      }
+
+      bindSavePreview();
 
       document.addEventListener('mousemove', onUserActivity, { passive: true });
       document.addEventListener('touchstart', onUserActivity, { passive: true });
@@ -2819,9 +3429,18 @@
       buildColorWheel();
       applySelectedColor(selectedColor);
       resizeCanvas();
+      applyDailyLockUI();
       updateUIState();
       updateFrameButtonState();
       bindFrameButtonClick();
+
+      document.addEventListener('keydown', (e) => {
+        if (e.key !== 'Escape') return;
+        const saveOverlay = document.getElementById('savePreviewOverlay');
+        if (saveOverlay && saveOverlay.classList.contains('active')) {
+          closeSavePreview();
+        }
+      });
 
       document.addEventListener('touchstart', () => { ensureAudio(); }, { once: true });
       document.addEventListener('click', () => { ensureAudio(); }, { once: true });
