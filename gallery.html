@@ -245,6 +245,49 @@
       font-family: sans-serif;
     }
 
+    .share-art-btn {
+      display: inline-block;
+      margin-top: 1.15rem;
+      padding: 0.65rem 1.1rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.28);
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(232, 230, 226, 0.62);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.52rem;
+      font-weight: 400;
+      letter-spacing: 0.28em;
+      text-indent: 0.28em;
+      cursor: pointer;
+      transition:
+        color 0.3s ease,
+        border-color 0.3s ease,
+        background 0.3s ease,
+        box-shadow 0.3s ease;
+    }
+
+    .share-art-btn:hover {
+      color: rgba(232, 230, 226, 0.88);
+      border-color: rgba(201, 169, 98, 0.45);
+      background: rgba(201, 169, 98, 0.08);
+      box-shadow: 0 0 20px rgba(201, 169, 98, 0.12);
+    }
+
+    .share-art-btn:active {
+      transform: scale(0.98);
+    }
+
+    .share-art-btn.modal-share {
+      margin-top: 1.35rem;
+      letter-spacing: 0.22em;
+      text-indent: 0.22em;
+    }
+
+    .modal-content .share-art-btn {
+      color: rgba(232, 230, 226, 0.72);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
     .no-data {
       flex-shrink: 0;
       width: 100%;
@@ -263,16 +306,14 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      padding:
-        calc(1.25rem + env(safe-area-inset-top))
-        calc(1rem + env(safe-area-inset-right))
-        calc(1.25rem + env(safe-area-inset-bottom))
-        calc(1rem + env(safe-area-inset-left));
-      background: rgba(0, 0, 0, 0.88);
+      padding: 0;
+      background:
+        radial-gradient(ellipse 80% 60% at 50% 40%, rgba(28, 24, 20, 0.95) 0%, rgba(8, 7, 9, 0.98) 55%, #050506 100%);
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
-      transition: opacity 0.35s ease, visibility 0.35s ease;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+      overflow: hidden;
     }
 
     .modal-overlay.active {
@@ -281,30 +322,230 @@
       pointer-events: auto;
     }
 
+    .modal-vault {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding:
+        calc(1.25rem + env(safe-area-inset-top))
+        calc(1rem + env(safe-area-inset-right))
+        calc(1.25rem + env(safe-area-inset-bottom))
+        calc(1rem + env(safe-area-inset-left));
+    }
+
+    .vault-orbs-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .vault-orbs-layer .vault-orb {
+      pointer-events: auto;
+      z-index: 5;
+    }
+
+    .vault-orb {
+      position: absolute;
+      border-radius: 50%;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      opacity: 0;
+      transform: scale(0.6);
+      z-index: 5;
+      will-change: transform, opacity;
+      animation:
+        vaultOrbIn 0.85s cubic-bezier(0.34, 1.2, 0.64, 1) var(--in-delay, 0s) forwards,
+        vaultFloat var(--float-dur, 8s) ease-in-out var(--float-delay, 0s) infinite;
+      background:
+        radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.55) 0%, transparent 42%),
+        radial-gradient(circle at 72% 78%, rgba(0, 0, 0, 0.45) 0%, transparent 48%),
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--orb-color) 78%, white) 0%, var(--orb-color) 58%, color-mix(in srgb, var(--orb-color) 45%, black) 100%);
+      box-shadow:
+        inset 0 2px 6px rgba(255, 255, 255, 0.28),
+        inset 0 -4px 10px rgba(0, 0, 0, 0.35),
+        0 8px 28px rgba(0, 0, 0, 0.55),
+        0 0 24px color-mix(in srgb, var(--orb-color) 35%, transparent);
+      transition: transform 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease;
+    }
+
+    .vault-orb:hover,
+    .vault-orb:focus-visible {
+      z-index: 6;
+      filter: brightness(1.15);
+      box-shadow:
+        inset 0 2px 8px rgba(255, 255, 255, 0.4),
+        0 0 36px color-mix(in srgb, var(--orb-color) 55%, transparent);
+      outline: none;
+    }
+
+    @keyframes vaultOrbIn {
+      to { opacity: 0.84; transform: scale(1); }
+    }
+
+    @keyframes vaultFloat {
+      0%   { translate: var(--fx0, 0px) var(--fy0, 0px); }
+      18%  { translate: var(--fx1, 6px) var(--fy1, -14px); }
+      38%  { translate: var(--fx2, -12px) var(--fy2, 5px); }
+      55%  { translate: var(--fx3, 9px) var(--fy3, 11px); }
+      72%  { translate: var(--fx4, -7px) var(--fy4, -9px); }
+      88%  { translate: var(--fx5, 11px) var(--fy5, 3px); }
+      100% { translate: var(--fx0, 0px) var(--fy0, 0px); }
+    }
+
+    .vault-tagline {
+      position: absolute;
+      bottom: calc(1.1rem + env(safe-area-inset-bottom));
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 2;
+      width: min(92vw, 22rem);
+      text-align: center;
+      font-size: 0.58rem;
+      font-weight: 300;
+      line-height: 2;
+      letter-spacing: 0.12em;
+      color: rgba(201, 169, 98, 0.42);
+      pointer-events: none;
+    }
+
     .modal-content {
+      position: relative;
+      z-index: 3;
       width: 90vw;
       max-width: 400px;
       text-align: center;
-      transform: scale(0.9);
+      transform: scale(0.88) translateY(12px);
       opacity: 0;
-      transition: transform 0.4s cubic-bezier(0.34, 1.15, 0.64, 1), opacity 0.35s ease;
+      transition: transform 0.5s cubic-bezier(0.34, 1.15, 0.64, 1), opacity 0.45s ease;
+      pointer-events: auto;
+      isolation: isolate;
     }
 
     .modal-overlay.active .modal-content {
-      transform: scale(1);
+      transform: scale(1) translateY(0);
       opacity: 1;
     }
 
     .modal-content .museum-frame-sculpted {
       margin: 0 auto;
+      box-shadow:
+        inset 0 4px 0 rgba(255, 255, 255, 0.15),
+        inset 0 -4px 8px rgba(0, 0, 0, 0.8),
+        0 24px 64px rgba(0, 0, 0, 0.85),
+        0 0 80px rgba(201, 169, 98, 0.08);
     }
 
     .modal-content .art-date {
       margin-top: 18px;
-      color: rgba(232, 230, 226, 0.55);
-      font-size: 14px;
-      letter-spacing: 1px;
+      color: rgba(232, 230, 226, 0.45);
+      font-size: 13px;
+      letter-spacing: 0.14em;
       font-family: sans-serif;
+    }
+
+    .memory-popover {
+      position: fixed;
+      z-index: 10020;
+      max-width: min(88vw, 18rem);
+      padding: 1rem 1.1rem;
+      background: rgba(14, 13, 16, 0.94);
+      border: 0.5px solid rgba(201, 169, 98, 0.22);
+      border-radius: 2px;
+      box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.75),
+        0 0 32px rgba(201, 169, 98, 0.08);
+      opacity: 0;
+      visibility: hidden;
+      transform: translate(-50%, -50%) scale(0.92);
+      transition: opacity 0.35s ease, visibility 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1);
+      pointer-events: none;
+    }
+
+    .memory-popover.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+
+    .memory-popover-date {
+      font-size: 0.52rem;
+      letter-spacing: 0.22em;
+      color: rgba(201, 169, 98, 0.65);
+      margin-bottom: 0.75rem;
+    }
+
+    .memory-popover-text {
+      font-size: 0.78rem;
+      font-weight: 300;
+      line-height: 1.85;
+      letter-spacing: 0.06em;
+      color: rgba(232, 230, 226, 0.78);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 40vh;
+      overflow-y: auto;
+    }
+
+    .memory-popover-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-bottom: 0.65rem;
+      box-shadow: 0 0 12px color-mix(in srgb, var(--pop-color) 60%, transparent);
+      background: var(--pop-color);
+    }
+
+    .memory-popover-close {
+      display: block;
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.55rem 0.5rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.22);
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(232, 230, 226, 0.55);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.52rem;
+      font-weight: 400;
+      letter-spacing: 0.32em;
+      text-indent: 0.32em;
+      cursor: pointer;
+      transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+    }
+
+    .memory-popover-close:hover {
+      color: rgba(232, 230, 226, 0.85);
+      border-color: rgba(201, 169, 98, 0.4);
+      background: rgba(201, 169, 98, 0.08);
+    }
+
+    .modal-overlay.view-diary .vault-orbs-layer,
+    .modal-overlay.view-diary .modal-content,
+    .modal-overlay.view-diary .vault-tagline {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .modal-close-hint {
+      position: absolute;
+      top: calc(0.85rem + env(safe-area-inset-top));
+      right: calc(1rem + env(safe-area-inset-right));
+      z-index: 8;
+      font-size: 0.48rem;
+      letter-spacing: 0.18em;
+      color: rgba(232, 230, 226, 0.28);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.5rem;
     }
   </style>
 </head>
@@ -325,10 +566,14 @@
       'use strict';
 
       const GALLERY_KEY = 'inscape_gallery';
+      const INSCAPE_HISTORY_KEY = 'inscape_history';
+      const HISTORY_KEY = 'histories';
       const SPLAT_IMAGE = 'splat.png';
       const CANVAS_BG = '#f7f4eb';
       const DEFAULT_CANVAS_W = 400;
       const DEFAULT_CANVAS_H = 300;
+      const SHARE_APP_URL = 'https://my-inscape.github.io/inscape/';
+      const SHARE_HASHTAG = '#INSCAPE';
 
       const splatImg = new Image();
       const stampCache = {};
@@ -442,6 +687,97 @@
         return galleryData.filter(entry => entry && Array.isArray(entry.splats) && entry.splats.length > 0);
       }
 
+      function getShareCaption() {
+        return `${SHARE_HASHTAG} ${SHARE_APP_URL}`;
+      }
+
+      function canvasToPngBlob(canvasEl) {
+        return new Promise((resolve, reject) => {
+          if (!canvasEl || !canvasEl.width || !canvasEl.height) {
+            reject(new Error('canvas invalid'));
+            return;
+          }
+          canvasEl.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('toBlob failed'));
+          }, 'image/png');
+        });
+      }
+
+      function downloadArtworkPng(canvasEl) {
+        if (!canvasEl) return;
+        try {
+          const link = document.createElement('a');
+          link.href = canvasEl.toDataURL('image/png');
+          link.download = 'inscape-artwork.png';
+          link.click();
+        } catch (err) {
+          console.warn('画像の保存に失敗:', err);
+        }
+      }
+
+      function openTwitterShareFallback() {
+        const text = encodeURIComponent(`${SHARE_HASHTAG}\n${SHARE_APP_URL}`);
+        window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener,noreferrer');
+      }
+
+      async function shareArtwork(canvasEl) {
+        if (!canvasEl) return;
+
+        let blob;
+        try {
+          blob = await canvasToPngBlob(canvasEl);
+        } catch (err) {
+          console.warn('画像の書き出しに失敗:', err);
+          openTwitterShareFallback();
+          return;
+        }
+
+        const pngFile = new File([blob], 'inscape-artwork.png', { type: 'image/png' });
+        const sharePayload = {
+          title: 'INSCAPE',
+          text: getShareCaption(),
+          url: SHARE_APP_URL
+        };
+
+        if (navigator.share) {
+          if (navigator.canShare && navigator.canShare({ files: [pngFile] })) {
+            try {
+              await navigator.share({ ...sharePayload, files: [pngFile] });
+              return;
+            } catch (err) {
+              if (err && err.name === 'AbortError') return;
+            }
+          }
+
+          try {
+            await navigator.share(sharePayload);
+            downloadArtworkPng(canvasEl);
+            return;
+          } catch (err) {
+            if (err && err.name === 'AbortError') return;
+          }
+        }
+
+        openTwitterShareFallback();
+        downloadArtworkPng(canvasEl);
+      }
+
+      function createShareButton(label, getCanvas) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'share-art-btn';
+        btn.textContent = label;
+        btn.setAttribute('aria-label', label);
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const canvasEl = typeof getCanvas === 'function' ? getCanvas() : getCanvas;
+          shareArtwork(canvasEl);
+        });
+        return btn;
+      }
+
       function createFramedArtwork(item) {
         const { srcW, srcH } = getArtDimensions(item);
         const artWrapper = document.createElement('div');
@@ -471,14 +807,303 @@
         sculpted.appendChild(surface);
         artWrapper.appendChild(sculpted);
         artWrapper.appendChild(dateEl);
+        artWrapper.appendChild(createShareButton('この色を放流する', () => artCanvas));
+        artWrapper._galleryItem = item;
 
         return artWrapper;
       }
 
-      function renderGallery() {
-        const galleryContainer = document.getElementById('gallery-container');
+      function formatHistoryDate(ts, fallback) {
+        if (!ts) return fallback || '';
+        const d = new Date(ts);
+        if (Number.isNaN(d.getTime())) return fallback || '';
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        const hr = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return `${y}/${mo}/${da} ${hr}:${mi}`;
+      }
+
+      function loadGlobalInscapeHistory() {
+        try {
+          const raw = localStorage.getItem(INSCAPE_HISTORY_KEY) || localStorage.getItem(HISTORY_KEY);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return [];
+          return data.map((entry) => ({
+            word: entry.word || entry.text || '',
+            color: entry.color,
+            date: entry.date || formatHistoryDate(entry.timestamp, ''),
+            timestamp: entry.timestamp || 0
+          })).filter((e) => e.color);
+        } catch {
+          return [];
+        }
+      }
+
+      function resolveArtworkHistory(item) {
+        if (Array.isArray(item.history) && item.history.length) {
+          return item.history.map((e) => ({
+            word: e.word || e.text || '',
+            color: e.color,
+            date: e.date || formatHistoryDate(e.timestamp, item.date || ''),
+            timestamp: e.timestamp || 0
+          }));
+        }
+        if (Array.isArray(item.splats) && item.splats.length) {
+          return item.splats.map((s, i) => ({
+            word: s.word || '',
+            color: s.color,
+            date: formatHistoryDate(s.timestamp, item.date || ''),
+            timestamp: s.timestamp || i
+          })).filter((e) => e.color);
+        }
+        return loadGlobalInscapeHistory();
+      }
+
+      function randBetween(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function applyOrbFloatVars(orb) {
+        const amp = randBetween(10, 26);
+        orb.style.setProperty('--float-dur', `${randBetween(4.2, 11.5).toFixed(2)}s`);
+        orb.style.setProperty('--float-delay', `-${randBetween(1.5, 14).toFixed(2)}s`);
+        orb.style.setProperty('--fx0', '0px');
+        orb.style.setProperty('--fy0', '0px');
+        for (let k = 1; k <= 5; k++) {
+          orb.style.setProperty(`--fx${k}`, `${(Math.random() - 0.5) * amp * 2}px`);
+          orb.style.setProperty(`--fy${k}`, `${(Math.random() - 0.5) * amp * 2}px`);
+        }
+        orb.style.setProperty('--in-delay', `${randBetween(0, 0.5).toFixed(2)}s`);
+      }
+
+      let memoryPopoverHideTimer = null;
+      let modalView = 'overview';
+
+      function isPointOnFrame(x, y, size, frameEl, layerRect) {
+        if (!frameEl) return false;
+        const fr = frameEl.getBoundingClientRect();
+        const half = size / 2;
+        const gap = 18;
+        const fx = fr.left - layerRect.left - gap;
+        const fy = fr.top - layerRect.top - gap;
+        const fw = fr.width + gap * 2;
+        const fh = fr.height + gap * 2;
+        return x + half > fx && x - half < fx + fw && y + half > fy && y - half < fy + fh;
+      }
+
+      function getRandomScatterSlots(count, layerEl, frameEl) {
+        const layerRect = layerEl.getBoundingClientRect();
+        const slots = [];
+        const edgePad = 14;
+
+        for (let i = 0; i < count; i++) {
+          const size = randBetween(20, 46);
+          const half = size / 2 + edgePad;
+          let placed = false;
+
+          for (let attempt = 0; attempt < 80 && !placed; attempt++) {
+            const x = randBetween(half, Math.max(half + 1, layerRect.width - half));
+            const y = randBetween(half, Math.max(half + 1, layerRect.height - half));
+
+            if (isPointOnFrame(x, y, size, frameEl, layerRect)) continue;
+
+            const crowded = slots.some((s) => {
+              return Math.hypot(s.x - x, s.y - y) < (s.size + size) * 0.48 + randBetween(8, 22);
+            });
+            if (!crowded) {
+              slots.push({ x, y, size });
+              placed = true;
+            }
+          }
+
+          if (!placed) {
+            for (let attempt = 0; attempt < 80 && !placed; attempt++) {
+              const x = randBetween(half, Math.max(half + 1, layerRect.width - half));
+              const y = randBetween(half, Math.max(half + 1, layerRect.height - half));
+              if (!isPointOnFrame(x, y, size, frameEl, layerRect)) {
+                slots.push({ x, y, size });
+                placed = true;
+              }
+            }
+          }
+
+          if (!placed) {
+            slots.push({
+              x: randBetween(half, Math.max(half + 1, layerRect.width * 0.22)),
+              y: randBetween(half, Math.max(half + 1, layerRect.height - half)),
+              size
+            });
+          }
+        }
+
+        return slots.map((s) => ({
+          left: `${((s.x / layerRect.width) * 100).toFixed(2)}%`,
+          top: `${((s.y / layerRect.height) * 100).toFixed(2)}%`,
+          size: s.size
+        }));
+      }
+
+      function spawnVaultOrbs(historyEntries, layerEl, frameEl) {
+        if (!layerEl) return;
+        layerEl.innerHTML = '';
+
+        const entries = historyEntries.length ? historyEntries : [{ color: '#6a7a8a', word: '', date: '' }];
+        const scatterSlots = getRandomScatterSlots(entries.length, layerEl, frameEl);
+
+        entries.forEach((entry, i) => {
+          const orb = document.createElement('button');
+          orb.type = 'button';
+          orb.className = 'vault-orb';
+          const slot = scatterSlots[i] || scatterSlots[scatterSlots.length - 1];
+          const size = slot.size || randBetween(22, 40);
+
+          orb.style.setProperty('--orb-color', entry.color || '#5a6a7a');
+          orb.style.width = `${size}px`;
+          orb.style.height = `${size}px`;
+          orb.style.left = slot.left;
+          orb.style.top = slot.top;
+
+          applyOrbFloatVars(orb);
+          orb.setAttribute('aria-label', '感情の記録を見る');
+
+          orb.addEventListener('click', (e) => {
+            e.stopPropagation();
+            showMemoryPopover(entry, orb);
+          });
+
+          layerEl.appendChild(orb);
+        });
+      }
+
+      function showMemoryPopover(entry, anchorEl) {
+        const popover = document.getElementById('memoryPopover');
+        const imageModal = document.getElementById('imageModal');
+        if (!popover) return;
+
+        clearTimeout(memoryPopoverHideTimer);
+        modalView = 'diary';
+        if (imageModal) imageModal.classList.add('view-diary');
+
+        const dot = popover.querySelector('.memory-popover-dot');
+        const dateEl = popover.querySelector('.memory-popover-date');
+        const textEl = popover.querySelector('.memory-popover-text');
+
+        if (dot) dot.style.setProperty('--pop-color', entry.color || '#888');
+        if (dateEl) dateEl.textContent = entry.date || '—';
+        if (textEl) {
+          textEl.textContent = entry.word && entry.word.trim()
+            ? entry.word
+            : '言葉の記録は、この作品完成前のデータには含まれていません。';
+        }
+
+        const rect = anchorEl.getBoundingClientRect();
+        let left = rect.left + rect.width / 2;
+        let top = rect.top - 12;
+        const margin = 12;
+        const popW = 288;
+        if (left - popW / 2 < margin) left = margin + popW / 2;
+        if (left + popW / 2 > window.innerWidth - margin) left = window.innerWidth - margin - popW / 2;
+        if (top < margin + 80) top = rect.bottom + 16;
+
+        popover.style.left = `${left}px`;
+        popover.style.top = `${top}px`;
+        popover.setAttribute('aria-hidden', 'false');
+        popover.classList.add('visible');
+      }
+
+      function hideMemoryPopover() {
+        const popover = document.getElementById('memoryPopover');
+        if (popover) {
+          popover.classList.remove('visible');
+          popover.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      function returnToVaultOverview() {
+        const imageModal = document.getElementById('imageModal');
+        hideMemoryPopover();
+        modalView = 'overview';
+        if (imageModal) {
+          imageModal.classList.remove('view-diary');
+        }
+      }
+
+      function handleModalCloseRequest() {
+        if (modalView === 'diary') {
+          returnToVaultOverview();
+          return;
+        }
+        closeArtworkModal();
+      }
+
+      function layoutVaultOrbs(galleryItem, vaultOrbs, modalBody) {
+        if (!galleryItem || !vaultOrbs) return;
+        spawnVaultOrbs(resolveArtworkHistory(galleryItem), vaultOrbs, modalBody);
+      }
+
+      function openArtworkModal(artwork, item) {
         const imageModal = document.getElementById('imageModal');
         const modalBody = document.getElementById('modalBody');
+        const vaultOrbs = document.getElementById('vaultOrbs');
+        if (!imageModal || !modalBody) return;
+
+        hideMemoryPopover();
+        modalBody.innerHTML = artwork.innerHTML;
+
+        const srcCanvas = artwork.querySelector('.gallery-art-canvas');
+        const modalCanvas = modalBody.querySelector('.gallery-art-canvas');
+        if (srcCanvas && modalCanvas) {
+          modalCanvas.width = srcCanvas.width;
+          modalCanvas.height = srcCanvas.height;
+          modalCanvas.style.width = '100%';
+          modalCanvas.style.height = 'auto';
+          const surface = modalBody.querySelector('.art-surface');
+          if (surface && srcCanvas.parentElement) {
+            surface.style.aspectRatio = srcCanvas.parentElement.style.aspectRatio || '';
+          }
+          modalCanvas.getContext('2d').drawImage(srcCanvas, 0, 0);
+        }
+
+        const listShareBtn = modalBody.querySelector('.share-art-btn');
+        if (listShareBtn) listShareBtn.remove();
+
+        const modalShareBtn = createShareButton('この感情を肯定する', () => modalBody.querySelector('.gallery-art-canvas'));
+        modalShareBtn.classList.add('modal-share');
+        modalBody.appendChild(modalShareBtn);
+
+        hideMemoryPopover();
+        modalView = 'overview';
+        const galleryItem = item || artwork._galleryItem;
+
+        imageModal.classList.remove('view-diary');
+        imageModal.classList.add('active');
+        imageModal.setAttribute('aria-hidden', 'false');
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            layoutVaultOrbs(galleryItem, vaultOrbs, modalBody);
+          });
+        });
+      }
+
+      function closeArtworkModal() {
+        const imageModal = document.getElementById('imageModal');
+        const modalBody = document.getElementById('modalBody');
+        const vaultOrbs = document.getElementById('vaultOrbs');
+        if (!imageModal || !modalBody) return;
+        hideMemoryPopover();
+        modalView = 'overview';
+        imageModal.classList.remove('active', 'view-diary');
+        imageModal.setAttribute('aria-hidden', 'true');
+        modalBody.innerHTML = '';
+        if (vaultOrbs) vaultOrbs.innerHTML = '';
+      }
+
+      function renderGallery() {
+        const galleryContainer = document.getElementById('gallery-container');
         const galleryData = loadGallery();
 
         if (galleryData.length === 0) {
@@ -489,24 +1114,9 @@
         galleryContainer.innerHTML = '';
         galleryData.slice().reverse().forEach((item) => {
           const artwork = createFramedArtwork(item);
-          artwork.addEventListener('click', () => {
-            modalBody.innerHTML = artwork.innerHTML;
-
-            const srcCanvas = artwork.querySelector('.gallery-art-canvas');
-            const modalCanvas = modalBody.querySelector('.gallery-art-canvas');
-            if (srcCanvas && modalCanvas) {
-              modalCanvas.width = srcCanvas.width;
-              modalCanvas.height = srcCanvas.height;
-              modalCanvas.style.width = '100%';
-              modalCanvas.style.height = 'auto';
-              const surface = modalBody.querySelector('.art-surface');
-              if (surface && srcCanvas.parentElement) {
-                surface.style.aspectRatio = srcCanvas.parentElement.style.aspectRatio || '';
-              }
-              modalCanvas.getContext('2d').drawImage(srcCanvas, 0, 0);
-            }
-
-            imageModal.classList.add('active');
+          artwork.addEventListener('click', (e) => {
+            if (e.target.closest('.share-art-btn')) return;
+            openArtworkModal(artwork, item);
           });
           galleryContainer.appendChild(artwork);
         });
@@ -514,12 +1124,46 @@
 
       function bindImageModal() {
         const imageModal = document.getElementById('imageModal');
-        const modalBody = document.getElementById('modalBody');
-        if (!imageModal || !modalBody) return;
+        const modalCloseHint = document.getElementById('modalCloseHint');
+        const memoryPopover = document.getElementById('memoryPopover');
+        if (!imageModal) return;
 
-        imageModal.addEventListener('click', () => {
-          imageModal.classList.remove('active');
-          modalBody.innerHTML = '';
+        if (modalCloseHint) {
+          modalCloseHint.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleModalCloseRequest();
+          });
+        }
+
+        const memoryPopoverClose = document.getElementById('memoryPopoverClose');
+        if (memoryPopoverClose) {
+          memoryPopoverClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            returnToVaultOverview();
+          });
+        }
+
+        imageModal.addEventListener('click', (e) => {
+          if (e.target.closest('.vault-orb') || e.target.closest('.memory-popover') ||
+              e.target.closest('.share-art-btn') || e.target.closest('.modal-content') ||
+              e.target.closest('#modalCloseHint')) {
+            return;
+          }
+          if (e.target === imageModal || e.target.classList.contains('modal-vault') ||
+              e.target.classList.contains('vault-orbs-layer') ||
+              e.target.classList.contains('vault-tagline')) {
+            handleModalCloseRequest();
+          }
+        });
+
+        if (memoryPopover) {
+          memoryPopover.addEventListener('click', (e) => e.stopPropagation());
+        }
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && imageModal.classList.contains('active')) {
+            handleModalCloseRequest();
+          }
         });
       }
 
@@ -535,6 +1179,19 @@
     })();
   </script>
 
-  <div class="modal-overlay" id="imageModal"><div class="modal-content" id="modalBody"></div></div>
+  <div class="modal-overlay" id="imageModal" aria-hidden="true">
+    <div class="modal-vault">
+      <button type="button" class="modal-close-hint" id="modalCloseHint" aria-label="閉じる">CLOSE</button>
+      <div class="modal-content" id="modalBody"></div>
+      <div class="vault-orbs-layer" id="vaultOrbs" aria-hidden="true"></div>
+      <p class="vault-tagline">ドロドロした感情も、全部あなたの綺麗な一部。</p>
+    </div>
+  </div>
+  <div class="memory-popover" id="memoryPopover" role="dialog" aria-hidden="true">
+    <div class="memory-popover-dot"></div>
+    <p class="memory-popover-date"></p>
+    <p class="memory-popover-text"></p>
+    <button type="button" class="memory-popover-close" id="memoryPopoverClose">閉じる</button>
+  </div>
 </body>
 </html>

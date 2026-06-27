@@ -1040,6 +1040,7 @@
 
       const STORAGE_KEY = 'inscape_splashes';
       const HISTORY_KEY = 'histories';
+      const INSCAPE_HISTORY_KEY = 'inscape_history';
       const GALLERY_KEY = 'inscape_gallery';
       const MAX_ENTRIES = 7;
       const GALLERY_MAX = 28;
@@ -1348,6 +1349,7 @@
           nx: s.nx,
           ny: s.ny,
           color: s.color,
+          word: s.word || '',
           timestamp: s.timestamp,
           v: 8,
           baseSize,
@@ -1535,18 +1537,30 @@
         }
       }
 
+      function buildDiaryHistoryFromSplashes(list) {
+        return list.map((s) => ({
+          word: s.word || '',
+          color: s.color,
+          date: formatDate(s.timestamp),
+          timestamp: s.timestamp || Date.now()
+        })).filter((e) => e.color);
+      }
+
       function syncHistoriesFromSplashes() {
         const recipes = splashes.map(({ drip, ...rest }) => rest);
         localStorage.setItem(HISTORY_KEY, JSON.stringify(recipes));
+        localStorage.setItem(INSCAPE_HISTORY_KEY, JSON.stringify(buildDiaryHistoryFromSplashes(splashes)));
       }
 
       function saveRecipeToGallery() {
         syncHistoriesFromSplashes();
+        const diaryHistory = buildDiaryHistoryFromSplashes(splashes);
         let gallery = JSON.parse(localStorage.getItem('inscape_gallery')) || [];
         if (!Array.isArray(gallery)) gallery = [];
         gallery.push({
           date: new Date().toLocaleDateString(),
           splats: JSON.parse(localStorage.getItem('histories')) || [],
+          history: diaryHistory,
           canvasW: parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth,
           canvasH: parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight
         });
@@ -2624,6 +2638,7 @@
                 nx: pos.x / w,
                 ny: pos.y / h,
                 color: selectedColor,
+                word: savedWord,
                 timestamp: Date.now(),
                 ...splashMeta
               };
