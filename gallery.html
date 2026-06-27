@@ -547,7 +547,64 @@
       cursor: pointer;
       padding: 0.5rem;
     }
+
+    .modal-art-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.7rem;
+      margin-top: 1.35rem;
+    }
+
+    .save-art-btn {
+      display: inline-block;
+      padding: 0.65rem 1.15rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.38);
+      border-radius: 1px;
+      background:
+        linear-gradient(180deg, rgba(201, 169, 98, 0.1) 0%, rgba(255, 255, 255, 0.04) 100%);
+      color: rgba(232, 230, 226, 0.78);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.52rem;
+      font-weight: 400;
+      letter-spacing: 0.26em;
+      text-indent: 0.26em;
+      cursor: pointer;
+      transition:
+        color 0.3s ease,
+        border-color 0.3s ease,
+        background 0.3s ease,
+        box-shadow 0.3s ease,
+        opacity 0.3s ease;
+    }
+
+    .save-art-btn:hover {
+      color: rgba(255, 252, 240, 0.92);
+      border-color: rgba(201, 169, 98, 0.55);
+      background: rgba(201, 169, 98, 0.12);
+      box-shadow: 0 0 24px rgba(201, 169, 98, 0.14);
+    }
+
+    .save-art-btn:active {
+      transform: scale(0.98);
+    }
+
+    .save-art-btn:disabled,
+    .share-art-btn:disabled {
+      opacity: 0.45;
+      cursor: wait;
+      pointer-events: none;
+    }
+
+    .modal-content .save-art-btn {
+      color: rgba(232, 230, 226, 0.82);
+    }
+
+    .modal-content .modal-art-actions .share-art-btn.modal-share {
+      margin-top: 0;
+    }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <div class="corridor-top">
@@ -691,7 +748,28 @@
         return `${SHARE_HASHTAG} ${SHARE_APP_URL}`;
       }
 
-      function canvasToPngBlob(canvasEl) {
+      function getFrameCaptureTarget(containerEl) {
+        if (!containerEl) return null;
+        if (containerEl.classList && containerEl.classList.contains('museum-frame-sculpted')) {
+          return containerEl;
+        }
+        return containerEl.querySelector('.museum-frame-sculpted');
+      }
+
+      function stripPrivacyTextFromClone(clonedFrame) {
+        if (!clonedFrame) return;
+        clonedFrame.querySelectorAll(
+          '.art-date, .share-art-btn, .save-art-btn, .modal-art-actions, ' +
+          '.memory-popover, [data-export-hide], .privacy-export-hidden'
+        ).forEach((node) => node.remove());
+
+        clonedFrame.querySelectorAll('.gallery-art-canvas').forEach((canvasEl) => {
+          const overlay = canvasEl.parentElement && canvasEl.parentElement.querySelector('.privacy-text-overlay');
+          if (overlay) overlay.remove();
+        });
+      }
+
+      function htmlCanvasToBlob(canvasEl) {
         return new Promise((resolve, reject) => {
           if (!canvasEl || !canvasEl.width || !canvasEl.height) {
             reject(new Error('canvas invalid'));
@@ -700,17 +778,52 @@
           canvasEl.toBlob((blob) => {
             if (blob) resolve(blob);
             else reject(new Error('toBlob failed'));
-          }, 'image/png');
+          }, 'image/png', 1);
         });
       }
 
-      function downloadArtworkPng(canvasEl) {
-        if (!canvasEl) return;
+      async function captureFrameToBlob(frameEl) {
+        if (!frameEl) throw new Error('frame missing');
+        if (typeof html2canvas !== 'function') throw new Error('html2canvas not loaded');
+
+        const popover = document.getElementById('memoryPopover');
+        if (popover && popover.classList.contains('visible')) {
+          hideMemoryPopover();
+        }
+
+        const scale = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1.5));
+        const exportCanvas = await html2canvas(frameEl, {
+          scale,
+          useCORS: true,
+          allowTaint: false,
+          backgroundColor: null,
+          logging: false,
+          onclone: (_doc, clonedEl) => {
+            stripPrivacyTextFromClone(clonedEl);
+          }
+        });
+
+        return htmlCanvasToBlob(exportCanvas);
+      }
+
+      async function captureFramedArtworkBlob(containerEl) {
+        const frameEl = getFrameCaptureTarget(containerEl);
+        if (!frameEl) throw new Error('frame target missing');
+        return captureFrameToBlob(frameEl);
+      }
+
+      function downloadBlob(blob, filename) {
+        if (!blob) return;
         try {
+          const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
-          link.href = canvasEl.toDataURL('image/png');
-          link.download = 'inscape-artwork.png';
+          link.href = url;
+          link.download = filename || 'inscape-framed.png';
+          link.rel = 'noopener';
+          document.body.appendChild(link);
           link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
         } catch (err) {
           console.warn('画像の保存に失敗:', err);
         }
@@ -721,19 +834,34 @@
         window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener,noreferrer');
       }
 
-      async function shareArtwork(canvasEl) {
-        if (!canvasEl) return;
+      async function shareFramedArtwork(containerEl, triggerBtn) {
+        if (!containerEl) return;
+
+        const prevLabel = triggerBtn ? triggerBtn.textContent : '';
+        if (triggerBtn) {
+          triggerBtn.disabled = true;
+          triggerBtn.textContent = '画像を準備中…';
+        }
 
         let blob;
         try {
-          blob = await canvasToPngBlob(canvasEl);
+          blob = await captureFramedArtworkBlob(containerEl);
         } catch (err) {
-          console.warn('画像の書き出しに失敗:', err);
+          console.warn('額装画像の生成に失敗:', err);
           openTwitterShareFallback();
+          if (triggerBtn) {
+            triggerBtn.disabled = false;
+            triggerBtn.textContent = prevLabel;
+          }
           return;
+        } finally {
+          if (triggerBtn && triggerBtn.disabled) {
+            triggerBtn.disabled = false;
+            triggerBtn.textContent = prevLabel;
+          }
         }
 
-        const pngFile = new File([blob], 'inscape-artwork.png', { type: 'image/png' });
+        const pngFile = new File([blob], 'inscape-framed.png', { type: 'image/png' });
         const sharePayload = {
           title: 'INSCAPE',
           text: getShareCaption(),
@@ -752,7 +880,7 @@
 
           try {
             await navigator.share(sharePayload);
-            downloadArtworkPng(canvasEl);
+            downloadBlob(blob, 'inscape-framed.png');
             return;
           } catch (err) {
             if (err && err.name === 'AbortError') return;
@@ -760,10 +888,32 @@
         }
 
         openTwitterShareFallback();
-        downloadArtworkPng(canvasEl);
+        downloadBlob(blob, 'inscape-framed.png');
       }
 
-      function createShareButton(label, getCanvas) {
+      async function saveFramedArtwork(containerEl, triggerBtn) {
+        if (!containerEl) return;
+
+        const prevLabel = triggerBtn ? triggerBtn.textContent : '';
+        if (triggerBtn) {
+          triggerBtn.disabled = true;
+          triggerBtn.textContent = '保存を準備中…';
+        }
+
+        try {
+          const blob = await captureFramedArtworkBlob(containerEl);
+          downloadBlob(blob, 'inscape-framed.png');
+        } catch (err) {
+          console.warn('額装画像の保存に失敗:', err);
+        } finally {
+          if (triggerBtn) {
+            triggerBtn.disabled = false;
+            triggerBtn.textContent = prevLabel || 'この絵画を保存する';
+          }
+        }
+      }
+
+      function createShareButton(label, getContainer) {
         const btn = document.createElement('button');
         btn.type = 'button';
         btn.className = 'share-art-btn';
@@ -772,8 +922,23 @@
         btn.addEventListener('click', (e) => {
           e.preventDefault();
           e.stopPropagation();
-          const canvasEl = typeof getCanvas === 'function' ? getCanvas() : getCanvas;
-          shareArtwork(canvasEl);
+          const containerEl = typeof getContainer === 'function' ? getContainer() : getContainer;
+          shareFramedArtwork(containerEl, btn);
+        });
+        return btn;
+      }
+
+      function createSaveButton(getContainer) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'save-art-btn';
+        btn.textContent = 'この絵画を保存する';
+        btn.setAttribute('aria-label', 'この絵画を保存する');
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          const containerEl = typeof getContainer === 'function' ? getContainer() : getContainer;
+          saveFramedArtwork(containerEl, btn);
         });
         return btn;
       }
@@ -807,7 +972,7 @@
         sculpted.appendChild(surface);
         artWrapper.appendChild(sculpted);
         artWrapper.appendChild(dateEl);
-        artWrapper.appendChild(createShareButton('この色を放流する', () => artCanvas));
+        artWrapper.appendChild(createShareButton('この色を放流する', () => artWrapper));
         artWrapper._galleryItem = item;
 
         return artWrapper;
@@ -1069,10 +1234,19 @@
 
         const listShareBtn = modalBody.querySelector('.share-art-btn');
         if (listShareBtn) listShareBtn.remove();
+        const listSaveBtn = modalBody.querySelector('.save-art-btn');
+        if (listSaveBtn) listSaveBtn.remove();
+        const listActions = modalBody.querySelector('.modal-art-actions');
+        if (listActions) listActions.remove();
 
-        const modalShareBtn = createShareButton('この感情を肯定する', () => modalBody.querySelector('.gallery-art-canvas'));
+        const actionsWrap = document.createElement('div');
+        actionsWrap.className = 'modal-art-actions';
+
+        const modalShareBtn = createShareButton('この感情を肯定する', () => modalBody);
         modalShareBtn.classList.add('modal-share');
-        modalBody.appendChild(modalShareBtn);
+        actionsWrap.appendChild(modalShareBtn);
+        actionsWrap.appendChild(createSaveButton(() => modalBody));
+        modalBody.appendChild(actionsWrap);
 
         hideMemoryPopover();
         modalView = 'overview';
@@ -1115,7 +1289,7 @@
         galleryData.slice().reverse().forEach((item) => {
           const artwork = createFramedArtwork(item);
           artwork.addEventListener('click', (e) => {
-            if (e.target.closest('.share-art-btn')) return;
+            if (e.target.closest('.share-art-btn') || e.target.closest('.save-art-btn')) return;
             openArtworkModal(artwork, item);
           });
           galleryContainer.appendChild(artwork);
@@ -1145,7 +1319,8 @@
 
         imageModal.addEventListener('click', (e) => {
           if (e.target.closest('.vault-orb') || e.target.closest('.memory-popover') ||
-              e.target.closest('.share-art-btn') || e.target.closest('.modal-content') ||
+              e.target.closest('.share-art-btn') || e.target.closest('.save-art-btn') ||
+              e.target.closest('.modal-content') ||
               e.target.closest('#modalCloseHint')) {
             return;
           }
