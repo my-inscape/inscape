@@ -237,12 +237,27 @@
       opacity: 0.35;
     }
 
-    .art-date {
-      margin-top: 18px;
-      color: #888;
-      font-size: 14px;
-      letter-spacing: 1px;
-      font-family: sans-serif;
+    .art-period-caption {
+      margin-top: 1.1rem;
+      padding: 0 0.35rem;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Georgia", "Times New Roman", serif;
+      font-size: 0.85rem;
+      font-weight: 300;
+      letter-spacing: 0.16em;
+      text-indent: 0.16em;
+      color: rgba(136, 136, 136, 0.92);
+      line-height: 1.65;
+    }
+
+    .art-period-caption:empty {
+      display: none;
+    }
+
+    .museum-wall-display {
+      display: inline-block;
+      width: 100%;
+      max-width: 100%;
+      text-align: center;
     }
 
     .share-art-btn {
@@ -442,12 +457,12 @@
         0 0 80px rgba(201, 169, 98, 0.08);
     }
 
-    .modal-content .art-date {
-      margin-top: 18px;
-      color: rgba(232, 230, 226, 0.45);
-      font-size: 13px;
-      letter-spacing: 0.14em;
-      font-family: sans-serif;
+    .modal-content .art-period-caption {
+      margin-top: 1.15rem;
+      font-size: 0.82rem;
+      color: rgba(204, 204, 204, 0.68);
+      letter-spacing: 0.18em;
+      text-indent: 0.18em;
     }
 
     .memory-popover {
@@ -750,20 +765,25 @@
 
       function getFrameCaptureTarget(containerEl) {
         if (!containerEl) return null;
+        if (containerEl.classList && containerEl.classList.contains('museum-wall-display')) {
+          return containerEl;
+        }
+        const wallDisplay = containerEl.querySelector('.museum-wall-display');
+        if (wallDisplay) return wallDisplay;
         if (containerEl.classList && containerEl.classList.contains('museum-frame-sculpted')) {
           return containerEl;
         }
         return containerEl.querySelector('.museum-frame-sculpted');
       }
 
-      function stripPrivacyTextFromClone(clonedFrame) {
-        if (!clonedFrame) return;
-        clonedFrame.querySelectorAll(
+      function stripPrivacyTextFromClone(clonedRoot) {
+        if (!clonedRoot) return;
+        clonedRoot.querySelectorAll(
           '.art-date, .share-art-btn, .save-art-btn, .modal-art-actions, ' +
           '.memory-popover, [data-export-hide], .privacy-export-hidden'
         ).forEach((node) => node.remove());
 
-        clonedFrame.querySelectorAll('.gallery-art-canvas').forEach((canvasEl) => {
+        clonedRoot.querySelectorAll('.gallery-art-canvas').forEach((canvasEl) => {
           const overlay = canvasEl.parentElement && canvasEl.parentElement.querySelector('.privacy-text-overlay');
           if (overlay) overlay.remove();
         });
@@ -796,7 +816,7 @@
           scale,
           useCORS: true,
           allowTaint: false,
-          backgroundColor: null,
+          backgroundColor: '#050506',
           logging: false,
           onclone: (_doc, clonedEl) => {
             stripPrivacyTextFromClone(clonedEl);
@@ -943,10 +963,64 @@
         return btn;
       }
 
+      function formatDotDate(d) {
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        return `${y}.${mo}.${da}`;
+      }
+
+      function parseHistoryEntryToDate(entry) {
+        if (!entry) return null;
+        if (entry.timestamp && Number(entry.timestamp) > 0) {
+          const d = new Date(entry.timestamp);
+          if (!Number.isNaN(d.getTime())) return d;
+        }
+        if (entry.date) {
+          const dateStr = String(entry.date);
+          const matched = dateStr.match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+          if (matched) {
+            const d = new Date(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3]));
+            if (!Number.isNaN(d.getTime())) return d;
+          }
+          const parsed = Date.parse(dateStr);
+          if (!Number.isNaN(parsed)) return new Date(parsed);
+        }
+        return null;
+      }
+
+      function computeArtworkPeriodCaption(item) {
+        const history = resolveArtworkHistory(item);
+        const dates = history
+          .map(parseHistoryEntryToDate)
+          .filter(Boolean)
+          .sort((a, b) => a.getTime() - b.getTime());
+
+        if (dates.length === 0) {
+          const fallback = parseHistoryEntryToDate({ date: item.date, timestamp: 0 });
+          return fallback ? formatDotDate(fallback) : '';
+        }
+
+        const startStr = formatDotDate(dates[0]);
+        const endStr = formatDotDate(dates[dates.length - 1]);
+        return startStr === endStr ? startStr : `${startStr} - ${endStr}`;
+      }
+
+      function createPeriodCaptionElement(item) {
+        const caption = document.createElement('p');
+        caption.className = 'art-period-caption';
+        caption.textContent = computeArtworkPeriodCaption(item);
+        caption.setAttribute('aria-label', '作品の対象期間');
+        return caption;
+      }
+
       function createFramedArtwork(item) {
         const { srcW, srcH } = getArtDimensions(item);
         const artWrapper = document.createElement('div');
         artWrapper.className = 'gallery-item';
+
+        const wallDisplay = document.createElement('div');
+        wallDisplay.className = 'museum-wall-display';
 
         const sculpted = document.createElement('div');
         sculpted.className = 'museum-frame-sculpted';
@@ -963,15 +1037,12 @@
         texture.className = 'paper-texture-overlay';
         texture.setAttribute('aria-hidden', 'true');
 
-        const dateEl = document.createElement('p');
-        dateEl.className = 'art-date';
-        dateEl.textContent = item.date || '';
-
         surface.appendChild(artCanvas);
         surface.appendChild(texture);
         sculpted.appendChild(surface);
-        artWrapper.appendChild(sculpted);
-        artWrapper.appendChild(dateEl);
+        wallDisplay.appendChild(sculpted);
+        wallDisplay.appendChild(createPeriodCaptionElement(item));
+        artWrapper.appendChild(wallDisplay);
         artWrapper.appendChild(createShareButton('この色を放流する', () => artWrapper));
         artWrapper._galleryItem = item;
 
@@ -1251,6 +1322,11 @@
         hideMemoryPopover();
         modalView = 'overview';
         const galleryItem = item || artwork._galleryItem;
+
+        const periodCaption = modalBody.querySelector('.art-period-caption');
+        if (periodCaption && galleryItem) {
+          periodCaption.textContent = computeArtworkPeriodCaption(galleryItem);
+        }
 
         imageModal.classList.remove('view-diary');
         imageModal.classList.add('active');
