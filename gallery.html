@@ -179,10 +179,11 @@
       outline: 4px solid #aa7c11;
       outline-offset: -24px;
       box-shadow:
-        inset 0 4px 0 rgba(255, 255, 255, 0.15),
-        inset 0 -4px 8px rgba(0, 0, 0, 0.8),
-        0 50px 100px rgba(0, 0, 0, 0.95),
-        0 15px 30px rgba(0, 0, 0, 0.7);
+        inset 0 5px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -3px 10px rgba(0, 0, 0, 0.65),
+        0 4px 14px rgba(0, 0, 0, 0.42),
+        0 20px 40px rgba(0, 0, 0, 0.8),
+        0 36px 72px rgba(0, 0, 0, 0.52);
     }
 
     .museum-frame-sculpted::before {
@@ -254,10 +255,51 @@
     }
 
     .museum-wall-display {
+      position: relative;
       display: inline-block;
       width: 100%;
       max-width: 100%;
       text-align: center;
+      overflow: visible;
+      padding: 2rem 1rem 1.5rem;
+      background:
+        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0) 70%),
+        radial-gradient(ellipse 88% 52% at 50% -6%, rgba(255, 252, 240, 0.09) 0%, transparent 55%),
+        #0a0a0a;
+      border-radius: 1px;
+    }
+
+    .museum-wall-display::before {
+      content: '';
+      position: absolute;
+      inset: -8% -14%;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 6%, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0) 62%),
+        radial-gradient(ellipse 65% 38% at 50% 0%, rgba(201, 169, 98, 0.05) 0%, transparent 58%);
+      opacity: 0.9;
+    }
+
+    .museum-wall-display > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .gallery-item .museum-wall-display {
+      padding: 1.75rem 0.65rem 1.25rem;
+      background:
+        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.14) 0%, rgba(0, 0, 0, 0) 68%),
+        radial-gradient(ellipse 85% 48% at 50% -5%, rgba(255, 252, 240, 0.07) 0%, transparent 52%),
+        rgba(8, 8, 9, 0.88);
+    }
+
+    .museum-wall-export {
+      padding: 2.75rem 1.5rem 2rem !important;
+      background:
+        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0) 70%),
+        radial-gradient(ellipse 88% 52% at 50% -6%, rgba(255, 252, 240, 0.09) 0%, transparent 55%),
+        #0a0a0a !important;
     }
 
     .share-art-btn {
@@ -451,10 +493,21 @@
     .modal-content .museum-frame-sculpted {
       margin: 0 auto;
       box-shadow:
-        inset 0 4px 0 rgba(255, 255, 255, 0.15),
-        inset 0 -4px 8px rgba(0, 0, 0, 0.8),
-        0 24px 64px rgba(0, 0, 0, 0.85),
-        0 0 80px rgba(201, 169, 98, 0.08);
+        inset 0 5px 0 rgba(255, 255, 255, 0.22),
+        inset 0 -3px 10px rgba(0, 0, 0, 0.62),
+        0 6px 18px rgba(0, 0, 0, 0.48),
+        0 20px 40px rgba(0, 0, 0, 0.82),
+        0 40px 80px rgba(0, 0, 0, 0.58),
+        0 0 72px rgba(255, 252, 235, 0.045);
+    }
+
+    .modal-content .museum-wall-display {
+      padding: 2.5rem 1.15rem 1.75rem;
+      background:
+        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.2) 0%, rgba(0, 0, 0, 0) 70%),
+        radial-gradient(ellipse 90% 55% at 50% -8%, rgba(255, 252, 240, 0.1) 0%, transparent 54%),
+        radial-gradient(ellipse 120% 80% at 50% 100%, rgba(0, 0, 0, 0.55) 0%, transparent 62%),
+        #0a0a0a;
     }
 
     .modal-content .art-period-caption {
@@ -712,7 +765,7 @@
       box-shadow:
         0 24px 64px rgba(0, 0, 0, 0.85),
         0 0 48px rgba(201, 169, 98, 0.06);
-      background: #050506;
+      background: #0a0a0a;
     }
 
     .save-preview-image-wrap img {
@@ -775,23 +828,56 @@
         });
       }
 
+      function drawMuseumSpotlightBackground(ctx, w, h) {
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, w, h);
+
+        const spotlight = ctx.createRadialGradient(
+          w * 0.5, h * 0.1, 0,
+          w * 0.5, h * 0.1, Math.max(w, h) * 0.82
+        );
+        spotlight.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
+        spotlight.addColorStop(0.32, 'rgba(255, 255, 255, 0.07)');
+        spotlight.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
+        spotlight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = spotlight;
+        ctx.fillRect(0, 0, w, h);
+
+        const warmGlow = ctx.createRadialGradient(
+          w * 0.5, h * 0.02, 0,
+          w * 0.5, h * 0.02, w * 0.58
+        );
+        warmGlow.addColorStop(0, 'rgba(255, 252, 240, 0.1)');
+        warmGlow.addColorStop(0.45, 'rgba(255, 252, 240, 0.025)');
+        warmGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = warmGlow;
+        ctx.fillRect(0, 0, w, h);
+
+        const vignette = ctx.createRadialGradient(
+          w * 0.5, h * 0.46, Math.min(w, h) * 0.16,
+          w * 0.5, h * 0.46, Math.max(w, h) * 0.96
+        );
+        vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vignette.addColorStop(0.52, 'rgba(0, 0, 0, 0.22)');
+        vignette.addColorStop(0.82, 'rgba(5, 5, 5, 0.72)');
+        vignette.addColorStop(1, 'rgba(5, 5, 5, 0.96)');
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, w, h);
+
+        const floorFade = ctx.createLinearGradient(0, h * 0.68, 0, h);
+        floorFade.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        floorFade.addColorStop(1, 'rgba(0, 0, 0, 0.52)');
+        ctx.fillStyle = floorFade;
+        ctx.fillRect(0, 0, w, h);
+      }
+
       async function compositeToMuseumExport(artCanvas) {
         const final = document.createElement('canvas');
         final.width = EXPORT_W;
         final.height = EXPORT_H;
         const ctx = final.getContext('2d');
 
-        ctx.fillStyle = '#050506';
-        ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
-
-        const glow = ctx.createRadialGradient(
-          EXPORT_W / 2, EXPORT_H * 0.4, 0,
-          EXPORT_W / 2, EXPORT_H * 0.4, EXPORT_W * 0.72
-        );
-        glow.addColorStop(0, 'rgba(28, 24, 20, 0.42)');
-        glow.addColorStop(1, 'transparent');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
+        drawMuseumSpotlightBackground(ctx, EXPORT_W, EXPORT_H);
 
         const logoReserve = 148;
         const topMargin = 220;
@@ -984,10 +1070,11 @@
           scale,
           useCORS: true,
           allowTaint: false,
-          backgroundColor: '#050506',
+          backgroundColor: null,
           logging: false,
           onclone: (_doc, clonedEl) => {
             stripPrivacyTextFromClone(clonedEl);
+            clonedEl.classList.add('museum-wall-export');
           }
         });
 
