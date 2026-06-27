@@ -996,54 +996,56 @@
       pointer-events: none;
     }
 
-    .daily-lock-overlay {
-      position: absolute;
-      inset: 0;
-      z-index: 10030;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2rem 1.5rem;
-      background:
-        radial-gradient(ellipse 80% 55% at 50% 40%, rgba(18, 17, 20, 0.94) 0%, rgba(8, 7, 9, 0.98) 55%, rgba(3, 3, 4, 0.99) 100%);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity 0.55s ease, visibility 0.55s ease;
-    }
-
-    .daily-lock-overlay.visible {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-
-    .daily-lock-inner {
-      width: min(100%, 20rem);
-      padding: 2rem 1.5rem;
+    .daily-lock-message {
+      display: none;
+      padding: 1.25rem 0.5rem 0.75rem;
       text-align: center;
-      border: 0.5px solid rgba(201, 169, 98, 0.22);
-      border-radius: 2px;
-      background: rgba(14, 13, 16, 0.88);
-      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
     }
 
-    .daily-lock-inner p {
+    .daily-lock-message.visible {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    .daily-lock-message p {
       font-size: 0.72rem;
       font-weight: 300;
       line-height: 2.1;
       letter-spacing: 0.14em;
-      color: rgba(232, 230, 226, 0.78);
+      color: rgba(232, 230, 226, 0.62);
+    }
+
+    .input-wrap.locked-hidden,
+    footer.controls.locked-hidden {
+      display: none;
+    }
+
+    .app.daily-locked .top-area {
+      max-height: 72vh;
+    }
+
+    @media (min-height: 700px) {
+      .app.daily-locked .top-area {
+        max-height: 76vh;
+      }
     }
 
     .export-root {
       position: fixed;
-      left: -9999px;
+      left: 0;
       top: 0;
       width: 400px;
       pointer-events: none;
-      visibility: hidden;
+      opacity: 0;
       z-index: -1;
+    }
+
+    .export-root.is-capturing {
+      opacity: 0.001;
     }
 
     .museum-wall-display {
@@ -1107,7 +1109,8 @@
       font-size: 0;
     }
 
-    .export-art-surface .gallery-art-canvas {
+    .export-art-surface .gallery-art-canvas,
+    .export-art-surface .export-art-image {
       display: block;
       width: 100%;
       height: auto;
@@ -1234,12 +1237,6 @@
     <a class="gallery-link" href="gallery.html">感情の回廊へ移動</a>
     <button type="button" class="release-share-btn" id="releaseShareBtn" aria-label="この瞬間を放流する">この瞬間を放流する</button>
 
-    <div class="daily-lock-overlay" id="dailyLockOverlay" aria-hidden="true">
-      <div class="daily-lock-inner">
-        <p>今日の日記はすでに紡がれました。<br>また明日お待ちしております。</p>
-      </div>
-    </div>
-
     <div class="frame-cta-overlay" id="frameCtaOverlay" aria-hidden="true">
       <button type="button" class="frame-btn" id="frameBtn" aria-label="作品を額装する">
         <span class="frame-btn-main">完成</span>
@@ -1287,13 +1284,16 @@
       </div>
 
       <div class="mid-panel zen-target">
-        <div class="input-wrap">
+        <div class="input-wrap" id="inputWrap">
           <textarea id="wordInput" placeholder="今日はどんな1日だった？今の言葉と気分をキャンバスに" maxlength="10000" autocomplete="off" rows="4"></textarea>
           <span class="smoke-text" id="smokeText"></span>
         </div>
+        <div class="daily-lock-message" id="dailyLockMessage" aria-hidden="true">
+          <p>今日の日記はすでに紡がれました。<br>また明日お待ちしております。</p>
+        </div>
       </div>
 
-      <footer class="controls zen-target">
+      <footer class="controls zen-target" id="controlsFooter">
         <div class="controls-row">
           <div class="color-wheel-host" id="colorWheelHost">
             <button type="button" class="color-indicator" id="colorIndicator" aria-label="色を選ぶ"></button>
@@ -1376,7 +1376,10 @@
       const frameCompleteDialog = document.getElementById('frameCompleteDialog');
       const frameCompleteOk = document.getElementById('frameCompleteOk');
       const releaseShareBtn = document.getElementById('releaseShareBtn');
-      const dailyLockOverlay = document.getElementById('dailyLockOverlay');
+      const dailyLockMessage = document.getElementById('dailyLockMessage');
+      const inputWrap = document.getElementById('inputWrap');
+      const controlsFooter = document.getElementById('controlsFooter');
+      const appEl = document.querySelector('.app');
       const exportRoot = document.getElementById('exportRoot');
 
       let selectedColor = '#3d4f5f';
@@ -1579,23 +1582,50 @@
 
       function applyDailyLockUI() {
         const locked = hasPostedToday();
-        const framingReady = getGalleryProgress().ready;
 
-        if (dailyLockOverlay) {
-          const showOverlay = locked && !framingReady;
-          dailyLockOverlay.classList.toggle('visible', showOverlay);
-          dailyLockOverlay.setAttribute('aria-hidden', showOverlay ? 'false' : 'true');
-        }
+        if (appEl) appEl.classList.toggle('daily-locked', locked);
 
         if (locked) {
+          if (inputWrap) inputWrap.classList.add('locked-hidden');
+          if (controlsFooter) controlsFooter.classList.add('locked-hidden');
+          if (dailyLockMessage) {
+            dailyLockMessage.classList.add('visible');
+            dailyLockMessage.setAttribute('aria-hidden', 'false');
+          }
           wordInput.disabled = true;
           inscapeBtn.disabled = true;
           colorIndicator.disabled = true;
           colorWheelHost.classList.add('disabled');
           closeColorWheel();
+        } else {
+          if (inputWrap) inputWrap.classList.remove('locked-hidden');
+          if (controlsFooter) controlsFooter.classList.remove('locked-hidden');
+          if (dailyLockMessage) {
+            dailyLockMessage.classList.remove('visible');
+            dailyLockMessage.setAttribute('aria-hidden', 'true');
+          }
         }
 
         return locked;
+      }
+
+      function getCanvasDataUrl() {
+        redrawCanvas();
+        try {
+          return canvas.toDataURL('image/png');
+        } catch (err) {
+          console.warn('canvas.toDataURL failed:', err);
+          return null;
+        }
+      }
+
+      function waitForImageLoad(imgEl) {
+        if (!imgEl) return Promise.resolve();
+        if (imgEl.complete && imgEl.naturalWidth > 0) return Promise.resolve();
+        return new Promise((resolve, reject) => {
+          imgEl.onload = () => resolve();
+          imgEl.onerror = () => reject(new Error('export image load failed'));
+        });
       }
 
       function drawSpacedText(ctx, text, centerX, y, spacingPx) {
@@ -1710,6 +1740,8 @@
 
         const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth || 400;
         const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight || 300;
+        const dataUrl = getCanvasDataUrl();
+        if (!dataUrl) throw new Error('canvas export failed');
 
         exportRoot.innerHTML = '';
         const wall = document.createElement('div');
@@ -1722,13 +1754,11 @@
         surface.className = 'export-art-surface';
         surface.style.aspectRatio = `${aspectW} / ${aspectH}`;
 
-        const exportCanvas = document.createElement('canvas');
-        exportCanvas.className = 'gallery-art-canvas';
-        exportCanvas.width = canvas.width;
-        exportCanvas.height = canvas.height;
-        exportCanvas.style.width = '100%';
-        exportCanvas.style.height = 'auto';
-        exportCanvas.getContext('2d').drawImage(canvas, 0, 0);
+        const artImg = document.createElement('img');
+        artImg.className = 'export-art-image';
+        artImg.src = dataUrl;
+        artImg.alt = '';
+        artImg.setAttribute('role', 'presentation');
 
         const texture = document.createElement('div');
         texture.className = 'paper-texture-overlay';
@@ -1738,30 +1768,40 @@
         caption.className = 'art-period-caption';
         caption.textContent = getExportPeriodCaption();
 
-        surface.appendChild(exportCanvas);
+        surface.appendChild(artImg);
         surface.appendChild(texture);
         sculpted.appendChild(surface);
         wall.appendChild(sculpted);
         wall.appendChild(caption);
         exportRoot.appendChild(wall);
-        return wall;
+        return { wall, artImg };
       }
 
-      async function captureMuseumWallBlob(wallEl) {
+      async function captureMuseumWallBlob(wallEl, artImg) {
         if (!wallEl || typeof html2canvas !== 'function') {
           throw new Error('html2canvas not loaded');
         }
 
-        const scale = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1.5));
-        const artCanvas = await html2canvas(wallEl, {
-          scale,
-          useCORS: true,
-          allowTaint: false,
-          backgroundColor: null,
-          logging: false
-        });
+        await waitForImageLoad(artImg);
 
-        return compositeToMuseumExport(artCanvas);
+        if (exportRoot) exportRoot.classList.add('is-capturing');
+        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+
+        try {
+          const scale = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1.5));
+          const artCanvas = await html2canvas(wallEl, {
+            scale,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: null,
+            logging: false,
+            imageTimeout: 0
+          });
+
+          return compositeToMuseumExport(artCanvas);
+        } finally {
+          if (exportRoot) exportRoot.classList.remove('is-capturing');
+        }
       }
 
       function closeSavePreview() {
@@ -1798,9 +1838,8 @@
         releaseShareBtn.textContent = '画像を準備中…';
 
         try {
-          const wall = buildExportWallDisplay();
-          await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-          const blob = await captureMuseumWallBlob(wall);
+          const { wall, artImg } = buildExportWallDisplay();
+          const blob = await captureMuseumWallBlob(wall, artImg);
           showSavePreview(blob);
         } catch (err) {
           console.warn('放流画像の生成に失敗:', err);
