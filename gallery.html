@@ -618,6 +618,113 @@
     .modal-content .modal-art-actions .share-art-btn.modal-share {
       margin-top: 0;
     }
+
+    .museum-brand-logo {
+      display: none;
+      margin-top: 1.75rem;
+      font-family: "Times New Roman", "Georgia", "Hiragino Mincho ProN", serif;
+      font-size: 0.72rem;
+      font-weight: 300;
+      letter-spacing: 0.55em;
+      text-indent: 0.55em;
+      color: rgba(204, 204, 204, 0.42);
+    }
+
+    .modal-content .museum-brand-logo {
+      display: block;
+    }
+
+    .save-preview-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10050;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding:
+        calc(0.85rem + env(safe-area-inset-top))
+        calc(0.85rem + env(safe-area-inset-right))
+        calc(0.85rem + env(safe-area-inset-bottom))
+        calc(0.85rem + env(safe-area-inset-left));
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 45%, rgba(20, 18, 16, 0.97) 0%, rgba(3, 3, 4, 0.98) 100%);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    .save-preview-overlay.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .save-preview-panel {
+      position: relative;
+      width: min(92vw, 400px);
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translateY(18px) scale(0.96);
+      opacity: 0;
+      transition:
+        transform 0.55s cubic-bezier(0.34, 1.15, 0.64, 1),
+        opacity 0.45s ease;
+    }
+
+    .save-preview-overlay.active .save-preview-panel {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .save-preview-close {
+      align-self: flex-end;
+      margin-bottom: 0.85rem;
+      font-size: 0.48rem;
+      letter-spacing: 0.18em;
+      color: rgba(232, 230, 226, 0.32);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.45rem 0.5rem;
+    }
+
+    .save-preview-hint {
+      width: 100%;
+      margin-bottom: 1rem;
+      text-align: center;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.58rem;
+      font-weight: 300;
+      line-height: 2;
+      letter-spacing: 0.12em;
+      color: rgba(201, 169, 98, 0.62);
+    }
+
+    .save-preview-image-wrap {
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      max-height: min(72vh, calc(92vw * 16 / 9));
+      border-radius: 2px;
+      overflow: hidden;
+      box-shadow:
+        0 24px 64px rgba(0, 0, 0, 0.85),
+        0 0 48px rgba(201, 169, 98, 0.06);
+      background: #050506;
+    }
+
+    .save-preview-image-wrap img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      -webkit-touch-callout: default;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -646,10 +753,70 @@
       const DEFAULT_CANVAS_H = 300;
       const SHARE_APP_URL = 'https://my-inscape.github.io/inscape/';
       const SHARE_HASHTAG = '#INSCAPE';
+      const EXPORT_W = 1080;
+      const EXPORT_H = 1920;
 
       const splatImg = new Image();
       const stampCache = {};
       let splatReady = false;
+      let savePreviewObjectUrl = null;
+
+      function drawSpacedText(ctx, text, centerX, y, spacingPx) {
+        const chars = text.split('');
+        let totalWidth = 0;
+        chars.forEach((ch, i) => {
+          totalWidth += ctx.measureText(ch).width;
+          if (i < chars.length - 1) totalWidth += spacingPx;
+        });
+        let x = centerX - totalWidth / 2;
+        chars.forEach((ch, i) => {
+          ctx.fillText(ch, x, y);
+          x += ctx.measureText(ch).width + (i < chars.length - 1 ? spacingPx : 0);
+        });
+      }
+
+      async function compositeToMuseumExport(artCanvas) {
+        const final = document.createElement('canvas');
+        final.width = EXPORT_W;
+        final.height = EXPORT_H;
+        const ctx = final.getContext('2d');
+
+        ctx.fillStyle = '#050506';
+        ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
+
+        const glow = ctx.createRadialGradient(
+          EXPORT_W / 2, EXPORT_H * 0.4, 0,
+          EXPORT_W / 2, EXPORT_H * 0.4, EXPORT_W * 0.72
+        );
+        glow.addColorStop(0, 'rgba(28, 24, 20, 0.42)');
+        glow.addColorStop(1, 'transparent');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, EXPORT_W, EXPORT_H);
+
+        const logoReserve = 148;
+        const topMargin = 220;
+        const sidePad = 96;
+        const maxW = EXPORT_W - sidePad * 2;
+        const maxH = EXPORT_H - topMargin - logoReserve - 100;
+
+        const scale = Math.min(maxW / artCanvas.width, maxH / artCanvas.height);
+        const dw = artCanvas.width * scale;
+        const dh = artCanvas.height * scale;
+        const dx = (EXPORT_W - dw) / 2;
+        const dy = topMargin + (maxH - dh) / 2;
+
+        ctx.drawImage(artCanvas, dx, dy, dw, dh);
+
+        ctx.save();
+        const logoSize = 34;
+        ctx.font = `300 ${logoSize}px "Times New Roman", Georgia, serif`;
+        ctx.fillStyle = 'rgba(190, 190, 190, 0.62)';
+        ctx.textBaseline = 'middle';
+        drawSpacedText(ctx, 'INSCAPE', EXPORT_W / 2, EXPORT_H - 92, logoSize * 0.44);
+        ctx.restore();
+
+        return htmlCanvasToBlob(final);
+      }
 
       function migrateSplash(s) {
         let baseSize = s.baseSize || 220;
@@ -780,7 +947,7 @@
         if (!clonedRoot) return;
         clonedRoot.querySelectorAll(
           '.art-date, .share-art-btn, .save-art-btn, .modal-art-actions, ' +
-          '.memory-popover, [data-export-hide], .privacy-export-hidden'
+          '.museum-brand-logo, .memory-popover, [data-export-hide], .privacy-export-hidden'
         ).forEach((node) => node.remove());
 
         clonedRoot.querySelectorAll('.gallery-art-canvas').forEach((canvasEl) => {
@@ -802,8 +969,9 @@
         });
       }
 
-      async function captureFrameToBlob(frameEl) {
-        if (!frameEl) throw new Error('frame missing');
+      async function captureFramedArtworkBlob(containerEl) {
+        const frameEl = getFrameCaptureTarget(containerEl);
+        if (!frameEl) throw new Error('frame target missing');
         if (typeof html2canvas !== 'function') throw new Error('html2canvas not loaded');
 
         const popover = document.getElementById('memoryPopover');
@@ -812,7 +980,7 @@
         }
 
         const scale = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1.5));
-        const exportCanvas = await html2canvas(frameEl, {
+        const artCanvas = await html2canvas(frameEl, {
           scale,
           useCORS: true,
           allowTaint: false,
@@ -823,13 +991,33 @@
           }
         });
 
-        return htmlCanvasToBlob(exportCanvas);
+        return compositeToMuseumExport(artCanvas);
       }
 
-      async function captureFramedArtworkBlob(containerEl) {
-        const frameEl = getFrameCaptureTarget(containerEl);
-        if (!frameEl) throw new Error('frame target missing');
-        return captureFrameToBlob(frameEl);
+      function closeSavePreview() {
+        const overlay = document.getElementById('savePreviewOverlay');
+        const img = document.getElementById('savePreviewImage');
+        if (overlay) {
+          overlay.classList.remove('active');
+          overlay.setAttribute('aria-hidden', 'true');
+        }
+        if (img) img.removeAttribute('src');
+        if (savePreviewObjectUrl) {
+          URL.revokeObjectURL(savePreviewObjectUrl);
+          savePreviewObjectUrl = null;
+        }
+      }
+
+      function showSavePreview(blob) {
+        const overlay = document.getElementById('savePreviewOverlay');
+        const img = document.getElementById('savePreviewImage');
+        if (!overlay || !img || !blob) return;
+
+        closeSavePreview();
+        savePreviewObjectUrl = URL.createObjectURL(blob);
+        img.src = savePreviewObjectUrl;
+        overlay.classList.add('active');
+        overlay.setAttribute('aria-hidden', 'false');
       }
 
       function downloadBlob(blob, filename) {
@@ -922,7 +1110,7 @@
 
         try {
           const blob = await captureFramedArtworkBlob(containerEl);
-          downloadBlob(blob, 'inscape-framed.png');
+          showSavePreview(blob);
         } catch (err) {
           console.warn('額装画像の保存に失敗:', err);
         } finally {
@@ -1006,6 +1194,14 @@
         return startStr === endStr ? startStr : `${startStr} - ${endStr}`;
       }
 
+      function createBrandLogoElement() {
+        const logo = document.createElement('p');
+        logo.className = 'museum-brand-logo';
+        logo.textContent = 'INSCAPE';
+        logo.setAttribute('aria-hidden', 'true');
+        return logo;
+      }
+
       function createPeriodCaptionElement(item) {
         const caption = document.createElement('p');
         caption.className = 'art-period-caption';
@@ -1042,6 +1238,7 @@
         sculpted.appendChild(surface);
         wallDisplay.appendChild(sculpted);
         wallDisplay.appendChild(createPeriodCaptionElement(item));
+        wallDisplay.appendChild(createBrandLogoElement());
         artWrapper.appendChild(wallDisplay);
         artWrapper.appendChild(createShareButton('この色を放流する', () => artWrapper));
         artWrapper._galleryItem = item;
@@ -1328,6 +1525,11 @@
           periodCaption.textContent = computeArtworkPeriodCaption(galleryItem);
         }
 
+        const wallDisplay = modalBody.querySelector('.museum-wall-display');
+        if (wallDisplay && !wallDisplay.querySelector('.museum-brand-logo')) {
+          wallDisplay.appendChild(createBrandLogoElement());
+        }
+
         imageModal.classList.remove('view-diary');
         imageModal.classList.add('active');
         imageModal.setAttribute('aria-hidden', 'false');
@@ -1372,6 +1574,29 @@
         });
       }
 
+      function bindSavePreview() {
+        const overlay = document.getElementById('savePreviewOverlay');
+        const closeBtn = document.getElementById('savePreviewClose');
+        const panel = overlay && overlay.querySelector('.save-preview-panel');
+
+        if (closeBtn) {
+          closeBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeSavePreview();
+          });
+        }
+
+        if (overlay) {
+          overlay.addEventListener('click', (e) => {
+            if (e.target === overlay) closeSavePreview();
+          });
+        }
+
+        if (panel) {
+          panel.addEventListener('click', (e) => e.stopPropagation());
+        }
+      }
+
       function bindImageModal() {
         const imageModal = document.getElementById('imageModal');
         const modalCloseHint = document.getElementById('modalCloseHint');
@@ -1412,13 +1637,20 @@
         }
 
         document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape' && imageModal.classList.contains('active')) {
+          if (e.key !== 'Escape') return;
+          const saveOverlay = document.getElementById('savePreviewOverlay');
+          if (saveOverlay && saveOverlay.classList.contains('active')) {
+            closeSavePreview();
+            return;
+          }
+          if (imageModal.classList.contains('active')) {
             handleModalCloseRequest();
           }
         });
       }
 
       window.addEventListener('DOMContentLoaded', () => {
+        bindSavePreview();
         bindImageModal();
         loadSplatImage()
           .then(renderGallery)
@@ -1443,6 +1675,15 @@
     <p class="memory-popover-date"></p>
     <p class="memory-popover-text"></p>
     <button type="button" class="memory-popover-close" id="memoryPopoverClose">閉じる</button>
+  </div>
+  <div class="save-preview-overlay" id="savePreviewOverlay" aria-hidden="true" role="dialog" aria-label="保存プレビュー">
+    <div class="save-preview-panel">
+      <button type="button" class="save-preview-close" id="savePreviewClose" aria-label="閉じる">CLOSE</button>
+      <p class="save-preview-hint">画像を長押しして<br>「写真に追加」を選択して保存してください</p>
+      <div class="save-preview-image-wrap">
+        <img id="savePreviewImage" alt="INSCAPE — 額装作品" draggable="false">
+      </div>
+    </div>
   </div>
 </body>
 </html>
