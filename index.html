@@ -375,8 +375,8 @@
     }
 
     #inscapeBtn {
+      display: none;
       flex: 1;
-      display: block;
       padding: 1.05rem 0;
       border: 0.5px solid rgba(255, 255, 255, 0.14);
       border-radius: 1px;
@@ -996,27 +996,44 @@
       pointer-events: none;
     }
 
+    .canvas-wrap.submit-ready #mainCanvas {
+      cursor: crosshair;
+    }
+
+    .canvas-wrap.submit-ready {
+      touch-action: manipulation;
+    }
+
     .daily-lock-message {
-      display: none;
-      padding: 1.25rem 0.5rem 0.75rem;
-      text-align: center;
+      position: absolute;
+      bottom: calc(0.65rem + env(safe-area-inset-bottom));
+      right: calc(1rem + env(safe-area-inset-right));
+      z-index: 120;
+      max-width: 9.5rem;
+      padding: 0.45rem 0.65rem;
+      text-align: right;
+      pointer-events: none;
       opacity: 0;
-      transform: translateY(6px);
+      transform: translateY(4px);
       transition: opacity 0.55s ease, transform 0.55s ease;
+      border: 0.5px solid rgba(201, 169, 98, 0.12);
+      border-radius: 1px;
+      background: rgba(14, 13, 16, 0.42);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
     }
 
     .daily-lock-message.visible {
-      display: block;
       opacity: 1;
       transform: translateY(0);
     }
 
     .daily-lock-message p {
-      font-size: 0.72rem;
+      font-size: 0.48rem;
       font-weight: 300;
-      line-height: 2.1;
-      letter-spacing: 0.14em;
-      color: rgba(232, 230, 226, 0.62);
+      line-height: 1.85;
+      letter-spacing: 0.1em;
+      color: rgba(232, 230, 226, 0.48);
     }
 
     .input-wrap.locked-hidden,
@@ -1025,13 +1042,20 @@
     }
 
     .app.daily-locked .top-area {
-      max-height: 72vh;
+      max-height: 78vh;
     }
 
     @media (min-height: 700px) {
       .app.daily-locked .top-area {
-        max-height: 76vh;
+        max-height: 82vh;
       }
+    }
+
+    .phone-shell.daily-locked .gallery-link,
+    .phone-shell.daily-locked .release-share-btn {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
     }
 
     .export-root {
@@ -1237,6 +1261,10 @@
     <a class="gallery-link" href="gallery.html">感情の回廊へ移動</a>
     <button type="button" class="release-share-btn" id="releaseShareBtn" aria-label="この瞬間を放流する">この瞬間を放流する</button>
 
+    <p class="daily-lock-message" id="dailyLockMessage" aria-hidden="true">
+      今日の日記は紡がれました
+    </p>
+
     <div class="frame-cta-overlay" id="frameCtaOverlay" aria-hidden="true">
       <button type="button" class="frame-btn" id="frameBtn" aria-label="作品を額装する">
         <span class="frame-btn-main">完成</span>
@@ -1285,11 +1313,8 @@
 
       <div class="mid-panel zen-target">
         <div class="input-wrap" id="inputWrap">
-          <textarea id="wordInput" placeholder="今日はどんな1日だった？今の言葉と気分をキャンバスに" maxlength="10000" autocomplete="off" rows="4"></textarea>
+          <textarea id="wordInput" placeholder="言葉を書いて、キャンバスをタップして紡ぐ" maxlength="10000" autocomplete="off" rows="4"></textarea>
           <span class="smoke-text" id="smokeText"></span>
-        </div>
-        <div class="daily-lock-message" id="dailyLockMessage" aria-hidden="true">
-          <p>今日の日記はすでに紡がれました。<br>また明日お待ちしております。</p>
         </div>
       </div>
 
@@ -1298,7 +1323,7 @@
           <div class="color-wheel-host" id="colorWheelHost">
             <button type="button" class="color-indicator" id="colorIndicator" aria-label="色を選ぶ"></button>
           </div>
-          <button id="inscapeBtn" disabled>INSCAPE</button>
+          <button id="inscapeBtn" disabled aria-hidden="true" tabindex="-1">INSCAPE</button>
         </div>
         <p class="frame-progress-hint zen-target" id="frameProgressHint"></p>
       </footer>
@@ -1401,6 +1426,9 @@
       let framingCompleted = false;
       let frameProcessing = false;
       let savePreviewObjectUrl = null;
+      let lastCanvasExportDataUrl = null;
+      let isDiarySubmitting = false;
+      let canvasTouchStart = null;
 
       const WORD_MAX_LEN = 10000;
       const OPACITY_FULL_LEN = 400;
@@ -1584,6 +1612,7 @@
         const locked = hasPostedToday();
 
         if (appEl) appEl.classList.toggle('daily-locked', locked);
+        phoneShell.classList.toggle('daily-locked', locked);
 
         if (locked) {
           if (inputWrap) inputWrap.classList.add('locked-hidden');
@@ -1593,9 +1622,9 @@
             dailyLockMessage.setAttribute('aria-hidden', 'false');
           }
           wordInput.disabled = true;
-          inscapeBtn.disabled = true;
           colorIndicator.disabled = true;
           colorWheelHost.classList.add('disabled');
+          canvasWrap.classList.remove('submit-ready');
           closeColorWheel();
         } else {
           if (inputWrap) inputWrap.classList.remove('locked-hidden');
@@ -1606,17 +1635,30 @@
           }
         }
 
+        updateCanvasSubmitHint();
         return locked;
       }
 
-      function getCanvasDataUrl() {
+      function updateCanvasSubmitHint() {
+        const ready = !hasPostedToday() && !isDiarySubmitting && !!wordInput.value.trim();
+        canvasWrap.classList.toggle('submit-ready', ready);
+      }
+
+      function refreshCanvasExportSnapshot() {
         redrawCanvas();
         try {
-          return canvas.toDataURL('image/png');
+          lastCanvasExportDataUrl = canvas.toDataURL('image/png');
         } catch (err) {
-          console.warn('canvas.toDataURL failed:', err);
-          return null;
+          console.warn('canvas export snapshot failed:', err);
+          lastCanvasExportDataUrl = null;
         }
+      }
+
+      function getCanvasDataUrl() {
+        if (!lastCanvasExportDataUrl) {
+          refreshCanvasExportSnapshot();
+        }
+        return lastCanvasExportDataUrl;
       }
 
       function waitForImageLoad(imgEl) {
@@ -1838,6 +1880,7 @@
         releaseShareBtn.textContent = '画像を準備中…';
 
         try {
+          refreshCanvasExportSnapshot();
           const { wall, artImg } = buildExportWallDisplay();
           const blob = await captureMuseumWallBlob(wall, artImg);
           showSavePreview(blob);
@@ -2494,9 +2537,9 @@
       function updateUIState() {
         if (applyDailyLockUI()) return;
         wordInput.disabled = false;
-        inscapeBtn.disabled = !wordInput.value.trim();
         colorIndicator.disabled = false;
         colorWheelHost.classList.remove('disabled');
+        updateCanvasSubmitHint();
       }
 
       function loadSplashes() {
@@ -3143,6 +3186,11 @@
           drawSplatter(s, w, h);
           drawDrip(s, w, h);
         });
+        try {
+          lastCanvasExportDataUrl = canvas.toDataURL('image/png');
+        } catch {
+          /* export snapshot optional during draw */
+        }
       }
 
       function playBeep() {
@@ -3245,8 +3293,17 @@
         setTimeout(() => startFlight(false), 120);
       }
 
-      function handleInscape() {
-        if (hasPostedToday()) return;
+      function clampTapPosition(x, y, w, h, splashMeta) {
+        const half = splashMeta.baseSize * (splashMeta.scaleFactor || 1) * 0.5;
+        const pad = Math.max(8, half * 0.2);
+        return {
+          x: Math.max(pad, Math.min(w - pad, x)),
+          y: Math.max(pad, Math.min(h - pad, y))
+        };
+      }
+
+      function submitDiaryAtCanvasTap(tapX, tapY) {
+        if (hasPostedToday() || isDiarySubmitting) return;
 
         const word = wordInput.value.trim();
         if (!word) return;
@@ -3254,63 +3311,75 @@
         onUserActivity();
         ensureAudio();
         const savedWord = word;
-        inscapeBtn.disabled = true;
+        isDiarySubmitting = true;
+        updateCanvasSubmitHint();
 
         animateWordSuckIn(savedWord, () => {
           animateBlackHoleCondense(savedWord, selectedColor, (startX, startY, ballEl) => {
-          ensureSplatLoaded().then(() => {
-            const w = canvas.clientWidth;
-            const h = canvas.clientHeight;
-            const splashMeta = createSplashData(savedWord.length);
-            const pos = randomSplashPosition(w, h, splashMeta);
-            const canvasRect = canvas.getBoundingClientRect();
-            const targetX = canvasRect.left + pos.x;
-            const targetY = canvasRect.top + pos.y;
+            ensureSplatLoaded().then(() => {
+              const w = canvas.clientWidth;
+              const h = canvas.clientHeight;
+              const splashMeta = createSplashData(savedWord.length);
+              const pos = clampTapPosition(tapX, tapY, w, h, splashMeta);
+              const canvasRect = canvas.getBoundingClientRect();
+              const targetX = canvasRect.left + pos.x;
+              const targetY = canvasRect.top + pos.y;
 
-            launchPaintBall(startX, startY, targetX, targetY, selectedColor, () => {
-              vibrate();
-              playBeep();
-              triggerCanvasShake();
-              spawnShockwave(pos.x, pos.y);
+              launchPaintBall(startX, startY, targetX, targetY, selectedColor, () => {
+                vibrate();
+                playBeep();
+                triggerCanvasShake();
+                spawnShockwave(pos.x, pos.y);
 
-              const splash = {
-                id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-                nx: pos.x / w,
-                ny: pos.y / h,
-                color: selectedColor,
-                word: savedWord,
-                timestamp: Date.now(),
-                ...splashMeta
-              };
+                const splash = {
+                  id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+                  nx: pos.x / w,
+                  ny: pos.y / h,
+                  color: selectedColor,
+                  word: savedWord,
+                  timestamp: Date.now(),
+                  ...splashMeta
+                };
 
-              initDrip(splash);
-              splashes.push(splash);
-              const now = Date.now();
-              splashes = splashes
-                .filter(s => now - s.timestamp < RETENTION_MS)
-                .slice(-MAX_ENTRIES);
-              saveSplashes();
+                initDrip(splash);
+                splashes.push(splash);
+                const now = Date.now();
+                splashes = splashes
+                  .filter(s => now - s.timestamp < RETENTION_MS)
+                  .slice(-MAX_ENTRIES);
+                saveSplashes();
+                lockDiaryForToday();
 
-              lockDiaryForToday();
-
-              animateSplash(splash, w, h, () => {
-                redrawCanvas();
-                ensureAmbientLoop();
-                saveGallerySnapshot();
-                if (getGalleryProgress().ready) {
-                  updateFrameButtonState();
-                } else {
-                  scheduleZenAfterImpact();
-                }
-                applyDailyLockUI();
-              });
-            }, ballEl);
-          }).catch((err) => {
-            console.error(err);
-            updateUIState();
+                animateSplash(splash, w, h, () => {
+                  redrawCanvas();
+                  refreshCanvasExportSnapshot();
+                  ensureAmbientLoop();
+                  saveGallerySnapshot();
+                  if (getGalleryProgress().ready) {
+                    updateFrameButtonState();
+                  } else {
+                    scheduleZenAfterImpact();
+                  }
+                  isDiarySubmitting = false;
+                  applyDailyLockUI();
+                });
+              }, ballEl);
+            }).catch((err) => {
+              console.error(err);
+              isDiarySubmitting = false;
+              updateUIState();
+            });
           });
         });
-        });
+      }
+
+      function trySubmitFromCanvasEvent(e) {
+        if (hasPostedToday() || isDiarySubmitting) return false;
+        if (!wordInput.value.trim()) return false;
+
+        const { x, y } = canvasCoords(e);
+        submitDiaryAtCanvasTap(x, y);
+        return true;
       }
 
       function formatDate(ts) {
@@ -3340,8 +3409,9 @@
       function showTooltip(s, clientX, clientY) {
         const w = canvas.clientWidth;
         const h = canvas.clientHeight;
-        const sx = s.nx * w + canvas.getBoundingClientRect().left;
-        const sy = s.ny * h + canvas.getBoundingClientRect().top;
+        const rect = canvas.getBoundingClientRect();
+        const sx = clientX != null ? clientX : s.nx * w + rect.left;
+        const sy = clientY != null ? clientY : s.ny * h + rect.top;
         tooltip.textContent = formatDate(s.timestamp);
         tooltip.style.left = sx + 'px';
         tooltip.style.top = sy + 'px';
@@ -3363,11 +3433,23 @@
         };
       }
 
+      canvas.addEventListener('click', (e) => {
+        onUserActivity();
+        if (trySubmitFromCanvasEvent(e)) {
+          e.preventDefault();
+          return;
+        }
+        const { x, y, clientX, clientY } = canvasCoords(e);
+        const s = findSplashAt(x, y);
+        if (s) showTooltip(s, clientX, clientY);
+        else hideTooltip();
+      });
+
       canvas.addEventListener('mousemove', (e) => {
         onUserActivity();
         const { x, y } = canvasCoords(e);
         const s = findSplashAt(x, y);
-        if (s) showTooltip(s);
+        if (s) showTooltip(s, e.clientX, e.clientY);
         else hideTooltip();
       });
 
@@ -3375,17 +3457,51 @@
 
       canvas.addEventListener('touchstart', (e) => {
         onUserActivity();
-        const { x, y } = canvasCoords(e);
-        const s = findSplashAt(x, y);
-        if (s) {
-          e.preventDefault();
-          showTooltip(s);
+        const { x, y, clientX, clientY } = canvasCoords(e);
+        canvasTouchStart = { x, y, clientX, clientY, t: Date.now() };
+
+        if (hasPostedToday()) {
+          const s = findSplashAt(x, y);
+          if (s) {
+            e.preventDefault();
+            showTooltip(s, clientX, clientY);
+          }
         }
       }, { passive: false });
 
-      canvas.addEventListener('touchend', () => {
-        setTimeout(hideTooltip, 1800);
-      });
+      canvas.addEventListener('touchend', (e) => {
+        if (!canvasTouchStart) return;
+
+        const touch = e.changedTouches ? e.changedTouches[0] : null;
+        if (!touch) {
+          canvasTouchStart = null;
+          return;
+        }
+
+        const rect = canvas.getBoundingClientRect();
+        const x = touch.clientX - rect.left;
+        const y = touch.clientY - rect.top;
+        const moved = Math.hypot(x - canvasTouchStart.x, y - canvasTouchStart.y);
+        const elapsed = Date.now() - canvasTouchStart.t;
+        canvasTouchStart = null;
+
+        if (hasPostedToday()) {
+          setTimeout(hideTooltip, 1800);
+          return;
+        }
+
+        if (wordInput.value.trim() && moved < 14 && elapsed < 600) {
+          e.preventDefault();
+          submitDiaryAtCanvasTap(x, y);
+          return;
+        }
+
+        const s = findSplashAt(x, y);
+        if (s) {
+          showTooltip(s, touch.clientX, touch.clientY);
+          setTimeout(hideTooltip, 1800);
+        }
+      }, { passive: false });
 
       colorIndicator.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -3441,7 +3557,6 @@
         onUserActivity();
         updateUIState();
       });
-      inscapeBtn.addEventListener('click', handleInscape);
 
       if (releaseShareBtn) {
         releaseShareBtn.addEventListener('click', (e) => {
@@ -3468,6 +3583,7 @@
       buildColorWheel();
       applySelectedColor(selectedColor);
       resizeCanvas();
+      refreshCanvasExportSnapshot();
       applyDailyLockUI();
       updateUIState();
       updateFrameButtonState();
