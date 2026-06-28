@@ -681,6 +681,14 @@
       cursor: wait;
     }
 
+    .header-action-btn.is-current {
+      color: rgba(201, 169, 98, 0.62);
+      border-color: rgba(201, 169, 98, 0.22);
+      background: rgba(201, 169, 98, 0.06);
+      pointer-events: none;
+      cursor: default;
+    }
+
     .phone-shell.zen-fading .header-actions,
     .phone-shell.zen-mode .header-actions {
       opacity: 0;
@@ -1289,9 +1297,10 @@
   <div class="phone-shell" id="phoneShell">
     <header class="header-actions" aria-label="ナビゲーション">
       <button type="button" class="header-action-btn release-share-btn" id="releaseShareBtn" aria-label="この瞬間を放流する">この瞬間を放流する</button>
-      <a class="header-action-btn midspace-link" href="midspace.html">途中経過を覗く</a>
-      <a class="header-action-btn gallery-link" href="gallery.html">感情の回廊へ</a>
-      <a class="header-action-btn mycolors-link" href="mycolors.html">#今日の私の色</a>
+      <a class="header-action-btn is-current" href="index.html" aria-current="page">キャンバス</a>
+      <a class="header-action-btn gallery-link" href="gallery.html">感情の回廊</a>
+      <a class="header-action-btn midspace-link" href="midspace.html">言葉の浮遊層</a>
+      <a class="header-action-btn mycolors-link" href="mycolors.html">今日の私の色</a>
     </header>
 
     <p class="daily-lock-message" id="dailyLockMessage" aria-hidden="true">

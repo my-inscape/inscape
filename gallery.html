@@ -59,10 +59,10 @@
       align-items: center;
       justify-content: center;
       font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
-      font-size: 0.38rem;
+      font-size: 0.36rem;
       font-weight: 400;
-      letter-spacing: 0.06em;
-      text-indent: 0.06em;
+      letter-spacing: 0.05em;
+      text-indent: 0.05em;
       color: rgba(232, 230, 226, 0.45);
       text-decoration: none;
       padding: 0.42rem 0.22rem;
@@ -83,6 +83,13 @@
       color: rgba(232, 230, 226, 0.82);
       border-color: rgba(184, 160, 122, 0.35);
       background: rgba(24, 25, 28, 0.88);
+    }
+
+    .site-nav-link.is-current {
+      color: rgba(201, 169, 98, 0.62);
+      border-color: rgba(201, 169, 98, 0.22);
+      background: rgba(201, 169, 98, 0.06);
+      pointer-events: none;
     }
 
     .back-link {
@@ -817,9 +824,10 @@
 <body>
   <div class="corridor-top">
     <nav class="site-nav" aria-label="ナビゲーション">
-      <a class="site-nav-link back-link" href="index.html">キャンバスに戻る</a>
-      <a class="site-nav-link" href="midspace.html">途中経過を覗く</a>
-      <a class="site-nav-link" href="mycolors.html">#今日の私の色</a>
+      <a class="site-nav-link" href="index.html">キャンバス</a>
+      <a class="site-nav-link is-current" href="gallery.html" aria-current="page">感情の回廊</a>
+      <a class="site-nav-link" href="midspace.html">言葉の浮遊層</a>
+      <a class="site-nav-link" href="mycolors.html">今日の私の色</a>
     </nav>
 
     <header class="museum-header">

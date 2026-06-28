@@ -5,9 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="theme-color" content="#0a0a0a">
-  <title>#今日の私の色 — INSCAPE</title>
+  <title>今日の私の色 — INSCAPE</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --canvas-fabric-url: url('canvas-fabric.png');
+    }
 
     html, body {
       height: 100%;
@@ -30,9 +34,9 @@
       flex-shrink: 0;
       padding:
         calc(0.85rem + env(safe-area-inset-top))
-        calc(1.15rem + env(safe-area-inset-right))
+        calc(0.65rem + env(safe-area-inset-right))
         1.25rem
-        calc(1.15rem + env(safe-area-inset-left));
+        calc(0.65rem + env(safe-area-inset-left));
     }
 
     .site-nav {
@@ -50,13 +54,13 @@
       align-items: center;
       justify-content: center;
       font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
-      font-size: 0.38rem;
+      font-size: 0.36rem;
       font-weight: 400;
-      letter-spacing: 0.06em;
-      text-indent: 0.06em;
+      letter-spacing: 0.05em;
+      text-indent: 0.05em;
       color: rgba(232, 230, 226, 0.42);
       text-decoration: none;
-      padding: 0.42rem 0.22rem;
+      padding: 0.42rem 0.18rem;
       border: 0.5px solid rgba(255, 255, 255, 0.08);
       border-radius: 2px;
       background: rgba(255, 255, 255, 0.02);
@@ -73,14 +77,21 @@
       background: rgba(255, 255, 255, 0.04);
     }
 
+    .site-nav-link.is-current {
+      color: rgba(201, 169, 98, 0.62);
+      border-color: rgba(201, 169, 98, 0.22);
+      background: rgba(201, 169, 98, 0.06);
+      pointer-events: none;
+    }
+
     .page-title {
       text-align: center;
       font-size: 0.62rem;
       font-weight: 400;
-      letter-spacing: 0.38em;
-      text-indent: 0.38em;
+      letter-spacing: 0.28em;
+      text-indent: 0.28em;
       color: rgba(232, 230, 226, 0.38);
-      margin-bottom: 0.4rem;
+      margin-bottom: 0.35rem;
     }
 
     .page-subtitle {
@@ -88,8 +99,8 @@
       font-family: "Times New Roman", Georgia, serif;
       font-size: 0.48rem;
       font-weight: 400;
-      letter-spacing: 0.42em;
-      text-indent: 0.42em;
+      letter-spacing: 0.32em;
+      text-indent: 0.32em;
       color: rgba(160, 160, 160, 0.32);
     }
 
@@ -129,7 +140,6 @@
       padding: 0;
       font: inherit;
       color: inherit;
-      -webkit-tap-highlight-color: transparent;
     }
 
     .color-swatch {
@@ -157,10 +167,6 @@
       outline: none;
     }
 
-    .color-cell:active .color-swatch {
-      transform: scale(1.02);
-    }
-
     .color-date {
       font-family: "Times New Roman", Georgia, "Hiragino Mincho ProN", serif;
       font-size: 0.58rem;
@@ -181,148 +187,324 @@
       color: rgba(232, 230, 226, 0.22);
     }
 
-    .empty-state.visible {
-      display: block;
-    }
+    .empty-state.visible { display: block; }
 
-    .reflect-overlay {
+    .artwork-modal {
       position: fixed;
       inset: 0;
-      z-index: 10050;
+      z-index: 10040;
       display: flex;
       align-items: center;
       justify-content: center;
       padding:
-        calc(1rem + env(safe-area-inset-top))
-        calc(1rem + env(safe-area-inset-right))
-        calc(1rem + env(safe-area-inset-bottom))
-        calc(1rem + env(safe-area-inset-left));
-      background: rgba(4, 4, 5, 0.92);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+        calc(0.85rem + env(safe-area-inset-top))
+        calc(0.85rem + env(safe-area-inset-right))
+        calc(0.85rem + env(safe-area-inset-bottom))
+        calc(0.85rem + env(safe-area-inset-left));
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 45%, rgba(20, 18, 16, 0.97) 0%, rgba(3, 3, 4, 0.98) 100%);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .artwork-modal.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .artwork-modal-inner {
+      width: min(92vw, 22rem);
+      text-align: center;
+      transform: translateY(18px) scale(0.96);
+      opacity: 0;
+      transition: transform 0.55s cubic-bezier(0.34, 1.15, 0.64, 1), opacity 0.45s ease;
+    }
+
+    .artwork-modal.active .artwork-modal-inner {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .museum-wall-display {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      text-align: center;
+      overflow: visible;
+      padding: 2rem 1rem 1.5rem;
+      background:
+        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0) 70%),
+        radial-gradient(ellipse 88% 52% at 50% -6%, rgba(255, 252, 240, 0.09) 0%, transparent 55%),
+        #0a0a0a;
+      border-radius: 1px;
+    }
+
+    .museum-wall-display::before {
+      content: '';
+      position: absolute;
+      inset: -8% -14%;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 6%, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0) 62%),
+        radial-gradient(ellipse 65% 38% at 50% 0%, rgba(201, 169, 98, 0.05) 0%, transparent 58%);
+      opacity: 0.9;
+    }
+
+    .museum-wall-display > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .export-frame-sculpted {
+      position: relative;
+      box-sizing: border-box;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px;
+      background: #fbf9f5;
+      border: 24px solid #1c110a;
+      border-top-color: #f3e5ab;
+      border-left-color: #d4af37;
+      border-right-color: #8a640f;
+      border-bottom-color: #5c430a;
+      outline: 4px solid #aa7c11;
+      outline-offset: -24px;
+      box-shadow:
+        inset 0 5px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -3px 10px rgba(0, 0, 0, 0.65),
+        0 4px 14px rgba(0, 0, 0, 0.42),
+        0 20px 40px rgba(0, 0, 0, 0.8),
+        0 36px 72px rgba(0, 0, 0, 0.52);
+    }
+
+    .export-frame-sculpted::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border: 24px solid transparent;
+      border-image: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%, rgba(0, 0, 0, 0.35) 100%) 1;
+      opacity: 0.85;
+    }
+
+    .export-art-surface {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      line-height: 0;
+      font-size: 0;
+      z-index: 1;
+      aspect-ratio: 4 / 3;
+    }
+
+    .export-art-surface canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background-color: #f7f4eb;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        var(--canvas-fabric-url);
+      background-blend-mode: multiply;
+      background-size: auto, auto, cover;
+      box-shadow:
+        inset 5px 5px 15px rgba(0, 0, 0, 0.4),
+        inset -3px -3px 10px rgba(255, 255, 255, 0.6);
+    }
+
+    .export-art-surface .paper-texture-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background-image: var(--canvas-fabric-url);
+      background-size: cover;
+      mix-blend-mode: multiply;
+      opacity: 0.35;
+    }
+
+    .art-period-caption {
+      margin-top: 1.1rem;
+      padding: 0 0.35rem;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Georgia", "Times New Roman", serif;
+      font-size: 0.85rem;
+      font-weight: 300;
+      letter-spacing: 0.16em;
+      text-indent: 0.16em;
+      color: rgba(136, 136, 136, 0.92);
+      line-height: 1.65;
+    }
+
+    .modal-art-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.65rem;
+      margin-top: 1.35rem;
+    }
+
+    .share-art-btn,
+    .save-art-btn,
+    .modal-close-btn {
+      display: inline-block;
+      width: 100%;
+      max-width: 17rem;
+      padding: 0.65rem 1rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.28);
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(232, 230, 226, 0.62);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.52rem;
+      font-weight: 400;
+      letter-spacing: 0.24em;
+      text-indent: 0.24em;
+      cursor: pointer;
+      transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+    }
+
+    .share-art-btn:hover,
+    .save-art-btn:hover,
+    .modal-close-btn:hover {
+      color: rgba(232, 230, 226, 0.88);
+      border-color: rgba(201, 169, 98, 0.45);
+      background: rgba(201, 169, 98, 0.08);
+    }
+
+    .share-art-btn:disabled,
+    .save-art-btn:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+
+    .modal-close-btn {
+      border-color: rgba(255, 255, 255, 0.1);
+      color: rgba(232, 230, 226, 0.42);
+      letter-spacing: 0.28em;
+      text-indent: 0.28em;
+    }
+
+    .privacy-diary-preview {
+      margin-top: 1.15rem;
+      padding: 0 0.35rem;
+      font-size: 0.72rem;
+      font-weight: 300;
+      line-height: 1.85;
+      letter-spacing: 0.06em;
+      color: rgba(232, 230, 226, 0.42);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 22vh;
+      overflow-y: auto;
+    }
+
+    .save-preview-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10060;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding:
+        calc(0.85rem + env(safe-area-inset-top))
+        calc(0.85rem + env(safe-area-inset-right))
+        calc(0.85rem + env(safe-area-inset-bottom))
+        calc(0.85rem + env(safe-area-inset-left));
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 45%, rgba(20, 18, 16, 0.97) 0%, rgba(3, 3, 4, 0.98) 100%);
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
       transition: opacity 0.45s ease, visibility 0.45s ease;
     }
 
-    .reflect-overlay.active {
+    .save-preview-overlay.active {
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
     }
 
-    .reflect-panel {
-      width: min(92vw, 20rem);
+    .save-preview-panel {
+      position: relative;
+      width: min(92vw, 400px);
       max-height: 100%;
-      overflow-y: auto;
-      text-align: center;
-      transform: translateY(16px) scale(0.96);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translateY(18px) scale(0.96);
       opacity: 0;
-      transition: transform 0.5s cubic-bezier(0.34, 1.15, 0.64, 1), opacity 0.45s ease;
+      transition: transform 0.55s cubic-bezier(0.34, 1.15, 0.64, 1), opacity 0.45s ease;
     }
 
-    .reflect-overlay.active .reflect-panel {
+    .save-preview-overlay.active .save-preview-panel {
       transform: translateY(0) scale(1);
       opacity: 1;
     }
 
-    .reflect-canvas-wrap {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 4 / 3;
-      margin-bottom: 1.35rem;
-      border-radius: 1px;
-      overflow: hidden;
-      background: #f7f4eb;
-      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+    .save-preview-close {
+      align-self: flex-end;
+      margin-bottom: 0.85rem;
+      font-size: 0.48rem;
+      letter-spacing: 0.18em;
+      color: rgba(232, 230, 226, 0.32);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.45rem 0.5rem;
     }
 
-    .reflect-canvas-wrap canvas {
+    .save-preview-hint {
+      width: 100%;
+      margin-bottom: 1rem;
+      text-align: center;
+      font-size: 0.58rem;
+      font-weight: 300;
+      line-height: 2;
+      letter-spacing: 0.12em;
+      color: rgba(201, 169, 98, 0.62);
+    }
+
+    .save-preview-image-wrap {
+      width: 100%;
+      aspect-ratio: 9 / 16;
+      max-height: min(72vh, calc(92vw * 16 / 9));
+      border-radius: 2px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
+      background: #0a0a0a;
+    }
+
+    .save-preview-image-wrap img {
       display: block;
       width: 100%;
       height: 100%;
-    }
-
-    .reflect-canvas-wrap::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 40%, rgba(0, 0, 0, 0.06) 100%);
-    }
-
-    .reflect-date {
-      font-family: "Times New Roman", Georgia, serif;
-      font-size: 0.72rem;
-      font-weight: 400;
-      letter-spacing: 0.22em;
-      color: rgba(201, 169, 98, 0.58);
-      margin-bottom: 1rem;
-    }
-
-    .reflect-text {
-      font-size: 0.78rem;
-      font-weight: 300;
-      line-height: 1.9;
-      letter-spacing: 0.06em;
-      color: rgba(232, 230, 226, 0.72);
-      white-space: pre-wrap;
-      word-break: break-word;
-      max-height: 28vh;
-      overflow-y: auto;
-      margin-bottom: 1.5rem;
-      padding: 0 0.25rem;
-    }
-
-    .reflect-actions {
-      display: flex;
-      flex-direction: column;
-      gap: 0.55rem;
-    }
-
-    .reflect-btn {
-      display: block;
-      width: 100%;
-      padding: 0.65rem 0.75rem;
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 1px;
-      background: rgba(255, 255, 255, 0.03);
-      color: rgba(232, 230, 226, 0.55);
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
-      font-size: 0.52rem;
-      font-weight: 400;
-      letter-spacing: 0.28em;
-      text-indent: 0.28em;
-      text-decoration: none;
-      text-align: center;
-      cursor: pointer;
-      transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
-    }
-
-    .reflect-btn:hover {
-      color: rgba(232, 230, 226, 0.85);
-      border-color: rgba(201, 169, 98, 0.35);
-      background: rgba(201, 169, 98, 0.06);
-    }
-
-    .reflect-btn.primary {
-      border-color: rgba(201, 169, 98, 0.32);
-      color: rgba(232, 230, 226, 0.72);
-      background: rgba(201, 169, 98, 0.08);
+      object-fit: contain;
+      -webkit-touch-callout: default;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <div class="mycolors-shell">
     <header class="page-header">
       <nav class="site-nav" aria-label="ナビゲーション">
-        <a class="site-nav-link" href="index.html">キャンバスへ</a>
-        <a class="site-nav-link" href="gallery.html">感情の回廊へ</a>
-        <a class="site-nav-link" href="midspace.html">途中経過を覗く</a>
+        <a class="site-nav-link" href="index.html">キャンバス</a>
+        <a class="site-nav-link" href="gallery.html">感情の回廊</a>
+        <a class="site-nav-link" href="midspace.html">言葉の浮遊層</a>
+        <a class="site-nav-link is-current" href="mycolors.html" aria-current="page">今日の私の色</a>
       </nav>
-      <h1 class="page-title">#今日の私の色</h1>
-      <p class="page-subtitle">MY COLORS</p>
+      <h1 class="page-title">今日の私の色</h1>
+      <p class="page-subtitle">My Colors</p>
     </header>
 
     <main class="catalog-scroll">
@@ -331,16 +513,32 @@
     </main>
   </div>
 
-  <div class="reflect-overlay" id="reflectOverlay" aria-hidden="true" role="dialog" aria-label="その日の振り返り">
-    <div class="reflect-panel">
-      <div class="reflect-canvas-wrap">
-        <canvas id="reflectCanvas" width="400" height="300" aria-hidden="true"></canvas>
+  <div class="artwork-modal" id="artworkModal" aria-hidden="true" role="dialog" aria-label="その日の絵画">
+    <div class="artwork-modal-inner">
+      <div class="museum-wall-display" id="modalWallDisplay">
+        <div class="export-frame-sculpted">
+          <div class="export-art-surface">
+            <canvas id="modalArtCanvas" width="400" height="300" aria-hidden="true"></canvas>
+            <div class="paper-texture-overlay" aria-hidden="true"></div>
+          </div>
+        </div>
+        <p class="art-period-caption" id="modalCaption"></p>
       </div>
-      <p class="reflect-date" id="reflectDate"></p>
-      <p class="reflect-text" id="reflectText"></p>
-      <div class="reflect-actions">
-        <a class="reflect-btn primary" id="reflectGoCanvas" href="index.html">キャンバスで続ける</a>
-        <button type="button" class="reflect-btn" id="reflectClose">閉じる</button>
+      <p class="privacy-diary-preview privacy-export-hidden" id="modalDiaryText" data-export-hide aria-hidden="true"></p>
+      <div class="modal-art-actions">
+        <button type="button" class="share-art-btn" id="shareColorBtn">この色を放流する</button>
+        <button type="button" class="save-art-btn" id="saveColorBtn">この絵画を保存する</button>
+        <button type="button" class="modal-close-btn" id="artworkModalClose">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="save-preview-overlay" id="savePreviewOverlay" aria-hidden="true" role="dialog" aria-label="保存プレビュー">
+    <div class="save-preview-panel">
+      <button type="button" class="save-preview-close" id="savePreviewClose" aria-label="閉じる">CLOSE</button>
+      <p class="save-preview-hint">画像を長押しして<br>「写真に追加」を選択して保存してください</p>
+      <div class="save-preview-image-wrap">
+        <img id="savePreviewImage" alt="INSCAPE — 額装作品" draggable="false">
       </div>
     </div>
   </div>
@@ -350,22 +548,29 @@
       'use strict';
 
       const INSCAPE_HISTORY_KEY = 'inscape_history';
-      const REFLECT_STORAGE_KEY = 'inscape_reflect_entry';
       const SPLAT_IMAGE = 'splat.png';
       const CANVAS_BG = '#f7f4eb';
+      const SHARE_APP_URL = 'https://my-inscape.github.io/inscape/';
+      const SHARE_HASHTAG = '#INSCAPE';
+      const EXPORT_W = 1080;
+      const EXPORT_H = 1920;
 
       const colorsGrid = document.getElementById('colorsGrid');
       const emptyState = document.getElementById('emptyState');
-      const reflectOverlay = document.getElementById('reflectOverlay');
-      const reflectCanvas = document.getElementById('reflectCanvas');
-      const reflectDate = document.getElementById('reflectDate');
-      const reflectText = document.getElementById('reflectText');
-      const reflectClose = document.getElementById('reflectClose');
-      const reflectGoCanvas = document.getElementById('reflectGoCanvas');
+      const artworkModal = document.getElementById('artworkModal');
+      const modalWallDisplay = document.getElementById('modalWallDisplay');
+      const modalArtCanvas = document.getElementById('modalArtCanvas');
+      const modalCaption = document.getElementById('modalCaption');
+      const modalDiaryText = document.getElementById('modalDiaryText');
+      const shareColorBtn = document.getElementById('shareColorBtn');
+      const saveColorBtn = document.getElementById('saveColorBtn');
+      const artworkModalClose = document.getElementById('artworkModalClose');
 
       const splatImg = new Image();
       const stampCache = {};
       let splatReady = false;
+      let savePreviewObjectUrl = null;
+      let currentEntry = null;
 
       function parseEntryDate(entry) {
         if (!entry) return null;
@@ -481,63 +686,310 @@
         return work;
       }
 
-      function renderMiniSplash(color) {
-        if (!reflectCanvas) return;
-        const ctx = reflectCanvas.getContext('2d');
-        const w = reflectCanvas.width;
-        const h = reflectCanvas.height;
+      function renderDayArtwork(entry) {
+        if (!modalArtCanvas || !entry) return;
+        const ctx = modalArtCanvas.getContext('2d');
+        const w = modalArtCanvas.width;
+        const h = modalArtCanvas.height;
 
         ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
         ctx.fillStyle = CANVAS_BG;
         ctx.fillRect(0, 0, w, h);
 
-        const stamp = createColorStamp(color);
+        const stamp = createColorStamp(entry.color);
         if (!stamp) return;
 
-        const size = Math.min(w, h) * 0.58;
+        const seed = entry.timestamp || 1;
+        const rotation = ((seed % 360) / 360) * Math.PI * 2 * 0.15 - 0.35;
+        const size = Math.min(w, h) * 0.62;
+
         ctx.save();
         ctx.translate(w * 0.5, h * 0.5);
-        ctx.rotate((Math.random() - 0.5) * 0.4);
-        ctx.globalAlpha = 0.88;
+        ctx.rotate(rotation);
+        ctx.globalAlpha = 0.9;
         ctx.globalCompositeOperation = 'multiply';
         ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
         ctx.restore();
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 1;
       }
 
-      function saveReflectEntry(entry) {
+      function drawSpacedText(ctx, text, centerX, y, spacingPx) {
+        const chars = text.split('');
+        let totalWidth = 0;
+        chars.forEach((ch, i) => {
+          totalWidth += ctx.measureText(ch).width;
+          if (i < chars.length - 1) totalWidth += spacingPx;
+        });
+        let x = centerX - totalWidth / 2;
+        chars.forEach((ch, i) => {
+          ctx.fillText(ch, x, y);
+          x += ctx.measureText(ch).width + (i < chars.length - 1 ? spacingPx : 0);
+        });
+      }
+
+      function drawMuseumSpotlightBackground(ctx, w, h) {
+        ctx.fillStyle = '#0a0a0a';
+        ctx.fillRect(0, 0, w, h);
+
+        const spotlight = ctx.createRadialGradient(
+          w * 0.5, h * 0.1, 0,
+          w * 0.5, h * 0.1, Math.max(w, h) * 0.82
+        );
+        spotlight.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
+        spotlight.addColorStop(0.32, 'rgba(255, 255, 255, 0.07)');
+        spotlight.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
+        spotlight.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = spotlight;
+        ctx.fillRect(0, 0, w, h);
+
+        const warmGlow = ctx.createRadialGradient(
+          w * 0.5, h * 0.02, 0,
+          w * 0.5, h * 0.02, w * 0.58
+        );
+        warmGlow.addColorStop(0, 'rgba(255, 252, 240, 0.1)');
+        warmGlow.addColorStop(0.45, 'rgba(255, 252, 240, 0.025)');
+        warmGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        ctx.fillStyle = warmGlow;
+        ctx.fillRect(0, 0, w, h);
+
+        const vignette = ctx.createRadialGradient(
+          w * 0.5, h * 0.46, Math.min(w, h) * 0.16,
+          w * 0.5, h * 0.46, Math.max(w, h) * 0.96
+        );
+        vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        vignette.addColorStop(0.52, 'rgba(0, 0, 0, 0.22)');
+        vignette.addColorStop(0.82, 'rgba(5, 5, 5, 0.72)');
+        vignette.addColorStop(1, 'rgba(5, 5, 5, 0.96)');
+        ctx.fillStyle = vignette;
+        ctx.fillRect(0, 0, w, h);
+
+        const floorFade = ctx.createLinearGradient(0, h * 0.68, 0, h);
+        floorFade.addColorStop(0, 'rgba(0, 0, 0, 0)');
+        floorFade.addColorStop(1, 'rgba(0, 0, 0, 0.52)');
+        ctx.fillStyle = floorFade;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      function htmlCanvasToBlob(canvasEl) {
+        return new Promise((resolve, reject) => {
+          if (!canvasEl || !canvasEl.width || !canvasEl.height) {
+            reject(new Error('canvas invalid'));
+            return;
+          }
+          canvasEl.toBlob((blob) => {
+            if (blob) resolve(blob);
+            else reject(new Error('toBlob failed'));
+          }, 'image/png', 1);
+        });
+      }
+
+      async function compositeToMuseumExport(artCanvas) {
+        const final = document.createElement('canvas');
+        final.width = EXPORT_W;
+        final.height = EXPORT_H;
+        const ctx = final.getContext('2d');
+
+        drawMuseumSpotlightBackground(ctx, EXPORT_W, EXPORT_H);
+
+        const logoReserve = 148;
+        const topMargin = 220;
+        const sidePad = 96;
+        const maxW = EXPORT_W - sidePad * 2;
+        const maxH = EXPORT_H - topMargin - logoReserve - 100;
+
+        const scale = Math.min(maxW / artCanvas.width, maxH / artCanvas.height);
+        const dw = artCanvas.width * scale;
+        const dh = artCanvas.height * scale;
+        const dx = (EXPORT_W - dw) / 2;
+        const dy = topMargin + (maxH - dh) / 2;
+
+        ctx.drawImage(artCanvas, dx, dy, dw, dh);
+
+        ctx.save();
+        const logoSize = 34;
+        ctx.font = `300 ${logoSize}px "Times New Roman", Georgia, serif`;
+        ctx.fillStyle = 'rgba(190, 190, 190, 0.62)';
+        ctx.textBaseline = 'middle';
+        drawSpacedText(ctx, 'INSCAPE', EXPORT_W / 2, EXPORT_H - 92, logoSize * 0.44);
+        ctx.restore();
+
+        return htmlCanvasToBlob(final);
+      }
+
+      function stripPrivacyFromClone(clonedRoot) {
+        if (!clonedRoot) return;
+        clonedRoot.querySelectorAll(
+          '.modal-art-actions, .share-art-btn, .save-art-btn, .modal-close-btn, ' +
+          '.privacy-diary-preview, [data-export-hide], .privacy-export-hidden'
+        ).forEach((node) => node.remove());
+      }
+
+      async function captureFramedArtworkBlob() {
+        if (!modalWallDisplay) throw new Error('frame target missing');
+        if (typeof html2canvas !== 'function') throw new Error('html2canvas not loaded');
+
+        const scale = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1.5));
+        const artCanvas = await html2canvas(modalWallDisplay, {
+          scale,
+          useCORS: true,
+          allowTaint: true,
+          backgroundColor: null,
+          logging: false,
+          onclone: (_doc, clonedEl) => {
+            stripPrivacyFromClone(clonedEl);
+          }
+        });
+
+        return compositeToMuseumExport(artCanvas);
+      }
+
+      function closeSavePreview() {
+        const overlay = document.getElementById('savePreviewOverlay');
+        const img = document.getElementById('savePreviewImage');
+        if (overlay) {
+          overlay.classList.remove('active');
+          overlay.setAttribute('aria-hidden', 'true');
+        }
+        if (img) img.removeAttribute('src');
+        if (savePreviewObjectUrl) {
+          URL.revokeObjectURL(savePreviewObjectUrl);
+          savePreviewObjectUrl = null;
+        }
+      }
+
+      function showSavePreview(blob) {
+        const overlay = document.getElementById('savePreviewOverlay');
+        const img = document.getElementById('savePreviewImage');
+        if (!overlay || !img || !blob) return;
+
+        closeSavePreview();
+        savePreviewObjectUrl = URL.createObjectURL(blob);
+        img.src = savePreviewObjectUrl;
+        overlay.classList.add('active');
+        overlay.setAttribute('aria-hidden', 'false');
+      }
+
+      function downloadBlob(blob, filename) {
+        if (!blob) return;
         try {
-          sessionStorage.setItem(REFLECT_STORAGE_KEY, JSON.stringify({
-            word: entry.word || '',
-            color: entry.color,
-            date: entry.date || formatFullDate(entry),
-            timestamp: entry.timestamp || 0
-          }));
-        } catch (_) {}
+          const url = URL.createObjectURL(blob);
+          const link = document.createElement('a');
+          link.href = url;
+          link.download = filename || 'inscape-color.png';
+          link.rel = 'noopener';
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          setTimeout(() => URL.revokeObjectURL(url), 2000);
+        } catch (err) {
+          console.warn('画像の保存に失敗:', err);
+        }
       }
 
-      function openReflect(entry) {
-        if (!reflectOverlay) return;
+      function getShareCaption() {
+        return `${SHARE_HASHTAG} ${SHARE_APP_URL}`;
+      }
 
-        saveReflectEntry(entry);
-        renderMiniSplash(entry.color);
+      function openTwitterShareFallback() {
+        const text = encodeURIComponent(`${SHARE_HASHTAG}\n${SHARE_APP_URL}`);
+        window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener,noreferrer');
+      }
 
-        if (reflectDate) reflectDate.textContent = formatFullDate(entry);
-        if (reflectText) {
-          reflectText.textContent = entry.word && entry.word.trim()
-            ? entry.word
-            : '言葉の記録はありません。';
+      async function shareColorArtwork(triggerBtn) {
+        const prevLabel = triggerBtn ? triggerBtn.textContent : '';
+        if (triggerBtn) {
+          triggerBtn.disabled = true;
+          triggerBtn.textContent = '画像を準備中…';
         }
 
-        reflectOverlay.classList.add('active');
-        reflectOverlay.setAttribute('aria-hidden', 'false');
+        let blob;
+        try {
+          blob = await captureFramedArtworkBlob();
+        } catch (err) {
+          console.warn('放流画像の生成に失敗:', err);
+          openTwitterShareFallback();
+          if (triggerBtn) {
+            triggerBtn.disabled = false;
+            triggerBtn.textContent = prevLabel;
+          }
+          return;
+        } finally {
+          if (triggerBtn && triggerBtn.disabled) {
+            triggerBtn.disabled = false;
+            triggerBtn.textContent = prevLabel;
+          }
+        }
+
+        const pngFile = new File([blob], 'inscape-color.png', { type: 'image/png' });
+        const sharePayload = {
+          title: 'INSCAPE',
+          text: getShareCaption(),
+          url: SHARE_APP_URL
+        };
+
+        if (navigator.share) {
+          if (navigator.canShare && navigator.canShare({ files: [pngFile] })) {
+            try {
+              await navigator.share({ ...sharePayload, files: [pngFile] });
+              return;
+            } catch (err) {
+              if (err && err.name === 'AbortError') return;
+            }
+          }
+
+          try {
+            await navigator.share(sharePayload);
+            downloadBlob(blob, 'inscape-color.png');
+            return;
+          } catch (err) {
+            if (err && err.name === 'AbortError') return;
+          }
+        }
+
+        openTwitterShareFallback();
+        downloadBlob(blob, 'inscape-color.png');
       }
 
-      function closeReflect() {
-        if (!reflectOverlay) return;
-        reflectOverlay.classList.remove('active');
-        reflectOverlay.setAttribute('aria-hidden', 'true');
+      async function saveColorArtwork(triggerBtn) {
+        const prevLabel = triggerBtn ? triggerBtn.textContent : '';
+        if (triggerBtn) {
+          triggerBtn.disabled = true;
+          triggerBtn.textContent = '保存を準備中…';
+        }
+
+        try {
+          const blob = await captureFramedArtworkBlob();
+          showSavePreview(blob);
+        } catch (err) {
+          console.warn('額装画像の保存に失敗:', err);
+        } finally {
+          if (triggerBtn) {
+            triggerBtn.disabled = false;
+            triggerBtn.textContent = prevLabel || 'この絵画を保存する';
+          }
+        }
+      }
+
+      function openArtworkModal(entry) {
+        if (!artworkModal || !entry) return;
+        currentEntry = entry;
+        renderDayArtwork(entry);
+        if (modalCaption) modalCaption.textContent = formatFullDate(entry);
+        if (modalDiaryText) {
+          const hasWord = entry.word && entry.word.trim();
+          modalDiaryText.textContent = hasWord ? entry.word : '';
+          modalDiaryText.style.display = hasWord ? '' : 'none';
+          modalDiaryText.setAttribute('aria-hidden', hasWord ? 'false' : 'true');
+        }
+        artworkModal.classList.add('active');
+        artworkModal.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeArtworkModal() {
+        if (!artworkModal) return;
+        artworkModal.classList.remove('active');
+        artworkModal.setAttribute('aria-hidden', 'true');
+        currentEntry = null;
       }
 
       function createColorCell(entry) {
@@ -556,8 +1008,7 @@
 
         btn.appendChild(swatch);
         btn.appendChild(dateEl);
-
-        btn.addEventListener('click', () => openReflect(entry));
+        btn.addEventListener('click', () => openArtworkModal(entry));
 
         return btn;
       }
@@ -580,19 +1031,49 @@
       }
 
       function bindEvents() {
-        if (reflectClose) {
-          reflectClose.addEventListener('click', closeReflect);
+        if (shareColorBtn) {
+          shareColorBtn.addEventListener('click', () => shareColorArtwork(shareColorBtn));
         }
-
-        if (reflectOverlay) {
-          reflectOverlay.addEventListener('click', (e) => {
-            if (e.target === reflectOverlay) closeReflect();
+        if (saveColorBtn) {
+          saveColorBtn.addEventListener('click', () => saveColorArtwork(saveColorBtn));
+        }
+        if (artworkModalClose) {
+          artworkModalClose.addEventListener('click', closeArtworkModal);
+        }
+        if (artworkModal) {
+          artworkModal.addEventListener('click', (e) => {
+            if (e.target === artworkModal) closeArtworkModal();
           });
         }
 
+        const savePreviewClose = document.getElementById('savePreviewClose');
+        const savePreviewOverlay = document.getElementById('savePreviewOverlay');
+        const savePreviewPanel = savePreviewOverlay && savePreviewOverlay.querySelector('.save-preview-panel');
+
+        if (savePreviewClose) {
+          savePreviewClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeSavePreview();
+          });
+        }
+        if (savePreviewOverlay) {
+          savePreviewOverlay.addEventListener('click', (e) => {
+            if (e.target === savePreviewOverlay) closeSavePreview();
+          });
+        }
+        if (savePreviewPanel) {
+          savePreviewPanel.addEventListener('click', (e) => e.stopPropagation());
+        }
+
         document.addEventListener('keydown', (e) => {
-          if (e.key === 'Escape' && reflectOverlay && reflectOverlay.classList.contains('active')) {
-            closeReflect();
+          if (e.key !== 'Escape') return;
+          const saveOverlay = document.getElementById('savePreviewOverlay');
+          if (saveOverlay && saveOverlay.classList.contains('active')) {
+            closeSavePreview();
+            return;
+          }
+          if (artworkModal && artworkModal.classList.contains('active')) {
+            closeArtworkModal();
           }
         });
       }
