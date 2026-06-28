@@ -101,6 +101,20 @@
       pointer-events: none;
     }
 
+    @media (max-width: 480px) {
+      .site-nav {
+        gap: 0.16rem;
+      }
+
+      .site-nav-link,
+      .back-link {
+        font-size: 0.3rem;
+        letter-spacing: 0.02em;
+        text-indent: 0.02em;
+        padding: 0.36rem 0.1rem;
+      }
+    }
+
     .back-link {
       margin-bottom: 0;
     }
@@ -327,9 +341,10 @@
     <div class="corridor-top">
       <nav class="site-nav" aria-label="ナビゲーション">
         <a class="site-nav-link" href="index.html">キャンバス</a>
-        <a class="site-nav-link" href="gallery.html">感情の回廊</a>
         <a class="site-nav-link is-current" href="midspace.html" aria-current="page">言葉の浮遊層</a>
+        <a class="site-nav-link" href="gallery.html">感情の回廊</a>
         <a class="site-nav-link" href="mycolors.html">今日の私の色</a>
+        <a class="site-nav-link" href="ocean.html">感情の夜海</a>
       </nav>
 
       <header class="museum-header">

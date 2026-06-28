@@ -651,10 +651,10 @@
 
     .header-action-btn {
       font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
-      font-size: 0.38rem;
+      font-size: 0.36rem;
       font-weight: 400;
-      letter-spacing: 0.06em;
-      text-indent: 0.06em;
+      letter-spacing: 0.05em;
+      text-indent: 0.05em;
       color: rgba(232, 230, 226, 0.45);
       padding: 0.42rem 0.22rem;
       border: 0.5px solid rgba(255, 255, 255, 0.1);
@@ -694,6 +694,19 @@
       background: rgba(201, 169, 98, 0.06);
       pointer-events: none;
       cursor: default;
+    }
+
+    @media (max-width: 480px) {
+      .header-actions {
+        gap: 0.16rem;
+      }
+
+      .header-action-btn {
+        font-size: 0.32rem;
+        letter-spacing: 0.03em;
+        text-indent: 0.03em;
+        padding: 0.38rem 0.1rem;
+      }
     }
 
     .phone-shell.zen-fading .header-actions,
@@ -1305,9 +1318,10 @@
     <header class="header-actions" aria-label="ナビゲーション">
       <button type="button" class="header-action-btn release-share-btn" id="releaseShareBtn" aria-label="この瞬間を放流する">この瞬間を放流する</button>
       <a class="header-action-btn is-current" href="index.html" aria-current="page">キャンバス</a>
-      <a class="header-action-btn gallery-link" href="gallery.html">感情の回廊</a>
       <a class="header-action-btn midspace-link" href="midspace.html">言葉の浮遊層</a>
+      <a class="header-action-btn gallery-link" href="gallery.html">感情の回廊</a>
       <a class="header-action-btn mycolors-link" href="mycolors.html">今日の私の色</a>
+      <a class="header-action-btn ocean-link" href="ocean.html">感情の夜海</a>
     </header>
 
     <p class="daily-lock-message" id="dailyLockMessage" aria-hidden="true">
