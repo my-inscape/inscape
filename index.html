@@ -61,6 +61,7 @@
       display: flex;
       flex-direction: column;
       padding: 0.85rem 0 0;
+      position: relative;
     }
 
     @media (min-height: 700px) {
@@ -75,6 +76,148 @@
       margin-bottom: 0.85rem;
       text-align: center;
       flex-shrink: 0;
+      position: relative;
+      z-index: 2;
+    }
+
+    .capsule-orbs-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      overflow: visible;
+      pointer-events: none;
+    }
+
+    .capsule-orbs-layer .capsule-orb {
+      pointer-events: auto;
+    }
+
+    .capsule-orb {
+      position: absolute;
+      border-radius: 50%;
+      border: none;
+      padding: 0;
+      cursor: pointer;
+      opacity: 0;
+      transform: scale(0.6);
+      z-index: 1;
+      will-change: transform, opacity;
+      animation:
+        capsuleOrbIn 0.85s cubic-bezier(0.34, 1.2, 0.64, 1) var(--in-delay, 0s) forwards,
+        capsuleFloat var(--float-dur, 9s) ease-in-out var(--float-delay, 0s) infinite;
+      background:
+        radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.4) 0%, transparent 42%),
+        radial-gradient(circle at 72% 78%, rgba(0, 0, 0, 0.35) 0%, transparent 48%),
+        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--orb-color) 65%, white) 0%, var(--orb-color) 58%, color-mix(in srgb, var(--orb-color) 40%, black) 100%);
+      box-shadow:
+        inset 0 1px 4px rgba(255, 255, 255, 0.2),
+        0 4px 14px rgba(0, 0, 0, 0.35),
+        0 0 12px color-mix(in srgb, var(--orb-color) 22%, transparent);
+      transition: transform 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease;
+    }
+
+    .capsule-orb:hover,
+    .capsule-orb:focus-visible {
+      opacity: 0.58 !important;
+      filter: brightness(1.12);
+      outline: none;
+    }
+
+    @keyframes capsuleOrbIn {
+      to { opacity: var(--orb-opacity, 0.4); transform: scale(1); }
+    }
+
+    @keyframes capsuleFloat {
+      0%   { translate: var(--fx0, 0px) var(--fy0, 0px); }
+      18%  { translate: var(--fx1, 4px) var(--fy1, -8px); }
+      38%  { translate: var(--fx2, -7px) var(--fy2, 4px); }
+      55%  { translate: var(--fx3, 5px) var(--fy3, 7px); }
+      72%  { translate: var(--fx4, -4px) var(--fy4, -5px); }
+      88%  { translate: var(--fx5, 6px) var(--fy5, 2px); }
+      100% { translate: var(--fx0, 0px) var(--fy0, 0px); }
+    }
+
+    .memory-popover {
+      position: fixed;
+      z-index: 10020;
+      max-width: min(88vw, 18rem);
+      padding: 1rem 1.1rem;
+      background: rgba(14, 13, 16, 0.94);
+      border: 0.5px solid rgba(201, 169, 98, 0.22);
+      border-radius: 2px;
+      box-shadow:
+        0 16px 48px rgba(0, 0, 0, 0.75),
+        0 0 32px rgba(201, 169, 98, 0.08);
+      opacity: 0;
+      visibility: hidden;
+      transform: translate(-50%, -50%) scale(0.92);
+      transition: opacity 0.35s ease, visibility 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1);
+      pointer-events: none;
+    }
+
+    .memory-popover.visible {
+      opacity: 1;
+      visibility: visible;
+      transform: translate(-50%, -50%) scale(1);
+      pointer-events: auto;
+    }
+
+    .memory-popover-date {
+      font-size: 0.52rem;
+      letter-spacing: 0.22em;
+      color: rgba(201, 169, 98, 0.65);
+      margin-bottom: 0.75rem;
+    }
+
+    .memory-popover-text {
+      font-size: 0.78rem;
+      font-weight: 300;
+      line-height: 1.85;
+      letter-spacing: 0.06em;
+      color: rgba(232, 230, 226, 0.78);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 40vh;
+      overflow-y: auto;
+    }
+
+    .memory-popover-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      margin-bottom: 0.65rem;
+      box-shadow: 0 0 12px color-mix(in srgb, var(--pop-color) 60%, transparent);
+      background: var(--pop-color);
+    }
+
+    .memory-popover-close {
+      display: block;
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.55rem 0.5rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.22);
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.04);
+      color: rgba(232, 230, 226, 0.55);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.52rem;
+      font-weight: 400;
+      letter-spacing: 0.32em;
+      text-indent: 0.32em;
+      cursor: pointer;
+    }
+
+    .export-capsule-orbs-layer {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      overflow: visible;
+    }
+
+    .export-capsule-orbs-layer .capsule-orb {
+      pointer-events: none;
+      --orb-opacity: 0.45;
     }
 
     .mid-panel {
@@ -416,6 +559,7 @@
     .canvas-wrap {
       flex: 1;
       position: relative;
+      z-index: 2;
       min-height: 0;
       margin: 0;
       padding: 0;
@@ -1298,6 +1442,7 @@
 
     <div class="app">
       <div class="top-area">
+        <div class="capsule-orbs-layer" id="capsuleOrbs" aria-hidden="true"></div>
         <p class="logo zen-target">INSCAPE</p>
         <div class="canvas-wrap" id="canvasWrap">
           <div class="museum-frame" id="museumFrame">
@@ -1349,6 +1494,13 @@
         <img id="savePreviewImage" alt="INSCAPE — 額装作品" draggable="false">
       </div>
     </div>
+  </div>
+
+  <div class="memory-popover" id="memoryPopover" role="dialog" aria-hidden="true">
+    <div class="memory-popover-dot"></div>
+    <p class="memory-popover-date"></p>
+    <p class="memory-popover-text"></p>
+    <button type="button" class="memory-popover-close" id="memoryPopoverClose">閉じる</button>
   </div>
 
   <script>
@@ -1407,6 +1559,11 @@
       const controlsFooter = document.getElementById('controlsFooter');
       const appEl = document.querySelector('.app');
       const exportRoot = document.getElementById('exportRoot');
+      const capsuleOrbsLayer = document.getElementById('capsuleOrbs');
+      const memoryPopover = document.getElementById('memoryPopover');
+      const CAPSULE_MAX_PAST = 6;
+      const CAPSULE_ORB_MIN = 10;
+      const CAPSULE_ORB_MAX = 20;
 
       let selectedColor = '#3d4f5f';
       let splashes = [];
@@ -1777,6 +1934,193 @@
         return formatDotDate(new Date());
       }
 
+      function randBetween(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function loadInscapeHistory() {
+        try {
+          const raw = localStorage.getItem(INSCAPE_HISTORY_KEY);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return [];
+          return data.map((entry) => ({
+            word: entry.word || entry.text || '',
+            color: entry.color,
+            date: entry.date || formatDate(entry.timestamp),
+            timestamp: entry.timestamp || 0
+          })).filter((e) => e.color);
+        } catch {
+          return [];
+        }
+      }
+
+      function getPastCapsuleEntries() {
+        const history = loadInscapeHistory();
+        if (history.length <= 1) return [];
+        return history.slice(0, -1).slice(-CAPSULE_MAX_PAST);
+      }
+
+      function applyCapsuleOrbFloatVars(orb) {
+        const amp = randBetween(5, 14);
+        orb.style.setProperty('--float-dur', `${randBetween(5.5, 12).toFixed(2)}s`);
+        orb.style.setProperty('--float-delay', `-${randBetween(1.5, 14).toFixed(2)}s`);
+        orb.style.setProperty('--orb-opacity', `${randBetween(0.32, 0.48).toFixed(2)}`);
+        orb.style.setProperty('--fx0', '0px');
+        orb.style.setProperty('--fy0', '0px');
+        for (let k = 1; k <= 5; k++) {
+          orb.style.setProperty(`--fx${k}`, `${(Math.random() - 0.5) * amp * 2}px`);
+          orb.style.setProperty(`--fy${k}`, `${(Math.random() - 0.5) * amp * 2}px`);
+        }
+        orb.style.setProperty('--in-delay', `${randBetween(0, 0.45).toFixed(2)}s`);
+      }
+
+      function isPointOnCanvasArea(x, y, size, layerRect, excludeRect) {
+        const cr = excludeRect || canvasWrap.getBoundingClientRect();
+        const half = size / 2;
+        const gap = 14;
+        const fx = cr.left - layerRect.left - gap;
+        const fy = cr.top - layerRect.top - gap;
+        const fw = cr.width + gap * 2;
+        const fh = cr.height + gap * 2;
+        return x + half > fx && x - half < fx + fw && y + half > fy && y - half < fy + fh;
+      }
+
+      function getCapsuleScatterSlots(count, layerEl, excludeEl) {
+        const layerRect = layerEl.getBoundingClientRect();
+        const excludeRect = excludeEl ? excludeEl.getBoundingClientRect() : canvasWrap.getBoundingClientRect();
+        const slots = [];
+        const edgePad = 10;
+
+        for (let i = 0; i < count; i++) {
+          const size = randBetween(CAPSULE_ORB_MIN, CAPSULE_ORB_MAX);
+          const half = size / 2 + edgePad;
+          let placed = false;
+
+          for (let attempt = 0; attempt < 90 && !placed; attempt++) {
+            const x = randBetween(half, Math.max(half + 1, layerRect.width - half));
+            const y = randBetween(half, Math.max(half + 1, layerRect.height - half));
+
+            if (isPointOnCanvasArea(x, y, size, layerRect, excludeRect)) continue;
+
+            const crowded = slots.some((s) => {
+              return Math.hypot(s.x - x, s.y - y) < (s.size + size) * 0.5 + randBetween(6, 16);
+            });
+            if (!crowded) {
+              slots.push({ x, y, size });
+              placed = true;
+            }
+          }
+
+          if (!placed) {
+            for (let attempt = 0; attempt < 60 && !placed; attempt++) {
+              const x = randBetween(half, Math.max(half + 1, layerRect.width * 0.28));
+              const y = randBetween(half, Math.max(half + 1, layerRect.height - half));
+              if (!isPointOnCanvasArea(x, y, size, layerRect, excludeRect)) {
+                slots.push({ x, y, size });
+                placed = true;
+              }
+            }
+          }
+
+          if (!placed) {
+            slots.push({
+              x: randBetween(half, Math.max(half + 1, layerRect.width * 0.2)),
+              y: randBetween(half, Math.max(half + 1, layerRect.height - half)),
+              size
+            });
+          }
+        }
+
+        return slots.map((s) => ({
+          left: `${((s.x / layerRect.width) * 100).toFixed(2)}%`,
+          top: `${((s.y / layerRect.height) * 100).toFixed(2)}%`,
+          size: s.size
+        }));
+      }
+
+      function hideMemoryPopover() {
+        if (!memoryPopover) return;
+        memoryPopover.classList.remove('visible');
+        memoryPopover.setAttribute('aria-hidden', 'true');
+      }
+
+      function showMemoryPopover(entry, anchorEl) {
+        if (!memoryPopover) return;
+        hideMemoryPopover();
+        hideTooltip();
+
+        const dot = memoryPopover.querySelector('.memory-popover-dot');
+        const dateEl = memoryPopover.querySelector('.memory-popover-date');
+        const textEl = memoryPopover.querySelector('.memory-popover-text');
+
+        if (dot) dot.style.setProperty('--pop-color', entry.color || '#888');
+        if (dateEl) dateEl.textContent = entry.date || '—';
+        if (textEl) {
+          textEl.textContent = entry.word && entry.word.trim()
+            ? entry.word
+            : '言葉の記録はありません。';
+        }
+
+        const rect = anchorEl.getBoundingClientRect();
+        let left = rect.left + rect.width / 2;
+        let top = rect.top - 12;
+        const margin = 12;
+        const popW = 288;
+        if (left - popW / 2 < margin) left = margin + popW / 2;
+        if (left + popW / 2 > window.innerWidth - margin) left = window.innerWidth - margin - popW / 2;
+        if (top < margin + 80) top = rect.bottom + 16;
+
+        memoryPopover.style.left = `${left}px`;
+        memoryPopover.style.top = `${top}px`;
+        memoryPopover.setAttribute('aria-hidden', 'false');
+        memoryPopover.classList.add('visible');
+      }
+
+      function spawnCapsuleOrbsIntoLayer(entries, layerEl, excludeEl, interactive) {
+        if (!layerEl) return;
+        layerEl.innerHTML = '';
+        if (!entries.length) {
+          layerEl.setAttribute('aria-hidden', 'true');
+          return;
+        }
+
+        layerEl.setAttribute('aria-hidden', 'false');
+        const scatterSlots = getCapsuleScatterSlots(entries.length, layerEl, excludeEl);
+
+        entries.forEach((entry, i) => {
+          const orb = document.createElement('button');
+          orb.type = 'button';
+          orb.className = 'capsule-orb';
+          const slot = scatterSlots[i] || scatterSlots[scatterSlots.length - 1];
+          const size = slot.size || randBetween(CAPSULE_ORB_MIN, CAPSULE_ORB_MAX);
+
+          orb.style.setProperty('--orb-color', entry.color || '#5a6a7a');
+          orb.style.width = `${size}px`;
+          orb.style.height = `${size}px`;
+          orb.style.left = slot.left;
+          orb.style.top = slot.top;
+
+          applyCapsuleOrbFloatVars(orb);
+          orb.setAttribute('aria-label', '過去の感情を見る');
+
+          if (interactive) {
+            orb.addEventListener('click', (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              showMemoryPopover(entry, orb);
+            });
+          }
+
+          layerEl.appendChild(orb);
+        });
+      }
+
+      function layoutCapsuleOrbs() {
+        if (!capsuleOrbsLayer) return;
+        spawnCapsuleOrbsIntoLayer(getPastCapsuleEntries(), capsuleOrbsLayer, canvasWrap, true);
+      }
+
       function buildExportWallDisplay() {
         if (!exportRoot) throw new Error('export root missing');
 
@@ -1788,6 +2132,10 @@
         exportRoot.innerHTML = '';
         const wall = document.createElement('div');
         wall.className = 'museum-wall-display museum-wall-export';
+
+        const exportOrbsLayer = document.createElement('div');
+        exportOrbsLayer.className = 'export-capsule-orbs-layer';
+        exportOrbsLayer.setAttribute('aria-hidden', 'true');
 
         const sculpted = document.createElement('div');
         sculpted.className = 'export-frame-sculpted';
@@ -1813,9 +2161,18 @@
         surface.appendChild(artImg);
         surface.appendChild(texture);
         sculpted.appendChild(surface);
+        wall.appendChild(exportOrbsLayer);
         wall.appendChild(sculpted);
         wall.appendChild(caption);
         exportRoot.appendChild(wall);
+
+        spawnCapsuleOrbsIntoLayer(
+          loadInscapeHistory().slice(-CAPSULE_MAX_PAST),
+          exportOrbsLayer,
+          sculpted,
+          false
+        );
+
         return { wall, artImg };
       }
 
@@ -1896,12 +2253,24 @@
         const overlay = document.getElementById('savePreviewOverlay');
         const closeBtn = document.getElementById('savePreviewClose');
         const panel = overlay && overlay.querySelector('.save-preview-panel');
+        const memoryPopoverClose = document.getElementById('memoryPopoverClose');
 
         if (closeBtn) {
           closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             closeSavePreview();
           });
+        }
+
+        if (memoryPopoverClose) {
+          memoryPopoverClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            hideMemoryPopover();
+          });
+        }
+
+        if (memoryPopover) {
+          memoryPopover.addEventListener('click', (e) => e.stopPropagation());
         }
 
         if (overlay) {
@@ -1913,6 +2282,14 @@
         if (panel) {
           panel.addEventListener('click', (e) => e.stopPropagation());
         }
+
+        document.addEventListener('click', (e) => {
+          if (memoryPopover && memoryPopover.classList.contains('visible') &&
+              !memoryPopover.contains(e.target) &&
+              !e.target.closest('.capsule-orb')) {
+            hideMemoryPopover();
+          }
+        });
       }
 
       const SPLAT_IMAGE = 'splat.png';
@@ -2212,6 +2589,7 @@
         try {
           syncHistoriesFromSplashes();
           updateFrameButtonState();
+          layoutCapsuleOrbs();
         } catch (err) {
           console.warn('履歴保存に失敗:', err);
         }
@@ -3607,7 +3985,10 @@
       document.addEventListener('mousemove', onUserActivity, { passive: true });
       document.addEventListener('touchstart', onUserActivity, { passive: true });
 
-      window.addEventListener('resize', resizeCanvas);
+      window.addEventListener('resize', () => {
+        resizeCanvas();
+        layoutCapsuleOrbs();
+      });
 
       migrateHistoriesToRecipes();
       migrateGalleryStorage();
@@ -3621,6 +4002,7 @@
       applySelectedColor(selectedColor);
       resizeCanvas();
       refreshCanvasExportSnapshot();
+      layoutCapsuleOrbs();
       applyDailyLockUI();
       updateUIState();
       updateFrameButtonState();
@@ -3628,6 +4010,10 @@
 
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
+        if (memoryPopover && memoryPopover.classList.contains('visible')) {
+          hideMemoryPopover();
+          return;
+        }
         const saveOverlay = document.getElementById('savePreviewOverlay');
         if (saveOverlay && saveOverlay.classList.contains('active')) {
           closeSavePreview();
