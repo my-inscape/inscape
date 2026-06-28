@@ -1143,7 +1143,147 @@
       user-select: none;
       -webkit-user-select: none;
     }
+
+    .export-root {
+      position: fixed;
+      left: -10000px;
+      top: 0;
+      width: 400px;
+      pointer-events: none;
+      opacity: 1;
+      visibility: visible;
+      z-index: -9999;
+      overflow: visible;
+    }
+
+    .export-root.is-capturing {
+      left: 0;
+      top: 0;
+      z-index: 99999;
+    }
+
+    .museum-wall-export {
+      padding: 2.75rem 1.5rem 2rem !important;
+      background:
+        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0) 70%),
+        radial-gradient(ellipse 88% 52% at 50% -6%, rgba(255, 252, 240, 0.09) 0%, transparent 55%),
+        #0a0a0a !important;
+    }
+
+    .museum-wall-display {
+      position: relative;
+      display: inline-block;
+      width: 100%;
+      text-align: center;
+      overflow: visible;
+      padding: 2.75rem 1.5rem 2rem;
+      background:
+        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0) 70%),
+        radial-gradient(ellipse 88% 52% at 50% -6%, rgba(255, 252, 240, 0.09) 0%, transparent 55%),
+        #0a0a0a;
+      border-radius: 1px;
+    }
+
+    .museum-wall-display::before {
+      content: '';
+      position: absolute;
+      inset: -8% -14%;
+      z-index: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 50% 6%, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0) 62%),
+        radial-gradient(ellipse 65% 38% at 50% 0%, rgba(201, 169, 98, 0.05) 0%, transparent 58%);
+      opacity: 0.9;
+    }
+
+    .museum-wall-display > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    .export-frame-sculpted {
+      position: relative;
+      box-sizing: border-box;
+      width: 100%;
+      margin: 0 auto;
+      padding: 40px;
+      background: #fbf9f5;
+      border: 24px solid #1c110a;
+      border-top-color: #f3e5ab;
+      border-left-color: #d4af37;
+      border-right-color: #8a640f;
+      border-bottom-color: #5c430a;
+      outline: 4px solid #aa7c11;
+      outline-offset: -24px;
+      box-shadow:
+        inset 0 5px 0 rgba(255, 255, 255, 0.2),
+        inset 0 -3px 10px rgba(0, 0, 0, 0.65),
+        0 4px 14px rgba(0, 0, 0, 0.42),
+        0 20px 40px rgba(0, 0, 0, 0.8),
+        0 36px 72px rgba(0, 0, 0, 0.52);
+    }
+
+    .export-frame-sculpted::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      border: 24px solid transparent;
+      border-image: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%, rgba(0, 0, 0, 0.35) 100%) 1;
+      opacity: 0.85;
+    }
+
+    .export-art-surface {
+      position: relative;
+      width: 100%;
+      overflow: hidden;
+      line-height: 0;
+      font-size: 0;
+      z-index: 1;
+    }
+
+    .export-art-surface .export-art-image {
+      display: block;
+      width: 100%;
+      height: auto;
+      background-color: #f7f4eb;
+      background-image:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        var(--canvas-fabric-url);
+      background-blend-mode: multiply;
+      background-size: auto, auto, cover;
+      box-shadow:
+        inset 5px 5px 15px rgba(0, 0, 0, 0.4),
+        inset -3px -3px 10px rgba(255, 255, 255, 0.6);
+    }
+
+    .export-art-surface .paper-texture-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background-color: transparent;
+      background-image: var(--canvas-fabric-url);
+      background-size: cover;
+      background-blend-mode: multiply;
+      mix-blend-mode: multiply;
+      opacity: 0.35;
+    }
+
+    .art-period-caption {
+      margin-top: 1.1rem;
+      padding: 0 0.35rem;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Georgia", "Times New Roman", serif;
+      font-size: 0.85rem;
+      font-weight: 300;
+      letter-spacing: 0.16em;
+      text-indent: 0.16em;
+      color: rgba(136, 136, 136, 0.92);
+      line-height: 1.65;
+    }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <div class="phone-shell" id="phoneShell">
@@ -1228,6 +1368,8 @@
         <button type="button" class="frame-complete-btn" id="frameCompleteOk">OK</button>
       </div>
     </div>
+
+    <div class="export-root" id="exportRoot" aria-hidden="true"></div>
   </div>
 
   <div class="save-preview-overlay" id="savePreviewOverlay" aria-hidden="true" role="dialog" aria-label="保存プレビュー">
@@ -1295,6 +1437,7 @@
       const inputWrap = document.getElementById('inputWrap');
       const controlsFooter = document.getElementById('controlsFooter');
       const appEl = document.querySelector('.app');
+      const exportRoot = document.getElementById('exportRoot');
 
       let selectedColor = '#3d4f5f';
       let splashes = [];
@@ -1549,100 +1692,146 @@
         return lastCanvasExportDataUrl;
       }
 
-      function loadImageFromDataUrl(dataUrl) {
+      function waitForImageLoad(imgEl) {
+        if (!imgEl) return Promise.resolve();
+        if (imgEl.complete && imgEl.naturalWidth > 0) return Promise.resolve();
         return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve(img);
-          img.onerror = () => reject(new Error('export image load failed'));
-          img.src = dataUrl;
+          imgEl.onload = () => resolve();
+          imgEl.onerror = () => reject(new Error('export image load failed'));
         });
       }
 
-      async function renderFramedWallCanvas() {
-        refreshCanvasExportSnapshot();
+      function loadInscapeHistory() {
+        try {
+          const raw = localStorage.getItem(INSCAPE_HISTORY_KEY);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return [];
+          return data.map((entry) => ({
+            word: entry.word || entry.text || '',
+            color: entry.color,
+            date: entry.date || formatDate(entry.timestamp),
+            timestamp: entry.timestamp || 0
+          })).filter((e) => e.color);
+        } catch {
+          return [];
+        }
+      }
+
+      function parseHistoryEntryToDate(entry) {
+        if (!entry) return null;
+        if (entry.timestamp && Number(entry.timestamp) > 0) {
+          const d = new Date(entry.timestamp);
+          if (!Number.isNaN(d.getTime())) return d;
+        }
+        if (entry.date) {
+          const dateStr = String(entry.date);
+          const matched = dateStr.match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+          if (matched) {
+            const d = new Date(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3]));
+            if (!Number.isNaN(d.getTime())) return d;
+          }
+          const parsed = Date.parse(dateStr);
+          if (!Number.isNaN(parsed)) return new Date(parsed);
+        }
+        return null;
+      }
+
+      function getExportPeriodCaption() {
+        const todayStr = formatDotDate(new Date());
+        const history = loadInscapeHistory();
+        const dates = history
+          .map(parseHistoryEntryToDate)
+          .filter(Boolean)
+          .sort((a, b) => a.getTime() - b.getTime());
+
+        if (dates.length === 0 || dates.length === 1) {
+          return `${todayStr} - ${todayStr}`;
+        }
+
+        const startStr = formatDotDate(dates[0]);
+        return `${startStr} - ${todayStr}`;
+      }
+
+      function buildExportWallDisplay() {
+        if (!exportRoot) throw new Error('export root missing');
+
+        const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth || 400;
+        const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight || 300;
         const dataUrl = getCanvasDataUrl();
         if (!dataUrl) throw new Error('canvas export failed');
 
-        const artImg = await loadImageFromDataUrl(dataUrl);
-        const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth || 400;
-        const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight || 300;
+        exportRoot.innerHTML = '';
+        const wall = document.createElement('div');
+        wall.className = 'museum-wall-display museum-wall-export';
 
-        const scale = 2;
-        const matPad = FRAME_MAT_PADDING * scale;
-        const borderW = FRAME_BORDER_WIDTH * scale;
-        const inset = matPad + borderW;
-        const contentW = 400 * scale;
-        const artW = contentW - inset * 2;
-        const artH = Math.round((artW * aspectH) / aspectW);
-        const frameBlockH = inset * 2 + artH;
-        const wallPadX = 60 * scale;
-        const wallPadTop = 110 * scale;
-        const captionGap = 44 * scale;
-        const wallW = contentW + wallPadX * 2;
-        const wallH = wallPadTop + frameBlockH + captionGap;
+        const sculpted = document.createElement('div');
+        sculpted.className = 'export-frame-sculpted';
 
-        const wallCanvas = document.createElement('canvas');
-        wallCanvas.width = wallW;
-        wallCanvas.height = wallH;
-        const g = wallCanvas.getContext('2d');
+        const surface = document.createElement('div');
+        surface.className = 'export-art-surface';
+        surface.style.aspectRatio = `${aspectW} / ${aspectH}`;
 
-        g.fillStyle = '#0a0a0a';
-        g.fillRect(0, 0, wallW, wallH);
+        const artImg = document.createElement('img');
+        artImg.className = 'export-art-image';
+        artImg.src = dataUrl;
+        artImg.alt = '';
+        artImg.setAttribute('role', 'presentation');
 
-        const spot = g.createRadialGradient(
-          wallW * 0.5, wallH * 0.06, 0,
-          wallW * 0.5, wallH * 0.06, wallW * 0.75
-        );
-        spot.addColorStop(0, 'rgba(255, 255, 255, 0.14)');
-        spot.addColorStop(0.55, 'rgba(255, 255, 255, 0.04)');
-        spot.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        g.fillStyle = spot;
-        g.fillRect(0, 0, wallW, wallH);
+        const texture = document.createElement('div');
+        texture.className = 'paper-texture-overlay';
+        texture.setAttribute('aria-hidden', 'true');
 
-        const warmGlow = g.createRadialGradient(
-          wallW * 0.5, wallH * 0.02, 0,
-          wallW * 0.5, wallH * 0.02, wallW * 0.5
-        );
-        warmGlow.addColorStop(0, 'rgba(255, 252, 240, 0.08)');
-        warmGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        g.fillStyle = warmGlow;
-        g.fillRect(0, 0, wallW, wallH);
+        const caption = document.createElement('p');
+        caption.className = 'art-period-caption';
+        caption.textContent = getExportPeriodCaption();
 
-        const fx = wallPadX;
-        const fy = wallPadTop;
+        surface.appendChild(artImg);
+        surface.appendChild(texture);
+        sculpted.appendChild(surface);
+        wall.appendChild(sculpted);
+        wall.appendChild(caption);
+        exportRoot.appendChild(wall);
 
-        g.fillStyle = '#1c110a';
-        g.fillRect(fx, fy, contentW, frameBlockH);
+        return { wall, artImg };
+      }
 
-        g.strokeStyle = '#aa7c11';
-        g.lineWidth = 4 * scale;
-        g.strokeRect(
-          fx + borderW + 2,
-          fy + borderW + 2,
-          contentW - (borderW + 2) * 2,
-          frameBlockH - (borderW + 2) * 2
-        );
+      async function captureMuseumWallBlob(wallEl, artImg) {
+        if (!wallEl || typeof html2canvas !== 'function') {
+          throw new Error('html2canvas not loaded');
+        }
 
-        g.fillStyle = '#fbf9f5';
-        g.fillRect(fx + borderW, fy + borderW, contentW - borderW * 2, frameBlockH - borderW * 2);
+        await waitForImageLoad(artImg);
 
-        const ax = fx + inset;
-        const ay = fy + inset;
-        g.save();
-        g.shadowColor = 'rgba(0, 0, 0, 0.42)';
-        g.shadowBlur = 10 * scale;
-        g.shadowOffsetX = 5 * scale;
-        g.shadowOffsetY = 5 * scale;
-        g.drawImage(artImg, ax, ay, artW, artH);
-        g.restore();
+        if (exportRoot) {
+          exportRoot.setAttribute('aria-hidden', 'false');
+          exportRoot.classList.add('is-capturing');
+        }
+        await new Promise((resolve) => {
+          requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 48)));
+        });
 
-        g.fillStyle = 'rgba(204, 204, 204, 0.68)';
-        g.font = `300 ${13 * scale}px "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif`;
-        g.textAlign = 'center';
-        g.textBaseline = 'top';
-        g.fillText(getExportPeriodCaption(), wallW / 2, fy + frameBlockH + 18 * scale);
+        try {
+          const scale = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1.5));
+          const artCanvas = await html2canvas(wallEl, {
+            scale,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: null,
+            logging: false,
+            imageTimeout: 0,
+            onclone: (_doc, clonedEl) => {
+              clonedEl.classList.add('museum-wall-export');
+            }
+          });
 
-        return wallCanvas;
+          return compositeToMuseumExport(artCanvas);
+        } finally {
+          if (exportRoot) {
+            exportRoot.classList.remove('is-capturing');
+            exportRoot.setAttribute('aria-hidden', 'true');
+          }
+        }
       }
 
       function drawSpacedText(ctx, text, centerX, y, spacingPx) {
@@ -1748,10 +1937,6 @@
         return htmlCanvasToBlob(final);
       }
 
-      function getExportPeriodCaption() {
-        return formatDotDate(new Date());
-      }
-
       function closeSavePreview() {
         const overlay = document.getElementById('savePreviewOverlay');
         const img = document.getElementById('savePreviewImage');
@@ -1786,8 +1971,9 @@
         releaseShareBtn.textContent = '画像を準備中…';
 
         try {
-          const wallCanvas = await renderFramedWallCanvas();
-          const blob = await compositeToMuseumExport(wallCanvas);
+          refreshCanvasExportSnapshot();
+          const { wall, artImg } = buildExportWallDisplay();
+          const blob = await captureMuseumWallBlob(wall, artImg);
           showSavePreview(blob);
         } catch (err) {
           console.warn('放流画像の生成に失敗:', err);
