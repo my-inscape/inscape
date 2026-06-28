@@ -80,146 +80,6 @@
       z-index: 2;
     }
 
-    .capsule-orbs-layer {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      overflow: visible;
-      pointer-events: none;
-    }
-
-    .capsule-orbs-layer .capsule-orb {
-      pointer-events: auto;
-    }
-
-    .capsule-orb {
-      position: absolute;
-      border-radius: 50%;
-      border: none;
-      padding: 0;
-      cursor: pointer;
-      opacity: 0;
-      transform: scale(0.6);
-      z-index: 1;
-      will-change: transform, opacity;
-      animation:
-        capsuleOrbIn 0.85s cubic-bezier(0.34, 1.2, 0.64, 1) var(--in-delay, 0s) forwards,
-        capsuleFloat var(--float-dur, 9s) ease-in-out var(--float-delay, 0s) infinite;
-      background:
-        radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.4) 0%, transparent 42%),
-        radial-gradient(circle at 72% 78%, rgba(0, 0, 0, 0.35) 0%, transparent 48%),
-        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--orb-color) 65%, white) 0%, var(--orb-color) 58%, color-mix(in srgb, var(--orb-color) 40%, black) 100%);
-      box-shadow:
-        inset 0 1px 4px rgba(255, 255, 255, 0.2),
-        0 4px 14px rgba(0, 0, 0, 0.35),
-        0 0 12px color-mix(in srgb, var(--orb-color) 22%, transparent);
-      transition: transform 0.35s ease, box-shadow 0.35s ease, opacity 0.35s ease;
-    }
-
-    .capsule-orb:hover,
-    .capsule-orb:focus-visible {
-      opacity: 0.58 !important;
-      filter: brightness(1.12);
-      outline: none;
-    }
-
-    @keyframes capsuleOrbIn {
-      to { opacity: var(--orb-opacity, 0.4); transform: scale(1); }
-    }
-
-    @keyframes capsuleFloat {
-      0%   { translate: var(--fx0, 0px) var(--fy0, 0px); }
-      18%  { translate: var(--fx1, 4px) var(--fy1, -8px); }
-      38%  { translate: var(--fx2, -7px) var(--fy2, 4px); }
-      55%  { translate: var(--fx3, 5px) var(--fy3, 7px); }
-      72%  { translate: var(--fx4, -4px) var(--fy4, -5px); }
-      88%  { translate: var(--fx5, 6px) var(--fy5, 2px); }
-      100% { translate: var(--fx0, 0px) var(--fy0, 0px); }
-    }
-
-    .memory-popover {
-      position: fixed;
-      z-index: 10020;
-      max-width: min(88vw, 18rem);
-      padding: 1rem 1.1rem;
-      background: rgba(14, 13, 16, 0.94);
-      border: 0.5px solid rgba(201, 169, 98, 0.22);
-      border-radius: 2px;
-      box-shadow:
-        0 16px 48px rgba(0, 0, 0, 0.75),
-        0 0 32px rgba(201, 169, 98, 0.08);
-      opacity: 0;
-      visibility: hidden;
-      transform: translate(-50%, -50%) scale(0.92);
-      transition: opacity 0.35s ease, visibility 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.2, 0.64, 1);
-      pointer-events: none;
-    }
-
-    .memory-popover.visible {
-      opacity: 1;
-      visibility: visible;
-      transform: translate(-50%, -50%) scale(1);
-      pointer-events: auto;
-    }
-
-    .memory-popover-date {
-      font-size: 0.52rem;
-      letter-spacing: 0.22em;
-      color: rgba(201, 169, 98, 0.65);
-      margin-bottom: 0.75rem;
-    }
-
-    .memory-popover-text {
-      font-size: 0.78rem;
-      font-weight: 300;
-      line-height: 1.85;
-      letter-spacing: 0.06em;
-      color: rgba(232, 230, 226, 0.78);
-      white-space: pre-wrap;
-      word-break: break-word;
-      max-height: 40vh;
-      overflow-y: auto;
-    }
-
-    .memory-popover-dot {
-      width: 8px;
-      height: 8px;
-      border-radius: 50%;
-      margin-bottom: 0.65rem;
-      box-shadow: 0 0 12px color-mix(in srgb, var(--pop-color) 60%, transparent);
-      background: var(--pop-color);
-    }
-
-    .memory-popover-close {
-      display: block;
-      width: 100%;
-      margin-top: 1rem;
-      padding: 0.55rem 0.5rem;
-      border: 0.5px solid rgba(201, 169, 98, 0.22);
-      border-radius: 1px;
-      background: rgba(255, 255, 255, 0.04);
-      color: rgba(232, 230, 226, 0.55);
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
-      font-size: 0.52rem;
-      font-weight: 400;
-      letter-spacing: 0.32em;
-      text-indent: 0.32em;
-      cursor: pointer;
-    }
-
-    .export-capsule-orbs-layer {
-      position: absolute;
-      inset: 0;
-      z-index: 2;
-      pointer-events: none;
-      overflow: visible;
-    }
-
-    .export-capsule-orbs-layer .capsule-orb {
-      pointer-events: none;
-      --orb-opacity: 0.45;
-    }
-
     .mid-panel {
       flex-shrink: 0;
       padding: 0.65rem 1.25rem 0.55rem;
@@ -763,17 +623,33 @@
       max-height: none;
     }
 
-    .gallery-link {
+    .header-actions {
       position: absolute;
       top: calc(0.85rem + env(safe-area-inset-top));
-      right: calc(1.15rem + env(safe-area-inset-right));
+      left: calc(0.65rem + env(safe-area-inset-left));
+      right: calc(0.65rem + env(safe-area-inset-right));
       z-index: 10035;
-      font-size: 0.5rem;
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 0.28rem;
+      pointer-events: none;
+    }
+
+    .header-actions > * {
+      pointer-events: auto;
+      flex: 1 1 0;
+      min-width: 0;
+    }
+
+    .header-action-btn {
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.44rem;
       font-weight: 400;
-      letter-spacing: 0.2em;
+      letter-spacing: 0.1em;
+      text-indent: 0.1em;
       color: rgba(232, 230, 226, 0.45);
-      text-decoration: none;
-      padding: 0.5rem 0.7rem;
+      padding: 0.45rem 0.35rem;
       border: 0.5px solid rgba(255, 255, 255, 0.1);
       border-radius: 2px;
       background: rgba(18, 19, 22, 0.72);
@@ -781,16 +657,32 @@
       -webkit-backdrop-filter: blur(8px);
       transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease, opacity 2s ease;
       white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+      text-decoration: none;
+      cursor: pointer;
     }
 
-    .gallery-link:hover {
+    a.header-action-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .header-action-btn:hover:not(:disabled) {
       color: rgba(232, 230, 226, 0.82);
       border-color: rgba(184, 160, 122, 0.35);
       background: rgba(24, 25, 28, 0.88);
     }
 
-    .phone-shell.zen-fading .gallery-link,
-    .phone-shell.zen-mode .gallery-link {
+    .header-action-btn:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+
+    .phone-shell.zen-fading .header-actions,
+    .phone-shell.zen-mode .header-actions {
       opacity: 0;
       visibility: hidden;
       pointer-events: none;
@@ -1100,46 +992,6 @@
 
     .tooltip.visible { opacity: 1; }
 
-    .release-share-btn {
-      position: absolute;
-      top: calc(0.85rem + env(safe-area-inset-top));
-      left: calc(1.15rem + env(safe-area-inset-left));
-      z-index: 10035;
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
-      font-size: 0.5rem;
-      font-weight: 400;
-      letter-spacing: 0.2em;
-      text-indent: 0.2em;
-      color: rgba(232, 230, 226, 0.45);
-      padding: 0.5rem 0.7rem;
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 2px;
-      background: rgba(18, 19, 22, 0.72);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      cursor: pointer;
-      transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease, opacity 2s ease;
-      white-space: nowrap;
-    }
-
-    .release-share-btn:hover:not(:disabled) {
-      color: rgba(232, 230, 226, 0.82);
-      border-color: rgba(184, 160, 122, 0.35);
-      background: rgba(24, 25, 28, 0.88);
-    }
-
-    .release-share-btn:disabled {
-      opacity: 0.45;
-      cursor: wait;
-    }
-
-    .phone-shell.zen-fading .release-share-btn,
-    .phone-shell.zen-mode .release-share-btn {
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-    }
-
     .canvas-wrap.submit-ready #mainCanvas {
       cursor: crosshair;
       touch-action: none;
@@ -1154,8 +1006,7 @@
       bottom: calc(0.65rem + env(safe-area-inset-bottom));
       right: calc(1rem + env(safe-area-inset-right));
       z-index: 120;
-      max-width: 9.5rem;
-      padding: 0.45rem 0.65rem;
+      padding: 0.4rem 0.58rem;
       text-align: right;
       pointer-events: none;
       opacity: 0;
@@ -1166,19 +1017,17 @@
       background: rgba(14, 13, 16, 0.42);
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
+      white-space: nowrap;
+      font-size: 0.4rem;
+      font-weight: 300;
+      line-height: 1.35;
+      letter-spacing: 0.06em;
+      color: rgba(232, 230, 226, 0.48);
     }
 
     .daily-lock-message.visible {
       opacity: 1;
       transform: translateY(0);
-    }
-
-    .daily-lock-message p {
-      font-size: 0.48rem;
-      font-weight: 300;
-      line-height: 1.85;
-      letter-spacing: 0.1em;
-      color: rgba(232, 230, 226, 0.48);
     }
 
     .input-wrap.locked-hidden,
@@ -1196,115 +1045,11 @@
       }
     }
 
-    .phone-shell.daily-locked .gallery-link,
-    .phone-shell.daily-locked .release-share-btn {
+    .phone-shell.daily-locked .header-actions,
+    .phone-shell.daily-locked .header-actions > * {
       opacity: 1;
       visibility: visible;
       pointer-events: auto;
-    }
-
-    .export-root {
-      position: fixed;
-      left: 0;
-      top: 0;
-      width: 400px;
-      pointer-events: none;
-      opacity: 0;
-      z-index: -1;
-    }
-
-    .export-root.is-capturing {
-      opacity: 0.001;
-    }
-
-    .museum-wall-display {
-      position: relative;
-      display: inline-block;
-      width: 100%;
-      text-align: center;
-      overflow: visible;
-      padding: 2.75rem 1.5rem 2rem;
-      background:
-        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0) 70%),
-        radial-gradient(ellipse 88% 52% at 50% -6%, rgba(255, 252, 240, 0.09) 0%, transparent 55%),
-        #0a0a0a;
-      border-radius: 1px;
-    }
-
-    .museum-wall-display::before {
-      content: '';
-      position: absolute;
-      inset: -8% -14%;
-      z-index: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(circle at 50% 6%, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0) 62%),
-        radial-gradient(ellipse 65% 38% at 50% 0%, rgba(201, 169, 98, 0.05) 0%, transparent 58%);
-      opacity: 0.9;
-    }
-
-    .museum-wall-display > * {
-      position: relative;
-      z-index: 1;
-    }
-
-    .export-frame-sculpted {
-      position: relative;
-      box-sizing: border-box;
-      width: 100%;
-      margin: 0 auto;
-      padding: 40px;
-      background: #fbf9f5;
-      border: 24px solid #1c110a;
-      border-top-color: #f3e5ab;
-      border-left-color: #d4af37;
-      border-right-color: #8a640f;
-      border-bottom-color: #5c430a;
-      outline: 4px solid #aa7c11;
-      outline-offset: -24px;
-      box-shadow:
-        inset 0 5px 0 rgba(255, 255, 255, 0.2),
-        inset 0 -3px 10px rgba(0, 0, 0, 0.65),
-        0 4px 14px rgba(0, 0, 0, 0.42),
-        0 20px 40px rgba(0, 0, 0, 0.8),
-        0 36px 72px rgba(0, 0, 0, 0.52);
-    }
-
-    .export-art-surface {
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-      line-height: 0;
-      font-size: 0;
-    }
-
-    .export-art-surface .gallery-art-canvas,
-    .export-art-surface .export-art-image {
-      display: block;
-      width: 100%;
-      height: auto;
-      background-color: #f7f4eb;
-      background-image:
-        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
-        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
-        var(--canvas-fabric-url);
-      background-blend-mode: multiply;
-      background-size: auto, auto, cover;
-      box-shadow:
-        inset 5px 5px 15px rgba(0, 0, 0, 0.4),
-        inset -3px -3px 10px rgba(255, 255, 255, 0.6);
-    }
-
-    .art-period-caption {
-      margin-top: 1.1rem;
-      padding: 0 0.35rem;
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Georgia", "Times New Roman", serif;
-      font-size: 0.85rem;
-      font-weight: 300;
-      letter-spacing: 0.16em;
-      text-indent: 0.16em;
-      color: rgba(204, 204, 204, 0.68);
-      line-height: 1.65;
     }
 
     .save-preview-overlay {
@@ -1399,12 +1144,14 @@
       -webkit-user-select: none;
     }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <div class="phone-shell" id="phoneShell">
-    <a class="gallery-link" href="gallery.html">感情の回廊へ移動</a>
-    <button type="button" class="release-share-btn" id="releaseShareBtn" aria-label="この瞬間を放流する">この瞬間を放流する</button>
+    <header class="header-actions" aria-label="ナビゲーション">
+      <button type="button" class="header-action-btn release-share-btn" id="releaseShareBtn" aria-label="この瞬間を放流する">この瞬間を放流する</button>
+      <a class="header-action-btn midspace-link" href="midspace.html">途中経過を覗く</a>
+      <a class="header-action-btn gallery-link" href="gallery.html">感情の回廊へ</a>
+    </header>
 
     <p class="daily-lock-message" id="dailyLockMessage" aria-hidden="true">
       今日の日記は紡がれました
@@ -1442,7 +1189,6 @@
 
     <div class="app">
       <div class="top-area">
-        <div class="capsule-orbs-layer" id="capsuleOrbs" aria-hidden="true"></div>
         <p class="logo zen-target">INSCAPE</p>
         <div class="canvas-wrap" id="canvasWrap">
           <div class="museum-frame" id="museumFrame">
@@ -1482,8 +1228,6 @@
         <button type="button" class="frame-complete-btn" id="frameCompleteOk">OK</button>
       </div>
     </div>
-
-    <div class="export-root" id="exportRoot" aria-hidden="true"></div>
   </div>
 
   <div class="save-preview-overlay" id="savePreviewOverlay" aria-hidden="true" role="dialog" aria-label="保存プレビュー">
@@ -1494,13 +1238,6 @@
         <img id="savePreviewImage" alt="INSCAPE — 額装作品" draggable="false">
       </div>
     </div>
-  </div>
-
-  <div class="memory-popover" id="memoryPopover" role="dialog" aria-hidden="true">
-    <div class="memory-popover-dot"></div>
-    <p class="memory-popover-date"></p>
-    <p class="memory-popover-text"></p>
-    <button type="button" class="memory-popover-close" id="memoryPopoverClose">閉じる</button>
   </div>
 
   <script>
@@ -1558,12 +1295,6 @@
       const inputWrap = document.getElementById('inputWrap');
       const controlsFooter = document.getElementById('controlsFooter');
       const appEl = document.querySelector('.app');
-      const exportRoot = document.getElementById('exportRoot');
-      const capsuleOrbsLayer = document.getElementById('capsuleOrbs');
-      const memoryPopover = document.getElementById('memoryPopover');
-      const CAPSULE_MAX_PAST = 6;
-      const CAPSULE_ORB_MIN = 10;
-      const CAPSULE_ORB_MAX = 20;
 
       let selectedColor = '#3d4f5f';
       let splashes = [];
@@ -1818,13 +1549,100 @@
         return lastCanvasExportDataUrl;
       }
 
-      function waitForImageLoad(imgEl) {
-        if (!imgEl) return Promise.resolve();
-        if (imgEl.complete && imgEl.naturalWidth > 0) return Promise.resolve();
+      function loadImageFromDataUrl(dataUrl) {
         return new Promise((resolve, reject) => {
-          imgEl.onload = () => resolve();
-          imgEl.onerror = () => reject(new Error('export image load failed'));
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error('export image load failed'));
+          img.src = dataUrl;
         });
+      }
+
+      async function renderFramedWallCanvas() {
+        refreshCanvasExportSnapshot();
+        const dataUrl = getCanvasDataUrl();
+        if (!dataUrl) throw new Error('canvas export failed');
+
+        const artImg = await loadImageFromDataUrl(dataUrl);
+        const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth || 400;
+        const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight || 300;
+
+        const scale = 2;
+        const matPad = FRAME_MAT_PADDING * scale;
+        const borderW = FRAME_BORDER_WIDTH * scale;
+        const inset = matPad + borderW;
+        const contentW = 400 * scale;
+        const artW = contentW - inset * 2;
+        const artH = Math.round((artW * aspectH) / aspectW);
+        const frameBlockH = inset * 2 + artH;
+        const wallPadX = 60 * scale;
+        const wallPadTop = 110 * scale;
+        const captionGap = 44 * scale;
+        const wallW = contentW + wallPadX * 2;
+        const wallH = wallPadTop + frameBlockH + captionGap;
+
+        const wallCanvas = document.createElement('canvas');
+        wallCanvas.width = wallW;
+        wallCanvas.height = wallH;
+        const g = wallCanvas.getContext('2d');
+
+        g.fillStyle = '#0a0a0a';
+        g.fillRect(0, 0, wallW, wallH);
+
+        const spot = g.createRadialGradient(
+          wallW * 0.5, wallH * 0.06, 0,
+          wallW * 0.5, wallH * 0.06, wallW * 0.75
+        );
+        spot.addColorStop(0, 'rgba(255, 255, 255, 0.14)');
+        spot.addColorStop(0.55, 'rgba(255, 255, 255, 0.04)');
+        spot.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        g.fillStyle = spot;
+        g.fillRect(0, 0, wallW, wallH);
+
+        const warmGlow = g.createRadialGradient(
+          wallW * 0.5, wallH * 0.02, 0,
+          wallW * 0.5, wallH * 0.02, wallW * 0.5
+        );
+        warmGlow.addColorStop(0, 'rgba(255, 252, 240, 0.08)');
+        warmGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+        g.fillStyle = warmGlow;
+        g.fillRect(0, 0, wallW, wallH);
+
+        const fx = wallPadX;
+        const fy = wallPadTop;
+
+        g.fillStyle = '#1c110a';
+        g.fillRect(fx, fy, contentW, frameBlockH);
+
+        g.strokeStyle = '#aa7c11';
+        g.lineWidth = 4 * scale;
+        g.strokeRect(
+          fx + borderW + 2,
+          fy + borderW + 2,
+          contentW - (borderW + 2) * 2,
+          frameBlockH - (borderW + 2) * 2
+        );
+
+        g.fillStyle = '#fbf9f5';
+        g.fillRect(fx + borderW, fy + borderW, contentW - borderW * 2, frameBlockH - borderW * 2);
+
+        const ax = fx + inset;
+        const ay = fy + inset;
+        g.save();
+        g.shadowColor = 'rgba(0, 0, 0, 0.42)';
+        g.shadowBlur = 10 * scale;
+        g.shadowOffsetX = 5 * scale;
+        g.shadowOffsetY = 5 * scale;
+        g.drawImage(artImg, ax, ay, artW, artH);
+        g.restore();
+
+        g.fillStyle = 'rgba(204, 204, 204, 0.68)';
+        g.font = `300 ${13 * scale}px "Hiragino Mincho ProN", "Yu Mincho", Georgia, serif`;
+        g.textAlign = 'center';
+        g.textBaseline = 'top';
+        g.fillText(getExportPeriodCaption(), wallW / 2, fy + frameBlockH + 18 * scale);
+
+        return wallCanvas;
       }
 
       function drawSpacedText(ctx, text, centerX, y, spacingPx) {
@@ -1934,275 +1752,6 @@
         return formatDotDate(new Date());
       }
 
-      function randBetween(min, max) {
-        return min + Math.random() * (max - min);
-      }
-
-      function loadInscapeHistory() {
-        try {
-          const raw = localStorage.getItem(INSCAPE_HISTORY_KEY);
-          if (!raw) return [];
-          const data = JSON.parse(raw);
-          if (!Array.isArray(data)) return [];
-          return data.map((entry) => ({
-            word: entry.word || entry.text || '',
-            color: entry.color,
-            date: entry.date || formatDate(entry.timestamp),
-            timestamp: entry.timestamp || 0
-          })).filter((e) => e.color);
-        } catch {
-          return [];
-        }
-      }
-
-      function getPastCapsuleEntries() {
-        const history = loadInscapeHistory();
-        if (history.length <= 1) return [];
-        return history.slice(0, -1).slice(-CAPSULE_MAX_PAST);
-      }
-
-      function applyCapsuleOrbFloatVars(orb) {
-        const amp = randBetween(5, 14);
-        orb.style.setProperty('--float-dur', `${randBetween(5.5, 12).toFixed(2)}s`);
-        orb.style.setProperty('--float-delay', `-${randBetween(1.5, 14).toFixed(2)}s`);
-        orb.style.setProperty('--orb-opacity', `${randBetween(0.32, 0.48).toFixed(2)}`);
-        orb.style.setProperty('--fx0', '0px');
-        orb.style.setProperty('--fy0', '0px');
-        for (let k = 1; k <= 5; k++) {
-          orb.style.setProperty(`--fx${k}`, `${(Math.random() - 0.5) * amp * 2}px`);
-          orb.style.setProperty(`--fy${k}`, `${(Math.random() - 0.5) * amp * 2}px`);
-        }
-        orb.style.setProperty('--in-delay', `${randBetween(0, 0.45).toFixed(2)}s`);
-      }
-
-      function isPointOnCanvasArea(x, y, size, layerRect, excludeRect) {
-        const cr = excludeRect || canvasWrap.getBoundingClientRect();
-        const half = size / 2;
-        const gap = 14;
-        const fx = cr.left - layerRect.left - gap;
-        const fy = cr.top - layerRect.top - gap;
-        const fw = cr.width + gap * 2;
-        const fh = cr.height + gap * 2;
-        return x + half > fx && x - half < fx + fw && y + half > fy && y - half < fy + fh;
-      }
-
-      function getCapsuleScatterSlots(count, layerEl, excludeEl) {
-        const layerRect = layerEl.getBoundingClientRect();
-        const excludeRect = excludeEl ? excludeEl.getBoundingClientRect() : canvasWrap.getBoundingClientRect();
-        const slots = [];
-        const edgePad = 10;
-
-        for (let i = 0; i < count; i++) {
-          const size = randBetween(CAPSULE_ORB_MIN, CAPSULE_ORB_MAX);
-          const half = size / 2 + edgePad;
-          let placed = false;
-
-          for (let attempt = 0; attempt < 90 && !placed; attempt++) {
-            const x = randBetween(half, Math.max(half + 1, layerRect.width - half));
-            const y = randBetween(half, Math.max(half + 1, layerRect.height - half));
-
-            if (isPointOnCanvasArea(x, y, size, layerRect, excludeRect)) continue;
-
-            const crowded = slots.some((s) => {
-              return Math.hypot(s.x - x, s.y - y) < (s.size + size) * 0.5 + randBetween(6, 16);
-            });
-            if (!crowded) {
-              slots.push({ x, y, size });
-              placed = true;
-            }
-          }
-
-          if (!placed) {
-            for (let attempt = 0; attempt < 60 && !placed; attempt++) {
-              const x = randBetween(half, Math.max(half + 1, layerRect.width * 0.28));
-              const y = randBetween(half, Math.max(half + 1, layerRect.height - half));
-              if (!isPointOnCanvasArea(x, y, size, layerRect, excludeRect)) {
-                slots.push({ x, y, size });
-                placed = true;
-              }
-            }
-          }
-
-          if (!placed) {
-            slots.push({
-              x: randBetween(half, Math.max(half + 1, layerRect.width * 0.2)),
-              y: randBetween(half, Math.max(half + 1, layerRect.height - half)),
-              size
-            });
-          }
-        }
-
-        return slots.map((s) => ({
-          left: `${((s.x / layerRect.width) * 100).toFixed(2)}%`,
-          top: `${((s.y / layerRect.height) * 100).toFixed(2)}%`,
-          size: s.size
-        }));
-      }
-
-      function hideMemoryPopover() {
-        if (!memoryPopover) return;
-        memoryPopover.classList.remove('visible');
-        memoryPopover.setAttribute('aria-hidden', 'true');
-      }
-
-      function showMemoryPopover(entry, anchorEl) {
-        if (!memoryPopover) return;
-        hideMemoryPopover();
-        hideTooltip();
-
-        const dot = memoryPopover.querySelector('.memory-popover-dot');
-        const dateEl = memoryPopover.querySelector('.memory-popover-date');
-        const textEl = memoryPopover.querySelector('.memory-popover-text');
-
-        if (dot) dot.style.setProperty('--pop-color', entry.color || '#888');
-        if (dateEl) dateEl.textContent = entry.date || '—';
-        if (textEl) {
-          textEl.textContent = entry.word && entry.word.trim()
-            ? entry.word
-            : '言葉の記録はありません。';
-        }
-
-        const rect = anchorEl.getBoundingClientRect();
-        let left = rect.left + rect.width / 2;
-        let top = rect.top - 12;
-        const margin = 12;
-        const popW = 288;
-        if (left - popW / 2 < margin) left = margin + popW / 2;
-        if (left + popW / 2 > window.innerWidth - margin) left = window.innerWidth - margin - popW / 2;
-        if (top < margin + 80) top = rect.bottom + 16;
-
-        memoryPopover.style.left = `${left}px`;
-        memoryPopover.style.top = `${top}px`;
-        memoryPopover.setAttribute('aria-hidden', 'false');
-        memoryPopover.classList.add('visible');
-      }
-
-      function spawnCapsuleOrbsIntoLayer(entries, layerEl, excludeEl, interactive) {
-        if (!layerEl) return;
-        layerEl.innerHTML = '';
-        if (!entries.length) {
-          layerEl.setAttribute('aria-hidden', 'true');
-          return;
-        }
-
-        layerEl.setAttribute('aria-hidden', 'false');
-        const scatterSlots = getCapsuleScatterSlots(entries.length, layerEl, excludeEl);
-
-        entries.forEach((entry, i) => {
-          const orb = document.createElement('button');
-          orb.type = 'button';
-          orb.className = 'capsule-orb';
-          const slot = scatterSlots[i] || scatterSlots[scatterSlots.length - 1];
-          const size = slot.size || randBetween(CAPSULE_ORB_MIN, CAPSULE_ORB_MAX);
-
-          orb.style.setProperty('--orb-color', entry.color || '#5a6a7a');
-          orb.style.width = `${size}px`;
-          orb.style.height = `${size}px`;
-          orb.style.left = slot.left;
-          orb.style.top = slot.top;
-
-          applyCapsuleOrbFloatVars(orb);
-          orb.setAttribute('aria-label', '過去の感情を見る');
-
-          if (interactive) {
-            orb.addEventListener('click', (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              showMemoryPopover(entry, orb);
-            });
-          }
-
-          layerEl.appendChild(orb);
-        });
-      }
-
-      function layoutCapsuleOrbs() {
-        if (!capsuleOrbsLayer) return;
-        spawnCapsuleOrbsIntoLayer(getPastCapsuleEntries(), capsuleOrbsLayer, canvasWrap, true);
-      }
-
-      function buildExportWallDisplay() {
-        if (!exportRoot) throw new Error('export root missing');
-
-        const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth || 400;
-        const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight || 300;
-        const dataUrl = getCanvasDataUrl();
-        if (!dataUrl) throw new Error('canvas export failed');
-
-        exportRoot.innerHTML = '';
-        const wall = document.createElement('div');
-        wall.className = 'museum-wall-display museum-wall-export';
-
-        const exportOrbsLayer = document.createElement('div');
-        exportOrbsLayer.className = 'export-capsule-orbs-layer';
-        exportOrbsLayer.setAttribute('aria-hidden', 'true');
-
-        const sculpted = document.createElement('div');
-        sculpted.className = 'export-frame-sculpted';
-
-        const surface = document.createElement('div');
-        surface.className = 'export-art-surface';
-        surface.style.aspectRatio = `${aspectW} / ${aspectH}`;
-
-        const artImg = document.createElement('img');
-        artImg.className = 'export-art-image';
-        artImg.src = dataUrl;
-        artImg.alt = '';
-        artImg.setAttribute('role', 'presentation');
-
-        const texture = document.createElement('div');
-        texture.className = 'paper-texture-overlay';
-        texture.setAttribute('aria-hidden', 'true');
-
-        const caption = document.createElement('p');
-        caption.className = 'art-period-caption';
-        caption.textContent = getExportPeriodCaption();
-
-        surface.appendChild(artImg);
-        surface.appendChild(texture);
-        sculpted.appendChild(surface);
-        wall.appendChild(exportOrbsLayer);
-        wall.appendChild(sculpted);
-        wall.appendChild(caption);
-        exportRoot.appendChild(wall);
-
-        spawnCapsuleOrbsIntoLayer(
-          loadInscapeHistory().slice(-CAPSULE_MAX_PAST),
-          exportOrbsLayer,
-          sculpted,
-          false
-        );
-
-        return { wall, artImg };
-      }
-
-      async function captureMuseumWallBlob(wallEl, artImg) {
-        if (!wallEl || typeof html2canvas !== 'function') {
-          throw new Error('html2canvas not loaded');
-        }
-
-        await waitForImageLoad(artImg);
-
-        if (exportRoot) exportRoot.classList.add('is-capturing');
-        await new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-
-        try {
-          const scale = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1.5));
-          const artCanvas = await html2canvas(wallEl, {
-            scale,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: null,
-            logging: false,
-            imageTimeout: 0
-          });
-
-          return compositeToMuseumExport(artCanvas);
-        } finally {
-          if (exportRoot) exportRoot.classList.remove('is-capturing');
-        }
-      }
-
       function closeSavePreview() {
         const overlay = document.getElementById('savePreviewOverlay');
         const img = document.getElementById('savePreviewImage');
@@ -2237,9 +1786,8 @@
         releaseShareBtn.textContent = '画像を準備中…';
 
         try {
-          refreshCanvasExportSnapshot();
-          const { wall, artImg } = buildExportWallDisplay();
-          const blob = await captureMuseumWallBlob(wall, artImg);
+          const wallCanvas = await renderFramedWallCanvas();
+          const blob = await compositeToMuseumExport(wallCanvas);
           showSavePreview(blob);
         } catch (err) {
           console.warn('放流画像の生成に失敗:', err);
@@ -2253,24 +1801,12 @@
         const overlay = document.getElementById('savePreviewOverlay');
         const closeBtn = document.getElementById('savePreviewClose');
         const panel = overlay && overlay.querySelector('.save-preview-panel');
-        const memoryPopoverClose = document.getElementById('memoryPopoverClose');
 
         if (closeBtn) {
           closeBtn.addEventListener('click', (e) => {
             e.stopPropagation();
             closeSavePreview();
           });
-        }
-
-        if (memoryPopoverClose) {
-          memoryPopoverClose.addEventListener('click', (e) => {
-            e.stopPropagation();
-            hideMemoryPopover();
-          });
-        }
-
-        if (memoryPopover) {
-          memoryPopover.addEventListener('click', (e) => e.stopPropagation());
         }
 
         if (overlay) {
@@ -2282,14 +1818,6 @@
         if (panel) {
           panel.addEventListener('click', (e) => e.stopPropagation());
         }
-
-        document.addEventListener('click', (e) => {
-          if (memoryPopover && memoryPopover.classList.contains('visible') &&
-              !memoryPopover.contains(e.target) &&
-              !e.target.closest('.capsule-orb')) {
-            hideMemoryPopover();
-          }
-        });
       }
 
       const SPLAT_IMAGE = 'splat.png';
@@ -2589,7 +2117,6 @@
         try {
           syncHistoriesFromSplashes();
           updateFrameButtonState();
-          layoutCapsuleOrbs();
         } catch (err) {
           console.warn('履歴保存に失敗:', err);
         }
@@ -3987,7 +3514,6 @@
 
       window.addEventListener('resize', () => {
         resizeCanvas();
-        layoutCapsuleOrbs();
       });
 
       migrateHistoriesToRecipes();
@@ -4002,7 +3528,6 @@
       applySelectedColor(selectedColor);
       resizeCanvas();
       refreshCanvasExportSnapshot();
-      layoutCapsuleOrbs();
       applyDailyLockUI();
       updateUIState();
       updateFrameButtonState();
@@ -4010,10 +3535,6 @@
 
       document.addEventListener('keydown', (e) => {
         if (e.key !== 'Escape') return;
-        if (memoryPopover && memoryPopover.classList.contains('visible')) {
-          hideMemoryPopover();
-          return;
-        }
         const saveOverlay = document.getElementById('savePreviewOverlay');
         if (saveOverlay && saveOverlay.classList.contains('active')) {
           closeSavePreview();
