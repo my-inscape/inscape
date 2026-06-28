@@ -1358,7 +1358,7 @@
       const HISTORY_KEY = 'histories';
       const INSCAPE_HISTORY_KEY = 'inscape_history';
       const GALLERY_KEY = 'inscape_gallery';
-      const LAST_DIARY_DATE_KEY = 'inscape_last_diary_date';
+      const LAST_DIARY_DATE_KEY = 'inscape_last_diary_date_v2';
       const MAX_ENTRIES = 7;
       const GALLERY_MAX = 28;
       const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -1577,12 +1577,10 @@
         return SPLAT_SIZE_MIN + t * (SPLAT_SIZE_MAX - SPLAT_SIZE_MIN);
       }
 
-      function getTodayDateString() {
-        const d = new Date();
-        const y = d.getFullYear();
-        const mo = String(d.getMonth() + 1).padStart(2, '0');
-        const da = String(d.getDate()).padStart(2, '0');
-        return `${y}/${mo}/${da}`;
+      function getDiaryDayKey() {
+        const now = new Date();
+        const offsetTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
+        return offsetTime.toLocaleDateString('ja-JP');
       }
 
       function formatDotDate(d) {
@@ -1594,7 +1592,7 @@
 
       function hasPostedToday() {
         try {
-          return localStorage.getItem(LAST_DIARY_DATE_KEY) === getTodayDateString();
+          return localStorage.getItem(LAST_DIARY_DATE_KEY) === getDiaryDayKey();
         } catch {
           return false;
         }
@@ -1602,7 +1600,7 @@
 
       function lockDiaryForToday() {
         try {
-          localStorage.setItem(LAST_DIARY_DATE_KEY, getTodayDateString());
+          localStorage.setItem(LAST_DIARY_DATE_KEY, getDiaryDayKey());
         } catch (err) {
           console.warn('日記ロックの保存に失敗:', err);
         }
