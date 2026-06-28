@@ -40,30 +40,55 @@
       flex-shrink: 0;
       padding:
         calc(0.85rem + env(safe-area-inset-top))
-        calc(1.15rem + env(safe-area-inset-right))
+        calc(0.65rem + env(safe-area-inset-right))
         0.65rem
-        calc(1.15rem + env(safe-area-inset-left));
+        calc(0.65rem + env(safe-area-inset-left));
     }
 
+    .site-nav {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 0.22rem;
+      margin-bottom: 0.85rem;
+    }
+
+    .site-nav-link,
     .back-link {
-      display: inline-block;
-      font-size: 0.5rem;
-      letter-spacing: 0.18em;
+      flex: 1 1 0;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.38rem;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-indent: 0.06em;
       color: rgba(232, 230, 226, 0.45);
       text-decoration: none;
-      padding: 0.45rem 0.65rem;
+      padding: 0.42rem 0.22rem;
       border: 0.5px solid rgba(255, 255, 255, 0.1);
       border-radius: 2px;
       background: rgba(18, 19, 22, 0.72);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
     }
 
+    .site-nav-link:hover,
     .back-link:hover {
       color: rgba(232, 230, 226, 0.82);
       border-color: rgba(184, 160, 122, 0.35);
       background: rgba(24, 25, 28, 0.88);
+    }
+
+    .back-link {
+      margin-bottom: 0;
     }
 
     .museum-header {
@@ -99,6 +124,20 @@
       z-index: 5;
       overflow: visible;
       pointer-events: none;
+    }
+
+    .vault-orbs-layer::before {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 38%;
+      transform: translate(-50%, -50%);
+      width: min(72vw, 18rem);
+      height: min(38vh, 14rem);
+      border-radius: 50%;
+      background: radial-gradient(ellipse at center, rgba(201, 169, 98, 0.04) 0%, transparent 72%);
+      pointer-events: none;
+      z-index: 0;
     }
 
     .vault-orbs-layer .vault-orb {
@@ -147,11 +186,11 @@
 
     @keyframes vaultFloat {
       0%   { translate: var(--fx0, 0px) var(--fy0, 0px); }
-      18%  { translate: var(--fx1, 4px) var(--fy1, -8px); }
-      38%  { translate: var(--fx2, -7px) var(--fy2, 4px); }
-      55%  { translate: var(--fx3, 5px) var(--fy3, 7px); }
-      72%  { translate: var(--fx4, -4px) var(--fy4, -5px); }
-      88%  { translate: var(--fx5, 6px) var(--fy5, 2px); }
+      18%  { translate: var(--fx1, 3px) var(--fy1, -6px); }
+      38%  { translate: var(--fx2, -5px) var(--fy2, 3px); }
+      55%  { translate: var(--fx3, 4px) var(--fy3, 5px); }
+      72%  { translate: var(--fx4, -3px) var(--fy4, -4px); }
+      88%  { translate: var(--fx5, 4px) var(--fy5, 2px); }
       100% { translate: var(--fx0, 0px) var(--fy0, 0px); }
     }
 
@@ -272,7 +311,11 @@
 <body>
   <div class="midspace-shell">
     <div class="corridor-top">
-      <a class="back-link" href="index.html">キャンバスへ戻る</a>
+      <nav class="site-nav" aria-label="ナビゲーション">
+        <a class="site-nav-link back-link" href="index.html">キャンバスへ戻る</a>
+        <a class="site-nav-link" href="gallery.html">感情の回廊へ</a>
+        <a class="site-nav-link" href="mycolors.html">#今日の私の色</a>
+      </nav>
 
       <header class="museum-header">
         <h1 class="museum-title">途中経過</h1>
@@ -347,8 +390,8 @@
       }
 
       function applyOrbFloatVars(orb) {
-        const amp = randBetween(5, 14);
-        orb.style.setProperty('--float-dur', `${randBetween(5.5, 12).toFixed(2)}s`);
+        const amp = randBetween(3, 9);
+        orb.style.setProperty('--float-dur', `${randBetween(6, 11).toFixed(2)}s`);
         orb.style.setProperty('--float-delay', `-${randBetween(1.5, 14).toFixed(2)}s`);
         orb.style.setProperty('--orb-opacity', `${randBetween(0.36, 0.44).toFixed(2)}`);
         orb.style.setProperty('--fx0', '0px');
@@ -365,17 +408,24 @@
         const slots = [];
         const edgePad = 12;
 
+        const focalX = layerRect.width * 0.5;
+        const focalY = layerRect.height * 0.38;
+        const spreadX = layerRect.width * 0.2;
+        const spreadY = layerRect.height * 0.13;
+
         for (let i = 0; i < count; i++) {
           const size = randBetween(ORB_MIN, ORB_MAX);
           const half = size / 2 + edgePad;
           let placed = false;
 
           for (let attempt = 0; attempt < 90 && !placed; attempt++) {
-            const x = randBetween(half, Math.max(half + 1, layerRect.width - half));
-            const y = randBetween(half, Math.max(half + 1, layerRect.height - half));
+            let x = focalX + randBetween(-spreadX, spreadX);
+            let y = focalY + randBetween(-spreadY, spreadY);
+            x = Math.max(half, Math.min(layerRect.width - half, x));
+            y = Math.max(half, Math.min(layerRect.height - half, y));
 
             const crowded = slots.some((s) => {
-              return Math.hypot(s.x - x, s.y - y) < (s.size + size) * 0.5 + randBetween(6, 16);
+              return Math.hypot(s.x - x, s.y - y) < (s.size + size) * 0.5 + randBetween(6, 14);
             });
             if (!crowded) {
               slots.push({ x, y, size });
@@ -384,11 +434,11 @@
           }
 
           if (!placed) {
-            slots.push({
-              x: randBetween(half, Math.max(half + 1, layerRect.width - half)),
-              y: randBetween(half, Math.max(half + 1, layerRect.height - half)),
-              size
-            });
+            let x = focalX + randBetween(-spreadX * 0.7, spreadX * 0.7);
+            let y = focalY + randBetween(-spreadY * 0.7, spreadY * 0.7);
+            x = Math.max(half, Math.min(layerRect.width - half, x));
+            y = Math.max(half, Math.min(layerRect.height - half, y));
+            slots.push({ x, y, size });
           }
         }
 

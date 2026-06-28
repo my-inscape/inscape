@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="theme-color" content="#0a0a0a">
+  <title>#今日の私の色 — INSCAPE</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      height: 100%;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      background: #0a0a0a;
+      color: #e8e6e2;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    .mycolors-shell {
+      min-height: 100%;
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      background: #0a0a0a;
+    }
+
+    .page-header {
+      flex-shrink: 0;
+      padding:
+        calc(0.85rem + env(safe-area-inset-top))
+        calc(1.15rem + env(safe-area-inset-right))
+        1.25rem
+        calc(1.15rem + env(safe-area-inset-left));
+    }
+
+    .site-nav {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 0.22rem;
+      margin-bottom: 1.75rem;
+    }
+
+    .site-nav-link {
+      flex: 1 1 0;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.38rem;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-indent: 0.06em;
+      color: rgba(232, 230, 226, 0.42);
+      text-decoration: none;
+      padding: 0.42rem 0.22rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.02);
+      transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .site-nav-link:hover {
+      color: rgba(232, 230, 226, 0.78);
+      border-color: rgba(184, 160, 122, 0.28);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .page-title {
+      text-align: center;
+      font-size: 0.62rem;
+      font-weight: 400;
+      letter-spacing: 0.38em;
+      text-indent: 0.38em;
+      color: rgba(232, 230, 226, 0.38);
+      margin-bottom: 0.4rem;
+    }
+
+    .page-subtitle {
+      text-align: center;
+      font-family: "Times New Roman", Georgia, serif;
+      font-size: 0.48rem;
+      font-weight: 400;
+      letter-spacing: 0.42em;
+      text-indent: 0.42em;
+      color: rgba(160, 160, 160, 0.32);
+    }
+
+    .catalog-scroll {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: calc(2.5rem + env(safe-area-inset-bottom));
+    }
+
+    .colors-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 2rem 1.15rem;
+      padding: 0.5rem 1.65rem 2rem;
+      max-width: 22rem;
+      margin: 0 auto;
+    }
+
+    @media (min-width: 380px) {
+      .colors-grid {
+        gap: 2.25rem 1.35rem;
+        padding-left: 1.85rem;
+        padding-right: 1.85rem;
+      }
+    }
+
+    .color-cell {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.7rem;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      font: inherit;
+      color: inherit;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .color-swatch {
+      width: 100%;
+      max-width: 4.25rem;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      background-color: var(--swatch-color, #5a6a7a);
+      background-image:
+        radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.28) 0%, transparent 48%),
+        radial-gradient(circle at 72% 78%, rgba(0, 0, 0, 0.22) 0%, transparent 50%);
+      box-shadow:
+        inset 0 1px 3px rgba(255, 255, 255, 0.12),
+        0 10px 28px rgba(0, 0, 0, 0.45);
+      transition: transform 0.4s cubic-bezier(0.34, 1.1, 0.64, 1), box-shadow 0.4s ease;
+    }
+
+    .color-cell:hover .color-swatch,
+    .color-cell:focus-visible .color-swatch {
+      transform: scale(1.07);
+      box-shadow:
+        inset 0 1px 4px rgba(255, 255, 255, 0.18),
+        0 14px 36px rgba(0, 0, 0, 0.55),
+        0 0 24px color-mix(in srgb, var(--swatch-color) 18%, transparent);
+      outline: none;
+    }
+
+    .color-cell:active .color-swatch {
+      transform: scale(1.02);
+    }
+
+    .color-date {
+      font-family: "Times New Roman", Georgia, "Hiragino Mincho ProN", serif;
+      font-size: 0.58rem;
+      font-weight: 400;
+      letter-spacing: 0.14em;
+      color: rgba(150, 150, 150, 0.48);
+      line-height: 1;
+    }
+
+    .empty-state {
+      display: none;
+      text-align: center;
+      padding: 4rem 2rem 3rem;
+      font-size: 0.68rem;
+      font-weight: 300;
+      line-height: 2.2;
+      letter-spacing: 0.1em;
+      color: rgba(232, 230, 226, 0.22);
+    }
+
+    .empty-state.visible {
+      display: block;
+    }
+
+    .reflect-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10050;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding:
+        calc(1rem + env(safe-area-inset-top))
+        calc(1rem + env(safe-area-inset-right))
+        calc(1rem + env(safe-area-inset-bottom))
+        calc(1rem + env(safe-area-inset-left));
+      background: rgba(4, 4, 5, 0.92);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    .reflect-overlay.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .reflect-panel {
+      width: min(92vw, 20rem);
+      max-height: 100%;
+      overflow-y: auto;
+      text-align: center;
+      transform: translateY(16px) scale(0.96);
+      opacity: 0;
+      transition: transform 0.5s cubic-bezier(0.34, 1.15, 0.64, 1), opacity 0.45s ease;
+    }
+
+    .reflect-overlay.active .reflect-panel {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .reflect-canvas-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4 / 3;
+      margin-bottom: 1.35rem;
+      border-radius: 1px;
+      overflow: hidden;
+      background: #f7f4eb;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.65);
+    }
+
+    .reflect-canvas-wrap canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .reflect-canvas-wrap::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04) 0%, transparent 40%, rgba(0, 0, 0, 0.06) 100%);
+    }
+
+    .reflect-date {
+      font-family: "Times New Roman", Georgia, serif;
+      font-size: 0.72rem;
+      font-weight: 400;
+      letter-spacing: 0.22em;
+      color: rgba(201, 169, 98, 0.58);
+      margin-bottom: 1rem;
+    }
+
+    .reflect-text {
+      font-size: 0.78rem;
+      font-weight: 300;
+      line-height: 1.9;
+      letter-spacing: 0.06em;
+      color: rgba(232, 230, 226, 0.72);
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 28vh;
+      overflow-y: auto;
+      margin-bottom: 1.5rem;
+      padding: 0 0.25rem;
+    }
+
+    .reflect-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    .reflect-btn {
+      display: block;
+      width: 100%;
+      padding: 0.65rem 0.75rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(232, 230, 226, 0.55);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.52rem;
+      font-weight: 400;
+      letter-spacing: 0.28em;
+      text-indent: 0.28em;
+      text-decoration: none;
+      text-align: center;
+      cursor: pointer;
+      transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+    }
+
+    .reflect-btn:hover {
+      color: rgba(232, 230, 226, 0.85);
+      border-color: rgba(201, 169, 98, 0.35);
+      background: rgba(201, 169, 98, 0.06);
+    }
+
+    .reflect-btn.primary {
+      border-color: rgba(201, 169, 98, 0.32);
+      color: rgba(232, 230, 226, 0.72);
+      background: rgba(201, 169, 98, 0.08);
+    }
+  </style>
+</head>
+<body>
+  <div class="mycolors-shell">
+    <header class="page-header">
+      <nav class="site-nav" aria-label="ナビゲーション">
+        <a class="site-nav-link" href="index.html">キャンバスへ</a>
+        <a class="site-nav-link" href="gallery.html">感情の回廊へ</a>
+        <a class="site-nav-link" href="midspace.html">途中経過を覗く</a>
+      </nav>
+      <h1 class="page-title">#今日の私の色</h1>
+      <p class="page-subtitle">MY COLORS</p>
+    </header>
+
+    <main class="catalog-scroll">
+      <div class="colors-grid" id="colorsGrid" aria-label="感情の色の図録"></div>
+      <p class="empty-state" id="emptyState">まだ色の記録がありません。<br>キャンバスで言葉を紡ぐと、ここに静かに蓄えられます。</p>
+    </main>
+  </div>
+
+  <div class="reflect-overlay" id="reflectOverlay" aria-hidden="true" role="dialog" aria-label="その日の振り返り">
+    <div class="reflect-panel">
+      <div class="reflect-canvas-wrap">
+        <canvas id="reflectCanvas" width="400" height="300" aria-hidden="true"></canvas>
+      </div>
+      <p class="reflect-date" id="reflectDate"></p>
+      <p class="reflect-text" id="reflectText"></p>
+      <div class="reflect-actions">
+        <a class="reflect-btn primary" id="reflectGoCanvas" href="index.html">キャンバスで続ける</a>
+        <button type="button" class="reflect-btn" id="reflectClose">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const INSCAPE_HISTORY_KEY = 'inscape_history';
+      const REFLECT_STORAGE_KEY = 'inscape_reflect_entry';
+      const SPLAT_IMAGE = 'splat.png';
+      const CANVAS_BG = '#f7f4eb';
+
+      const colorsGrid = document.getElementById('colorsGrid');
+      const emptyState = document.getElementById('emptyState');
+      const reflectOverlay = document.getElementById('reflectOverlay');
+      const reflectCanvas = document.getElementById('reflectCanvas');
+      const reflectDate = document.getElementById('reflectDate');
+      const reflectText = document.getElementById('reflectText');
+      const reflectClose = document.getElementById('reflectClose');
+      const reflectGoCanvas = document.getElementById('reflectGoCanvas');
+
+      const splatImg = new Image();
+      const stampCache = {};
+      let splatReady = false;
+
+      function parseEntryDate(entry) {
+        if (!entry) return null;
+        if (entry.timestamp && Number(entry.timestamp) > 0) {
+          const d = new Date(entry.timestamp);
+          if (!Number.isNaN(d.getTime())) return d;
+        }
+        if (entry.date) {
+          const dateStr = String(entry.date);
+          const matched = dateStr.match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+          if (matched) {
+            const d = new Date(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3]));
+            if (!Number.isNaN(d.getTime())) return d;
+          }
+          const parsed = Date.parse(dateStr);
+          if (!Number.isNaN(parsed)) return new Date(parsed);
+        }
+        return null;
+      }
+
+      function dayKeyFromEntry(entry) {
+        const d = parseEntryDate(entry);
+        if (!d) return `ts-${entry.timestamp || entry.date || Math.random()}`;
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        return `${y}-${mo}-${da}`;
+      }
+
+      function formatShortDate(entry) {
+        const d = parseEntryDate(entry);
+        if (!d) return '—';
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        return `${mo}.${da}`;
+      }
+
+      function formatFullDate(entry) {
+        const d = parseEntryDate(entry);
+        if (!d) return entry.date || '—';
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        return `${y}.${mo}.${da}`;
+      }
+
+      function loadInscapeHistory() {
+        try {
+          const raw = localStorage.getItem(INSCAPE_HISTORY_KEY);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return [];
+          return data.map((entry) => ({
+            word: entry.word || entry.text || '',
+            color: entry.color,
+            date: entry.date || '',
+            timestamp: entry.timestamp || 0
+          })).filter((e) => e.color);
+        } catch {
+          return [];
+        }
+      }
+
+      function groupEntriesByDay(entries) {
+        const byDay = new Map();
+        entries.forEach((entry) => {
+          const key = dayKeyFromEntry(entry);
+          const existing = byDay.get(key);
+          if (!existing || (entry.timestamp || 0) >= (existing.timestamp || 0)) {
+            byDay.set(key, entry);
+          }
+        });
+        return Array.from(byDay.values()).sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
+      }
+
+      function loadSplatImage() {
+        return new Promise((resolve, reject) => {
+          splatImg.onload = () => {
+            if (splatImg.naturalWidth > 0) {
+              splatReady = true;
+              resolve();
+            } else {
+              reject(new Error('splat invalid'));
+            }
+          };
+          splatImg.onerror = () => reject(new Error('splat load failed'));
+          splatImg.src = SPLAT_IMAGE;
+          if (splatImg.complete && splatImg.naturalWidth > 0) {
+            splatReady = true;
+            resolve();
+          }
+        });
+      }
+
+      function createColorStamp(color) {
+        if (!splatReady || !splatImg.naturalWidth) return null;
+        if (stampCache[color]) return stampCache[color];
+
+        const w = splatImg.naturalWidth;
+        const h = splatImg.naturalHeight;
+        const work = document.createElement('canvas');
+        work.width = w;
+        work.height = h;
+        const wctx = work.getContext('2d');
+
+        wctx.fillStyle = color;
+        wctx.fillRect(0, 0, w, h);
+        wctx.globalCompositeOperation = 'screen';
+        wctx.drawImage(splatImg, 0, 0);
+        wctx.globalCompositeOperation = 'source-over';
+
+        stampCache[color] = work;
+        return work;
+      }
+
+      function renderMiniSplash(color) {
+        if (!reflectCanvas) return;
+        const ctx = reflectCanvas.getContext('2d');
+        const w = reflectCanvas.width;
+        const h = reflectCanvas.height;
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.fillStyle = CANVAS_BG;
+        ctx.fillRect(0, 0, w, h);
+
+        const stamp = createColorStamp(color);
+        if (!stamp) return;
+
+        const size = Math.min(w, h) * 0.58;
+        ctx.save();
+        ctx.translate(w * 0.5, h * 0.5);
+        ctx.rotate((Math.random() - 0.5) * 0.4);
+        ctx.globalAlpha = 0.88;
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
+        ctx.restore();
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+      }
+
+      function saveReflectEntry(entry) {
+        try {
+          sessionStorage.setItem(REFLECT_STORAGE_KEY, JSON.stringify({
+            word: entry.word || '',
+            color: entry.color,
+            date: entry.date || formatFullDate(entry),
+            timestamp: entry.timestamp || 0
+          }));
+        } catch (_) {}
+      }
+
+      function openReflect(entry) {
+        if (!reflectOverlay) return;
+
+        saveReflectEntry(entry);
+        renderMiniSplash(entry.color);
+
+        if (reflectDate) reflectDate.textContent = formatFullDate(entry);
+        if (reflectText) {
+          reflectText.textContent = entry.word && entry.word.trim()
+            ? entry.word
+            : '言葉の記録はありません。';
+        }
+
+        reflectOverlay.classList.add('active');
+        reflectOverlay.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeReflect() {
+        if (!reflectOverlay) return;
+        reflectOverlay.classList.remove('active');
+        reflectOverlay.setAttribute('aria-hidden', 'true');
+      }
+
+      function createColorCell(entry) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'color-cell';
+        btn.setAttribute('aria-label', `${formatFullDate(entry)}の感情の色`);
+
+        const swatch = document.createElement('span');
+        swatch.className = 'color-swatch';
+        swatch.style.setProperty('--swatch-color', entry.color);
+
+        const dateEl = document.createElement('span');
+        dateEl.className = 'color-date';
+        dateEl.textContent = formatShortDate(entry);
+
+        btn.appendChild(swatch);
+        btn.appendChild(dateEl);
+
+        btn.addEventListener('click', () => openReflect(entry));
+
+        return btn;
+      }
+
+      function renderCatalog() {
+        if (!colorsGrid) return;
+
+        const entries = groupEntriesByDay(loadInscapeHistory());
+        colorsGrid.innerHTML = '';
+
+        if (!entries.length) {
+          if (emptyState) emptyState.classList.add('visible');
+          return;
+        }
+
+        if (emptyState) emptyState.classList.remove('visible');
+        entries.forEach((entry) => {
+          colorsGrid.appendChild(createColorCell(entry));
+        });
+      }
+
+      function bindEvents() {
+        if (reflectClose) {
+          reflectClose.addEventListener('click', closeReflect);
+        }
+
+        if (reflectOverlay) {
+          reflectOverlay.addEventListener('click', (e) => {
+            if (e.target === reflectOverlay) closeReflect();
+          });
+        }
+
+        document.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape' && reflectOverlay && reflectOverlay.classList.contains('active')) {
+            closeReflect();
+          }
+        });
+      }
+
+      bindEvents();
+      loadSplatImage()
+        .then(renderCatalog)
+        .catch(() => renderCatalog());
+    })();
+  </script>
+</body>
+</html>

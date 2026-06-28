@@ -37,23 +37,56 @@
       position: relative;
       z-index: 2;
       padding:
-        calc(1.1rem + env(safe-area-inset-top))
-        calc(1.25rem + env(safe-area-inset-right))
+        calc(0.85rem + env(safe-area-inset-top))
+        calc(0.65rem + env(safe-area-inset-right))
         0
-        calc(1.25rem + env(safe-area-inset-left));
+        calc(0.65rem + env(safe-area-inset-left));
+    }
+
+    .site-nav {
+      display: flex;
+      align-items: stretch;
+      justify-content: space-between;
+      gap: 0.22rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .site-nav-link,
+    .back-link {
+      flex: 1 1 0;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.38rem;
+      font-weight: 400;
+      letter-spacing: 0.06em;
+      text-indent: 0.06em;
+      color: rgba(232, 230, 226, 0.45);
+      text-decoration: none;
+      padding: 0.42rem 0.22rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      background: rgba(18, 19, 22, 0.72);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      text-align: center;
+    }
+
+    .site-nav-link:hover,
+    .back-link:hover {
+      color: rgba(232, 230, 226, 0.82);
+      border-color: rgba(184, 160, 122, 0.35);
+      background: rgba(24, 25, 28, 0.88);
     }
 
     .back-link {
-      display: inline-block;
-      font-size: 0.52rem;
-      letter-spacing: 0.22em;
-      color: rgba(232, 230, 226, 0.52);
-      text-decoration: none;
-      padding: 0.5rem 0.75rem;
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.03);
-      margin-bottom: 1.5rem;
+      margin-bottom: 0;
     }
 
     .museum-header {
@@ -783,7 +816,11 @@
 </head>
 <body>
   <div class="corridor-top">
-    <a class="back-link" href="index.html">キャンバスに戻る</a>
+    <nav class="site-nav" aria-label="ナビゲーション">
+      <a class="site-nav-link back-link" href="index.html">キャンバスに戻る</a>
+      <a class="site-nav-link" href="midspace.html">途中経過を覗く</a>
+      <a class="site-nav-link" href="mycolors.html">#今日の私の色</a>
+    </nav>
 
     <header class="museum-header">
       <h1 class="museum-title">感情の回廊</h1>
