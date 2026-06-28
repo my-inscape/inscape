@@ -532,12 +532,25 @@
         return [...entries].sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
       }
 
+      function parseColorData(raw) {
+        if (!raw) return null;
+        if (typeof raw === 'string') {
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return null;
+          }
+        }
+        return typeof raw === 'object' ? raw : null;
+      }
+
       function normalizeColorEntry(entry) {
-        if (!entry || !entry.id || !entry.colorData) return null;
+        if (!entry || !entry.id || entry.colorData == null) return null;
         const createdAt = Number(entry.createdAt);
         if (!Number.isFinite(createdAt)) return null;
 
-        const colorData = entry.colorData;
+        const colorData = parseColorData(entry.colorData);
+        if (!colorData) return null;
         const splats = Array.isArray(colorData.splats) ? colorData.splats : [];
         if (!splats.length) return null;
 
@@ -691,18 +704,35 @@
       }
 
       function bindRippleInteraction(slideEl, rippleLayer) {
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let touchStartTime = 0;
+
         function handlePointer(clientX, clientY) {
           spawnRipple(rippleLayer, clientX, clientY, false);
           spawnRipple(rippleLayer, clientX, clientY, true);
         }
 
         slideEl.addEventListener('click', (e) => {
+          if (e.pointerType === 'touch') return;
           handlePointer(e.clientX, e.clientY);
         });
 
+        slideEl.addEventListener('touchstart', (e) => {
+          if (!e.touches || !e.touches.length) return;
+          const t = e.touches[0];
+          touchStartX = t.clientX;
+          touchStartY = t.clientY;
+          touchStartTime = Date.now();
+        }, { passive: true });
+
         slideEl.addEventListener('touchend', (e) => {
-          if (e.changedTouches && e.changedTouches.length) {
-            const t = e.changedTouches[0];
+          if (!e.changedTouches || !e.changedTouches.length) return;
+          const t = e.changedTouches[0];
+          const dx = Math.abs(t.clientX - touchStartX);
+          const dy = Math.abs(t.clientY - touchStartY);
+          const dt = Date.now() - touchStartTime;
+          if (dx < 14 && dy < 14 && dt < 420) {
             handlePointer(t.clientX, t.clientY);
           }
         }, { passive: true });
@@ -786,6 +816,11 @@
         });
       }
 
+      async function refreshOceanTimeline() {
+        const colors = await fetchGlobalColors();
+        renderTimeline(colors);
+      }
+
       async function initOceanTimeline() {
         const theater = document.getElementById('oceanTheater');
         if (!theater) return;
@@ -796,8 +831,13 @@
           /* splat texture optional fallback */
         }
 
-        const colors = await fetchGlobalColors();
-        renderTimeline(colors);
+        await refreshOceanTimeline();
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.visibilityState === 'visible') {
+            refreshOceanTimeline();
+          }
+        });
       }
 
       initOceanTimeline();
