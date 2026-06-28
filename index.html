@@ -998,9 +998,10 @@
 
     .canvas-wrap.submit-ready #mainCanvas {
       cursor: crosshair;
+      touch-action: none;
     }
 
-    .canvas-wrap.submit-ready {
+    #mainCanvas {
       touch-action: manipulation;
     }
 
@@ -1429,6 +1430,7 @@
       let lastCanvasExportDataUrl = null;
       let isDiarySubmitting = false;
       let canvasTouchStart = null;
+      let lastCanvasTapHandledAt = 0;
 
       const WORD_MAX_LEN = 10000;
       const OPACITY_FULL_LEN = 400;
@@ -1638,7 +1640,7 @@
       }
 
       function updateCanvasSubmitHint() {
-        const ready = !hasPostedToday() && !isDiarySubmitting && !!wordInput.value.trim();
+        const ready = canSubmitDiaryNow();
         canvasWrap.classList.toggle('submit-ready', ready);
       }
 
@@ -3300,6 +3302,62 @@
         };
       }
 
+      function canSubmitDiaryNow() {
+        return !hasPostedToday() && !isDiarySubmitting && !!wordInput.value.trim();
+      }
+
+      function isCanvasDirectTarget(e) {
+        return e.target === canvas;
+      }
+
+      function getCanvasLocalCoordsFromClient(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = rect.width > 0 ? canvas.clientWidth / rect.width : 1;
+        const scaleY = rect.height > 0 ? canvas.clientHeight / rect.height : 1;
+        return {
+          x: (clientX - rect.left) * scaleX,
+          y: (clientY - rect.top) * scaleY,
+          clientX,
+          clientY
+        };
+      }
+
+      function getCanvasLocalCoordsFromEvent(e) {
+        let clientX;
+        let clientY;
+        if (e.changedTouches && e.changedTouches.length > 0) {
+          clientX = e.changedTouches[0].clientX;
+          clientY = e.changedTouches[0].clientY;
+        } else if (e.touches && e.touches.length > 0) {
+          clientX = e.touches[0].clientX;
+          clientY = e.touches[0].clientY;
+        } else {
+          clientX = e.clientX;
+          clientY = e.clientY;
+        }
+        return getCanvasLocalCoordsFromClient(clientX, clientY);
+      }
+
+      function handleCanvasTapAt(coords, e) {
+        if (hasPostedToday()) {
+          const s = findSplashAt(coords.x, coords.y);
+          if (s) showTooltip(s, coords.clientX, coords.clientY);
+          else hideTooltip();
+          return;
+        }
+
+        if (canSubmitDiaryNow()) {
+          if (e && e.cancelable) e.preventDefault();
+          lastCanvasTapHandledAt = Date.now();
+          submitDiaryAtCanvasTap(coords.x, coords.y);
+          return;
+        }
+
+        const s = findSplashAt(coords.x, coords.y);
+        if (s) showTooltip(s, coords.clientX, coords.clientY);
+        else hideTooltip();
+      }
+
       function submitDiaryAtCanvasTap(tapX, tapY) {
         if (hasPostedToday() || isDiarySubmitting) return;
 
@@ -3371,15 +3429,6 @@
         });
       }
 
-      function trySubmitFromCanvasEvent(e) {
-        if (hasPostedToday() || isDiarySubmitting) return false;
-        if (!wordInput.value.trim()) return false;
-
-        const { x, y } = canvasCoords(e);
-        submitDiaryAtCanvasTap(x, y);
-        return true;
-      }
-
       function formatDate(ts) {
         const d = new Date(ts);
         const y = d.getFullYear();
@@ -3420,32 +3469,21 @@
         tooltip.classList.remove('visible');
       }
 
-      function canvasCoords(e) {
-        const rect = canvas.getBoundingClientRect();
-        const touch = e.touches ? e.touches[0] : e;
-        return {
-          x: touch.clientX - rect.left,
-          y: touch.clientY - rect.top,
-          clientX: touch.clientX,
-          clientY: touch.clientY
-        };
-      }
-
       canvas.addEventListener('click', (e) => {
+        if (!isCanvasDirectTarget(e)) return;
         onUserActivity();
-        if (trySubmitFromCanvasEvent(e)) {
+        if (Date.now() - lastCanvasTapHandledAt < 500) {
           e.preventDefault();
           return;
         }
-        const { x, y, clientX, clientY } = canvasCoords(e);
-        const s = findSplashAt(x, y);
-        if (s) showTooltip(s, clientX, clientY);
-        else hideTooltip();
+        if (e.cancelable) e.preventDefault();
+        handleCanvasTapAt(getCanvasLocalCoordsFromEvent(e), e);
       });
 
       canvas.addEventListener('mousemove', (e) => {
+        if (!isCanvasDirectTarget(e)) return;
         onUserActivity();
-        const { x, y } = canvasCoords(e);
+        const { x, y } = getCanvasLocalCoordsFromEvent(e);
         const s = findSplashAt(x, y);
         if (s) showTooltip(s, e.clientX, e.clientY);
         else hideTooltip();
@@ -3454,52 +3492,53 @@
       canvas.addEventListener('mouseleave', hideTooltip);
 
       canvas.addEventListener('touchstart', (e) => {
+        if (!isCanvasDirectTarget(e)) return;
         onUserActivity();
-        const { x, y, clientX, clientY } = canvasCoords(e);
-        canvasTouchStart = { x, y, clientX, clientY, t: Date.now() };
 
-        if (hasPostedToday()) {
-          const s = findSplashAt(x, y);
-          if (s) {
-            e.preventDefault();
-            showTooltip(s, clientX, clientY);
+        const touch = e.touches && e.touches[0];
+        if (!touch) return;
+
+        const coords = getCanvasLocalCoordsFromClient(touch.clientX, touch.clientY);
+        canvasTouchStart = {
+          x: coords.x,
+          y: coords.y,
+          clientX: coords.clientX,
+          clientY: coords.clientY,
+          t: Date.now(),
+          id: touch.identifier
+        };
+
+        if (canSubmitDiaryNow() || hasPostedToday()) {
+          if (canSubmitDiaryNow() && document.activeElement === wordInput) {
+            wordInput.blur();
           }
+          e.preventDefault();
         }
       }, { passive: false });
 
       canvas.addEventListener('touchend', (e) => {
         if (!canvasTouchStart) return;
 
-        const touch = e.changedTouches ? e.changedTouches[0] : null;
-        if (!touch) {
-          canvasTouchStart = null;
-          return;
-        }
+        const touch = e.changedTouches && e.changedTouches[0];
+        if (!touch || touch.identifier !== canvasTouchStart.id) return;
 
-        const rect = canvas.getBoundingClientRect();
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        const moved = Math.hypot(x - canvasTouchStart.x, y - canvasTouchStart.y);
+        const coords = getCanvasLocalCoordsFromClient(touch.clientX, touch.clientY);
+        const moved = Math.hypot(coords.x - canvasTouchStart.x, coords.y - canvasTouchStart.y);
         const elapsed = Date.now() - canvasTouchStart.t;
         canvasTouchStart = null;
 
-        if (hasPostedToday()) {
-          setTimeout(hideTooltip, 1800);
+        if (moved > 16 || elapsed > 700) {
+          if (hasPostedToday()) setTimeout(hideTooltip, 1800);
           return;
         }
 
-        if (wordInput.value.trim() && moved < 14 && elapsed < 600) {
-          e.preventDefault();
-          submitDiaryAtCanvasTap(x, y);
-          return;
-        }
-
-        const s = findSplashAt(x, y);
-        if (s) {
-          showTooltip(s, touch.clientX, touch.clientY);
-          setTimeout(hideTooltip, 1800);
-        }
+        e.preventDefault();
+        handleCanvasTapAt(coords, e);
       }, { passive: false });
+
+      canvas.addEventListener('touchcancel', () => {
+        canvasTouchStart = null;
+      }, { passive: true });
 
       colorIndicator.addEventListener('click', (e) => {
         e.stopPropagation();
