@@ -408,110 +408,115 @@
        * {
        *   id: string,
        *   colorData: {
-       *     splats: Array<{ nx, ny, color, baseSize, rotation?, scaleFactor?, opacity? }>,
+       *     color: string,           // e.g. "rgba(142, 68, 173, 0.88)" — today's single emotion
        *     canvasW?: number,
        *     canvasH?: number
        *   },
-       *   createdAt: number  // Unix ms
+       *   createdAt: number          // Unix ms
        * }
        */
 
-      const EMOTION_PALETTES = [
-        ['#c8b8e8', '#9a8ec4'],
-        ['#8ec4e8', '#5a9ec8'],
-        ['#e8a8b0', '#c86070'],
-        ['#a8b0b8', '#707880'],
-        ['#d4c0f0', '#9888c8'],
-        ['#70a8d8', '#4080b0'],
-        ['#f0c8a0', '#d89060'],
-        ['#b0d8c8', '#78a898'],
-        ['#e0a0c8', '#b06898'],
-        ['#a0c8e8', '#6898c0'],
-        ['#d8b8a0', '#a88868'],
-        ['#c0a8d8', '#9078b0'],
-        ['#88b8d0', '#5088a8'],
-        ['#e8c0c8', '#c08898'],
-        ['#b8c8d8', '#788898'],
-        ['#d0b0e8', '#a080c0'],
-        ['#98c8e0', '#68a0c8'],
-        ['#e8b0a8', '#c07870'],
-        ['#a8d0c0', '#70a890'],
-        ['#c8a8e0', '#9878b8']
+      /** Today's single-emotion palette — one color per anonymous post */
+      const TODAYS_EMOTION_COLORS = [
+        'rgba(142, 68, 173, 0.88)',
+        'rgba(231, 76, 60, 0.9)',
+        'rgba(52, 152, 219, 0.85)',
+        'rgba(46, 204, 113, 0.82)',
+        'rgba(241, 196, 15, 0.78)',
+        'rgba(155, 89, 182, 0.86)',
+        'rgba(230, 126, 34, 0.88)',
+        'rgba(26, 188, 156, 0.84)',
+        'rgba(192, 57, 43, 0.9)',
+        'rgba(41, 128, 185, 0.87)',
+        'rgba(127, 140, 141, 0.75)',
+        'rgba(211, 84, 0, 0.86)',
+        'rgba(142, 68, 173, 0.72)',
+        'rgba(236, 112, 99, 0.88)',
+        'rgba(93, 173, 226, 0.83)',
+        'rgba(88, 214, 141, 0.8)',
+        'rgba(165, 105, 189, 0.85)',
+        'rgba(52, 73, 94, 0.78)',
+        'rgba(245, 183, 177, 0.82)',
+        'rgba(174, 214, 241, 0.86)',
+        'rgba(169, 50, 38, 0.9)',
+        'rgba(108, 52, 131, 0.87)',
+        'rgba(39, 174, 96, 0.84)',
+        'rgba(243, 156, 18, 0.8)',
+        'rgba(149, 165, 166, 0.72)'
       ];
 
       function randBetween(min, max) {
         return min + Math.random() * (max - min);
       }
 
-      function generateSplats(primary, secondary) {
-        const splats = [];
-        const n = Math.random() > 0.5 ? 2 : 1;
-        const colors = n === 1 ? [primary] : [primary, secondary];
-
-        for (let i = 0; i < n; i++) {
-          splats.push({
-            nx: randBetween(0.22, 0.78),
-            ny: randBetween(0.2, 0.72),
-            color: colors[i % colors.length],
-            baseSize: randBetween(190, 280),
-            rotation: randBetween(-0.4, 0.4),
-            scaleFactor: randBetween(0.85, 1.15),
-            opacity: randBetween(0.72, 0.92)
-          });
-        }
-
-        if (n === 2 && Math.random() > 0.35) {
-          splats.push({
-            nx: randBetween(0.35, 0.65),
-            ny: randBetween(0.38, 0.62),
-            color: colors[0],
-            baseSize: randBetween(120, 180),
-            rotation: randBetween(-0.6, 0.6),
-            scaleFactor: randBetween(0.6, 0.85),
-            opacity: randBetween(0.45, 0.62)
-          });
-        }
-
-        return splats;
+      function parseAlphaFromColor(color) {
+        if (typeof color !== 'string') return null;
+        const rgba = color.match(/rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)/i);
+        if (rgba) return Math.min(1, Math.max(0, parseFloat(rgba[1])));
+        return null;
       }
 
-      /** Mock: 20 entries within 24h + 2 expired (filtered on load) */
+      function hashToUnit(str, salt) {
+        let h = 0;
+        const s = `${str}|${salt}`;
+        for (let i = 0; i < s.length; i++) {
+          h = ((h << 5) - h + s.charCodeAt(i)) | 0;
+        }
+        return (Math.abs(h) % 10000) / 10000;
+      }
+
+      /** One centered burst — like a single color ball hit on today's canvas */
+      function buildTodaySingleSplat(color, seed) {
+        const s = seed || {};
+        const alpha = parseAlphaFromColor(color);
+        const idKey = s.id || color;
+
+        return {
+          nx: s.nx ?? 0.5,
+          ny: s.ny ?? 0.5,
+          color,
+          baseSize: s.baseSize ?? (250 + hashToUnit(idKey, 'size') * 58),
+          rotation: s.rotation ?? (hashToUnit(idKey, 'rot') - 0.5) * 0.22,
+          scaleFactor: s.scaleFactor ?? (0.96 + hashToUnit(idKey, 'scale') * 0.1),
+          opacity: s.opacity ?? (alpha != null ? alpha : 0.88)
+        };
+      }
+
+      function createTodayColorData(color, id) {
+        const splat = buildTodaySingleSplat(color, { id });
+        return {
+          color,
+          splats: [splat],
+          canvasW: DEFAULT_CANVAS_W,
+          canvasH: DEFAULT_CANVAS_H
+        };
+      }
+
+      /** Mock: 25 entries within 24h + 2 expired (filtered on load) */
       function buildMockGlobalColors() {
         const now = Date.now();
         const hourMs = 60 * 60 * 1000;
         const entries = [];
 
-        for (let i = 0; i < 20; i++) {
-          const palette = EMOTION_PALETTES[i % EMOTION_PALETTES.length];
-          const hoursAgo = randBetween(0.2, 23.5);
+        for (let i = 0; i < 25; i++) {
+          const color = TODAYS_EMOTION_COLORS[i % TODAYS_EMOTION_COLORS.length];
+          const hoursAgo = randBetween(0.15, 23.8);
           entries.push({
             id: `ocean-mock-${String(i + 1).padStart(3, '0')}`,
-            colorData: {
-              splats: generateSplats(palette[0], palette[1]),
-              canvasW: DEFAULT_CANVAS_W,
-              canvasH: DEFAULT_CANVAS_H
-            },
+            colorData: createTodayColorData(color, `ocean-mock-${String(i + 1).padStart(3, '0')}`),
             createdAt: Math.round(now - hoursAgo * hourMs)
           });
         }
 
         entries.push({
           id: 'ocean-mock-expired-01',
-          colorData: {
-            splats: generateSplats('#888888', '#666666'),
-            canvasW: DEFAULT_CANVAS_W,
-            canvasH: DEFAULT_CANVAS_H
-          },
+          colorData: createTodayColorData('rgba(120, 120, 120, 0.6)', 'ocean-mock-expired-01'),
           createdAt: now - OCEAN_TTL_MS - hourMs * 2
         });
 
         entries.push({
           id: 'ocean-mock-expired-02',
-          colorData: {
-            splats: generateSplats('#999999', '#777777'),
-            canvasW: DEFAULT_CANVAS_W,
-            canvasH: DEFAULT_CANVAS_H
-          },
+          colorData: createTodayColorData('rgba(90, 90, 90, 0.55)', 'ocean-mock-expired-02'),
           createdAt: now - OCEAN_TTL_MS - hourMs * 10
         });
 
@@ -544,6 +549,35 @@
         return typeof raw === 'object' ? raw : null;
       }
 
+      function resolveTodaySingleSplat(colorData, entryId) {
+        if (!colorData) return null;
+
+        if (typeof colorData.color === 'string' && colorData.color.trim()) {
+          const existing = Array.isArray(colorData.splats) && colorData.splats[0];
+          return buildTodaySingleSplat(colorData.color.trim(), {
+            id: entryId,
+            ...(existing || {})
+          });
+        }
+
+        if (Array.isArray(colorData.splats) && colorData.splats.length) {
+          const first = colorData.splats[0];
+          if (first && first.color) {
+            return buildTodaySingleSplat(first.color, {
+              id: entryId,
+              nx: 0.5,
+              ny: 0.5,
+              baseSize: first.baseSize,
+              rotation: first.rotation,
+              scaleFactor: first.scaleFactor,
+              opacity: first.opacity
+            });
+          }
+        }
+
+        return null;
+      }
+
       function normalizeColorEntry(entry) {
         if (!entry || !entry.id || entry.colorData == null) return null;
         const createdAt = Number(entry.createdAt);
@@ -551,13 +585,15 @@
 
         const colorData = parseColorData(entry.colorData);
         if (!colorData) return null;
-        const splats = Array.isArray(colorData.splats) ? colorData.splats : [];
-        if (!splats.length) return null;
+
+        const singleSplat = resolveTodaySingleSplat(colorData, String(entry.id));
+        if (!singleSplat) return null;
 
         return {
           id: String(entry.id),
           colorData: {
-            splats,
+            color: singleSplat.color,
+            splats: [singleSplat],
             canvasW: colorData.canvasW || DEFAULT_CANVAS_W,
             canvasH: colorData.canvasH || DEFAULT_CANVAS_H
           },
@@ -684,9 +720,10 @@
         c.fillStyle = CANVAS_BG;
         c.fillRect(0, 0, srcW, srcH);
 
-        (colorData.splats || []).map(migrateSplash).forEach((splash) => {
-          drawSplatter(c, splash, srcW, srcH);
-        });
+        const singleSplat = colorData.splats && colorData.splats[0];
+        if (!singleSplat) return;
+
+        drawSplatter(c, migrateSplash(singleSplat), srcW, srcH);
       }
 
       function spawnRipple(layer, clientX, clientY, soft) {
