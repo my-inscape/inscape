@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#050508">
+  <meta name="theme-color" content="#08080a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="INSCAPE">
@@ -12,12 +12,12 @@
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <title>感情の夜海 — INSCAPE</title>
+  <title>合言葉の部屋 — INSCAPE</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --ocean-deep: #050508;
+      --room-deep: #08080a;
       --slide-width: min(88vw, 380px);
       --slide-gap: 2.5rem;
       --canvas-fabric-url: url('canvas-fabric.png');
@@ -27,7 +27,7 @@
       height: 100%;
       overflow: hidden;
       font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
-      background: var(--ocean-deep);
+      background: var(--room-deep);
       color: #e8e6e2;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
@@ -35,13 +35,12 @@
 
     body {
       background:
-        radial-gradient(ellipse 120% 45% at 50% -12%, rgba(38, 52, 88, 0.22) 0%, transparent 52%),
-        radial-gradient(ellipse 80% 35% at 12% 88%, rgba(28, 18, 48, 0.18) 0%, transparent 48%),
-        radial-gradient(ellipse 70% 30% at 88% 72%, rgba(12, 32, 58, 0.14) 0%, transparent 45%),
-        var(--ocean-deep);
+        radial-gradient(ellipse 100% 42% at 50% -10%, rgba(201, 169, 98, 0.06) 0%, transparent 50%),
+        radial-gradient(ellipse 70% 35% at 8% 92%, rgba(38, 28, 48, 0.14) 0%, transparent 48%),
+        var(--room-deep);
     }
 
-    .ocean-shell {
+    .room-shell {
       height: 100%;
       height: 100dvh;
       display: flex;
@@ -49,7 +48,7 @@
       overflow: hidden;
     }
 
-    .ocean-top {
+    .room-top {
       flex-shrink: 0;
       z-index: 20;
       padding:
@@ -57,12 +56,7 @@
         calc(0.65rem + env(safe-area-inset-right))
         0.55rem
         calc(0.65rem + env(safe-area-inset-left));
-      background: linear-gradient(
-        180deg,
-        rgba(5, 5, 8, 0.96) 0%,
-        rgba(5, 5, 8, 0.88) 72%,
-        rgba(5, 5, 8, 0) 100%
-      );
+      background: linear-gradient(180deg, rgba(8, 8, 10, 0.96) 0%, rgba(8, 8, 10, 0.88) 72%, rgba(8, 8, 10, 0) 100%);
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
     }
@@ -79,10 +73,7 @@
       scrollbar-width: none;
     }
 
-    .site-nav::-webkit-scrollbar {
-      display: none;
-      height: 0;
-    }
+    .site-nav::-webkit-scrollbar { display: none; height: 0; }
 
     .site-nav-link {
       flex: 0 0 auto;
@@ -97,42 +88,172 @@
       text-indent: 0.03em;
       color: rgba(232, 230, 226, 0.38);
       text-decoration: none;
-      padding: 0.38rem 0.24rem;
+      padding: 0.38rem 0.28rem;
       border: 0.5px solid rgba(255, 255, 255, 0.07);
       border-radius: 2px;
-      background: rgba(10, 11, 16, 0.78);
+      background: rgba(14, 14, 18, 0.78);
       backdrop-filter: blur(8px);
       -webkit-backdrop-filter: blur(8px);
       transition: color 0.35s ease, border-color 0.35s ease, background 0.35s ease;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
       text-align: center;
     }
 
     .site-nav-link:hover {
       color: rgba(232, 230, 226, 0.72);
-      border-color: rgba(120, 140, 180, 0.28);
-      background: rgba(14, 16, 24, 0.9);
+      border-color: rgba(184, 160, 122, 0.28);
+      background: rgba(20, 20, 24, 0.9);
     }
 
     .site-nav-link.is-current {
-      color: rgba(140, 168, 210, 0.58);
-      border-color: rgba(100, 130, 180, 0.2);
-      background: rgba(40, 56, 88, 0.12);
+      color: rgba(201, 169, 98, 0.58);
+      border-color: rgba(201, 169, 98, 0.2);
+      background: rgba(201, 169, 98, 0.06);
       pointer-events: none;
     }
 
-    @media (max-width: 480px) {
-      .site-nav-link {
-        font-size: 0.28rem;
-        letter-spacing: 0.02em;
-        text-indent: 0.02em;
-        padding: 0.34rem 0.18rem;
-      }
+    .room-main {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      position: relative;
     }
 
-    .ocean-theater-wrap {
+    .room-gate {
+      flex: 1 1 auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem 1.35rem calc(2rem + env(safe-area-inset-bottom));
+    }
+
+    .room-gate.is-hidden {
+      display: none;
+    }
+
+    .room-gate-form {
+      width: 100%;
+      max-width: 18rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+    }
+
+    .room-field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .room-field label {
+      font-size: 0.52rem;
+      font-weight: 300;
+      letter-spacing: 0.14em;
+      text-indent: 0.14em;
+      color: rgba(232, 230, 226, 0.32);
+    }
+
+    .room-field input {
+      width: 100%;
+      padding: 0.72rem 0.65rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.025);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      color: rgba(232, 230, 226, 0.82);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.72rem;
+      font-weight: 300;
+      letter-spacing: 0.08em;
+      outline: none;
+      transition: border-color 0.35s ease, background 0.35s ease, box-shadow 0.35s ease;
+    }
+
+    .room-field input::placeholder {
+      color: rgba(232, 230, 226, 0.22);
+      letter-spacing: 0.06em;
+    }
+
+    .room-field input:focus {
+      border-color: rgba(201, 169, 98, 0.32);
+      background: rgba(255, 255, 255, 0.04);
+      box-shadow: 0 0 24px rgba(201, 169, 98, 0.06);
+    }
+
+    .room-enter-btn {
+      margin-top: 0.35rem;
+      padding: 0.78rem 0.5rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.22);
+      border-radius: 1px;
+      background: rgba(201, 169, 98, 0.05);
+      color: rgba(232, 230, 226, 0.62);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.58rem;
+      font-weight: 400;
+      letter-spacing: 0.28em;
+      text-indent: 0.28em;
+      cursor: pointer;
+      transition: color 0.35s ease, border-color 0.35s ease, background 0.35s ease;
+    }
+
+    .room-enter-btn:hover {
+      color: rgba(232, 230, 226, 0.88);
+      border-color: rgba(201, 169, 98, 0.38);
+      background: rgba(201, 169, 98, 0.1);
+    }
+
+    .room-timeline-view {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: none;
+      flex-direction: column;
+    }
+
+    .room-timeline-view.is-active {
+      display: flex;
+    }
+
+    .room-session-bar {
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem;
+      padding: 0.35rem 1.25rem 0.65rem;
+    }
+
+    .room-session-key {
+      font-size: 0.48rem;
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      color: rgba(201, 169, 98, 0.42);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .room-leave-btn {
+      flex-shrink: 0;
+      padding: 0.32rem 0.45rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 1px;
+      background: transparent;
+      color: rgba(232, 230, 226, 0.32);
+      font-family: inherit;
+      font-size: 0.42rem;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: color 0.3s ease, border-color 0.3s ease;
+    }
+
+    .room-leave-btn:hover {
+      color: rgba(232, 230, 226, 0.62);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .room-theater-wrap {
       flex: 1 1 auto;
       min-height: 0;
       display: flex;
@@ -140,7 +261,7 @@
       padding-bottom: env(safe-area-inset-bottom);
     }
 
-    .ocean-theater {
+    .room-theater {
       display: flex;
       flex-direction: row;
       flex-wrap: nowrap;
@@ -153,30 +274,24 @@
       scroll-behavior: smooth;
       -webkit-overflow-scrolling: touch;
       scroll-padding-inline: calc((100vw - var(--slide-width)) / 2);
-      padding:
-        1.5rem
-        calc((100vw - var(--slide-width)) / 2)
-        2rem;
+      padding: 1rem calc((100vw - var(--slide-width)) / 2) 2rem;
       gap: var(--slide-gap);
     }
 
-    .ocean-theater::-webkit-scrollbar {
-      height: 0;
-      display: none;
-    }
+    .room-theater::-webkit-scrollbar { display: none; height: 0; }
 
-    .ocean-slide {
+    .room-slide {
       flex: 0 0 var(--slide-width);
       width: var(--slide-width);
       scroll-snap-align: center;
       scroll-snap-stop: always;
       position: relative;
       cursor: pointer;
-      -webkit-user-select: none;
       user-select: none;
+      -webkit-user-select: none;
     }
 
-    .ocean-slide::before {
+    .room-slide::before {
       content: '';
       position: absolute;
       top: -6%;
@@ -184,23 +299,14 @@
       transform: translateX(-50%);
       width: 220%;
       height: 115%;
-      background:
-        radial-gradient(
-          ellipse 36% 46% at 50% 0%,
-          rgba(180, 200, 240, 0.13) 0%,
-          rgba(120, 150, 200, 0.05) 30%,
-          transparent 66%
-        );
+      background: radial-gradient(ellipse 36% 46% at 50% 0%, rgba(201, 169, 98, 0.1) 0%, rgba(120, 100, 80, 0.04) 30%, transparent 66%);
       pointer-events: none;
       z-index: 0;
     }
 
-    .ocean-slide-inner {
-      position: relative;
-      z-index: 1;
-    }
+    .room-slide-inner { position: relative; z-index: 1; }
 
-    .ocean-ripple-layer {
+    .room-ripple-layer {
       position: absolute;
       inset: 0;
       z-index: 12;
@@ -209,7 +315,7 @@
       border-radius: 1px;
     }
 
-    .ocean-ripple {
+    .room-ripple {
       position: absolute;
       width: 8px;
       height: 8px;
@@ -217,36 +323,23 @@
       margin-top: -4px;
       border-radius: 50%;
       border: 1px solid rgba(255, 255, 255, 0.18);
-      background: radial-gradient(
-        circle,
-        rgba(255, 255, 255, 0.2) 0%,
-        rgba(255, 255, 255, 0.06) 42%,
-        transparent 72%
-      );
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.06) 42%, transparent 72%);
       box-shadow: 0 0 12px rgba(200, 220, 255, 0.08);
-      animation: ocean-ripple-expand 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      animation: room-ripple-expand 2s cubic-bezier(0.22, 1, 0.36, 1) forwards;
       pointer-events: none;
     }
 
-    .ocean-ripple.is-soft {
+    .room-ripple.is-soft {
       animation-duration: 2.4s;
       animation-delay: 0.12s;
       border-color: rgba(255, 255, 255, 0.1);
       opacity: 0.7;
     }
 
-    @keyframes ocean-ripple-expand {
-      0% {
-        transform: scale(0.25);
-        opacity: 0.5;
-      }
-      35% {
-        opacity: 0.28;
-      }
-      100% {
-        transform: scale(32);
-        opacity: 0;
-      }
+    @keyframes room-ripple-expand {
+      0% { transform: scale(0.25); opacity: 0.5; }
+      35% { opacity: 0.28; }
+      100% { transform: scale(32); opacity: 0; }
     }
 
     .museum-wall-display {
@@ -257,9 +350,8 @@
       overflow: visible;
       padding: 1.55rem 0.5rem 1.1rem;
       background:
-        radial-gradient(circle at 50% 10%, rgba(200, 215, 255, 0.1) 0%, rgba(0, 0, 0, 0) 68%),
-        radial-gradient(ellipse 85% 48% at 50% -5%, rgba(160, 180, 220, 0.05) 0%, transparent 52%),
-        rgba(4, 5, 10, 0.72);
+        radial-gradient(circle at 50% 10%, rgba(201, 169, 98, 0.08) 0%, rgba(0, 0, 0, 0) 68%),
+        rgba(6, 6, 8, 0.72);
       border-radius: 1px;
     }
 
@@ -269,15 +361,11 @@
       inset: -8% -12%;
       z-index: 0;
       pointer-events: none;
-      background:
-        radial-gradient(circle at 50% 6%, rgba(180, 200, 240, 0.07) 0%, rgba(0, 0, 0, 0) 62%);
+      background: radial-gradient(circle at 50% 6%, rgba(201, 169, 98, 0.05) 0%, rgba(0, 0, 0, 0) 62%);
       opacity: 0.85;
     }
 
-    .museum-wall-display > * {
-      position: relative;
-      z-index: 1;
-    }
+    .museum-wall-display > * { position: relative; z-index: 1; }
 
     .museum-frame-sculpted {
       position: relative;
@@ -297,8 +385,7 @@
         inset 0 5px 0 rgba(255, 255, 255, 0.18),
         inset 0 -3px 10px rgba(0, 0, 0, 0.6),
         0 4px 14px rgba(0, 0, 0, 0.5),
-        0 18px 36px rgba(0, 0, 0, 0.75),
-        0 32px 64px rgba(0, 0, 0, 0.45);
+        0 18px 36px rgba(0, 0, 0, 0.75);
     }
 
     .museum-frame-sculpted::before {
@@ -319,7 +406,7 @@
       font-size: 0;
     }
 
-    .ocean-art-canvas {
+    .room-art-canvas {
       display: block;
       width: 100%;
       height: auto;
@@ -330,9 +417,7 @@
         var(--canvas-fabric-url);
       background-blend-mode: multiply;
       background-size: auto, auto, cover;
-      box-shadow:
-        inset 5px 5px 15px rgba(0, 0, 0, 0.38),
-        inset -3px -3px 10px rgba(255, 255, 255, 0.55);
+      box-shadow: inset 5px 5px 15px rgba(0, 0, 0, 0.38), inset -3px -3px 10px rgba(255, 255, 255, 0.55);
     }
 
     .paper-texture-overlay {
@@ -346,56 +431,88 @@
       opacity: 0.35;
     }
 
-    .art-date-caption {
-      margin-top: 0.95rem;
+    .art-meta-caption {
+      margin-top: 0.9rem;
       padding: 0 0.35rem;
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Georgia", "Times New Roman", serif;
-      font-size: 0.76rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.28rem;
+      line-height: 1.5;
+    }
+
+    .art-date-caption {
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Georgia", serif;
+      font-size: 0.72rem;
       font-weight: 300;
-      letter-spacing: 0.18em;
-      text-indent: 0.18em;
+      letter-spacing: 0.16em;
+      text-indent: 0.16em;
       color: rgba(110, 120, 145, 0.72);
-      line-height: 1.6;
     }
 
-    .ocean-theater.is-empty {
-      justify-content: center;
+    .art-display-name {
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.48rem;
+      font-weight: 300;
+      letter-spacing: 0.2em;
+      text-indent: 0.2em;
+      color: rgba(201, 169, 98, 0.48);
     }
 
-    .ocean-empty-glow {
+    .room-theater.is-empty { justify-content: center; }
+
+    .room-empty-glow {
       flex: 0 0 auto;
-      width: 6rem;
-      height: 6rem;
+      width: 5rem;
+      height: 5rem;
       border-radius: 50%;
-      background: radial-gradient(circle, rgba(100, 130, 180, 0.08) 0%, transparent 70%);
-      animation: ocean-empty-pulse 4s ease-in-out infinite;
+      background: radial-gradient(circle, rgba(201, 169, 98, 0.08) 0%, transparent 70%);
+      animation: room-empty-pulse 4s ease-in-out infinite;
     }
 
-    @keyframes ocean-empty-pulse {
+    @keyframes room-empty-pulse {
       0%, 100% { opacity: 0.35; transform: scale(0.92); }
       50% { opacity: 0.7; transform: scale(1); }
     }
   </style>
 </head>
 <body>
-  <div class="ocean-shell">
-    <div class="ocean-top">
+  <div class="room-shell">
+    <div class="room-top">
       <nav class="site-nav" aria-label="ナビゲーション">
         <a class="site-nav-link" href="index.html">キャンバス</a>
         <a class="site-nav-link" href="midspace.html">言葉の浮遊層</a>
         <a class="site-nav-link" href="gallery.html">感情の回廊</a>
         <a class="site-nav-link" href="mycolors.html">今日の私の色</a>
-        <a class="site-nav-link is-current" href="ocean.html" aria-current="page">感情の夜海</a>
-        <a class="site-nav-link" href="room.html">合言葉の部屋</a>
+        <a class="site-nav-link" href="ocean.html">感情の夜海</a>
+        <a class="site-nav-link is-current" href="room.html" aria-current="page">合言葉の部屋</a>
       </nav>
     </div>
 
-    <div class="ocean-theater-wrap">
-      <main
-        class="ocean-theater"
-        id="oceanTheater"
-        aria-label="感情の夜海 — 横スクロールタイムライン"
-      ></main>
+    <div class="room-main">
+      <section class="room-gate" id="roomGate" aria-label="部屋に入る">
+        <form class="room-gate-form" id="roomGateForm">
+          <div class="room-field">
+            <label for="roomKeyInput">合言葉（Room Key）</label>
+            <input type="text" id="roomKeyInput" name="roomKey" placeholder="0629イコラブツアー" autocomplete="off" maxlength="64" required>
+          </div>
+          <div class="room-field">
+            <label for="displayNameInput">今夜の表示名（Display Name）</label>
+            <input type="text" id="displayNameInput" name="displayName" placeholder="余韻の観客" autocomplete="off" maxlength="24" required>
+          </div>
+          <button type="submit" class="room-enter-btn">部屋に入る</button>
+        </form>
+      </section>
+
+      <section class="room-timeline-view" id="roomTimelineView" aria-label="合言葉の部屋 — タイムライン">
+        <div class="room-session-bar">
+          <p class="room-session-key" id="roomSessionLabel"></p>
+          <button type="button" class="room-leave-btn" id="roomLeaveBtn">退出</button>
+        </div>
+        <div class="room-theater-wrap">
+          <main class="room-theater" id="roomTheater"></main>
+        </div>
+      </section>
     </div>
   </div>
 
@@ -403,68 +520,49 @@
     (function () {
       'use strict';
 
-      /* ── Global color timeline constants ── */
-      const OCEAN_TTL_MS = 24 * 60 * 60 * 1000;
+      const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
+      const ROOM_KEY_STORAGE = 'inscape_room_key';
+      const ROOM_NAME_STORAGE = 'inscape_room_display_name';
       const SPLAT_IMAGE = 'splat.png';
       const CANVAS_BG = '#f7f4eb';
       const DEFAULT_CANVAS_W = 400;
       const DEFAULT_CANVAS_H = 300;
 
+      const roomGate = document.getElementById('roomGate');
+      const roomGateForm = document.getElementById('roomGateForm');
+      const roomKeyInput = document.getElementById('roomKeyInput');
+      const displayNameInput = document.getElementById('displayNameInput');
+      const roomTimelineView = document.getElementById('roomTimelineView');
+      const roomSessionLabel = document.getElementById('roomSessionLabel');
+      const roomLeaveBtn = document.getElementById('roomLeaveBtn');
+      const roomTheater = document.getElementById('roomTheater');
+
       const splatImg = new Image();
       const stampCache = {};
       let splatReady = false;
+      let activeRoomKey = '';
+      let activeDisplayName = '';
 
       /**
-       * Server-shared schema (Firebase / Supabase ready):
+       * Room post schema (Firebase / Supabase ready):
        * {
        *   id: string,
-       *   colorData: {
-       *     color: string,           // e.g. "rgba(142, 68, 173, 0.88)" — today's single emotion
-       *     canvasW?: number,
-       *     canvasH?: number
-       *   },
-       *   createdAt: number          // Unix ms
+       *   roomKey: string,
+       *   displayName: string,
+       *   colorData: { color: string, splats?: [...], canvasW?, canvasH? },
+       *   createdAt: number
        * }
        */
 
-      /** Today's single-emotion palette — one color per anonymous post */
-      const TODAYS_EMOTION_COLORS = [
-        'rgba(142, 68, 173, 0.88)',
-        'rgba(231, 76, 60, 0.9)',
-        'rgba(52, 152, 219, 0.85)',
-        'rgba(46, 204, 113, 0.82)',
-        'rgba(241, 196, 15, 0.78)',
-        'rgba(155, 89, 182, 0.86)',
-        'rgba(230, 126, 34, 0.88)',
-        'rgba(26, 188, 156, 0.84)',
-        'rgba(192, 57, 43, 0.9)',
-        'rgba(41, 128, 185, 0.87)',
-        'rgba(127, 140, 141, 0.75)',
-        'rgba(211, 84, 0, 0.86)',
-        'rgba(142, 68, 173, 0.72)',
-        'rgba(236, 112, 99, 0.88)',
-        'rgba(93, 173, 226, 0.83)',
-        'rgba(88, 214, 141, 0.8)',
-        'rgba(165, 105, 189, 0.85)',
-        'rgba(52, 73, 94, 0.78)',
-        'rgba(245, 183, 177, 0.82)',
-        'rgba(174, 214, 241, 0.86)',
-        'rgba(169, 50, 38, 0.9)',
-        'rgba(108, 52, 131, 0.87)',
-        'rgba(39, 174, 96, 0.84)',
-        'rgba(243, 156, 18, 0.8)',
-        'rgba(149, 165, 166, 0.72)'
+      const MOCK_MEMBER_TEMPLATES = [
+        { displayName: '月の欠片', color: 'rgba(155, 89, 182, 0.88)' },
+        { displayName: '灯台下', color: 'rgba(52, 152, 219, 0.86)' },
+        { displayName: '余韻', color: 'rgba(231, 76, 60, 0.9)' },
+        { displayName: '静かな端末', color: 'rgba(26, 188, 156, 0.84)' }
       ];
 
       function randBetween(min, max) {
         return min + Math.random() * (max - min);
-      }
-
-      function parseAlphaFromColor(color) {
-        if (typeof color !== 'string') return null;
-        const rgba = color.match(/rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)/i);
-        if (rgba) return Math.min(1, Math.max(0, parseFloat(rgba[1])));
-        return null;
       }
 
       function hashToUnit(str, salt) {
@@ -476,12 +574,17 @@
         return (Math.abs(h) % 10000) / 10000;
       }
 
-      /** One centered burst — like a single color ball hit on today's canvas */
+      function parseAlphaFromColor(color) {
+        if (typeof color !== 'string') return null;
+        const rgba = color.match(/rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+\s*,\s*([\d.]+)\s*\)/i);
+        if (rgba) return Math.min(1, Math.max(0, parseFloat(rgba[1])));
+        return null;
+      }
+
       function buildTodaySingleSplat(color, seed) {
         const s = seed || {};
         const alpha = parseAlphaFromColor(color);
         const idKey = s.id || color;
-
         return {
           nx: s.nx ?? 0.5,
           ny: s.ny ?? 0.5,
@@ -495,116 +598,82 @@
 
       function createTodayColorData(color, id) {
         const splat = buildTodaySingleSplat(color, { id });
-        return {
-          color,
-          splats: [splat],
-          canvasW: DEFAULT_CANVAS_W,
-          canvasH: DEFAULT_CANVAS_H
-        };
+        return { color, splats: [splat], canvasW: DEFAULT_CANVAS_W, canvasH: DEFAULT_CANVAS_H };
       }
 
-      /** Mock: 25 entries within 24h + 2 expired (filtered on load) */
-      function buildMockGlobalColors() {
+      function buildMockRoomPosts(roomKey) {
         const now = Date.now();
         const hourMs = 60 * 60 * 1000;
         const entries = [];
 
-        for (let i = 0; i < 25; i++) {
-          const color = TODAYS_EMOTION_COLORS[i % TODAYS_EMOTION_COLORS.length];
-          const hoursAgo = randBetween(0.15, 23.8);
+        MOCK_MEMBER_TEMPLATES.forEach((member, i) => {
+          const hoursAgo = randBetween(0.5 + i * 2, 4 + i * 4);
+          const id = `room-${roomKey}-mock-${i + 1}`;
           entries.push({
-            id: `ocean-mock-${String(i + 1).padStart(3, '0')}`,
-            colorData: createTodayColorData(color, `ocean-mock-${String(i + 1).padStart(3, '0')}`),
+            id,
+            roomKey,
+            displayName: member.displayName,
+            colorData: createTodayColorData(member.color, id),
             createdAt: Math.round(now - hoursAgo * hourMs)
           });
-        }
-
-        entries.push({
-          id: 'ocean-mock-expired-01',
-          colorData: createTodayColorData('rgba(120, 120, 120, 0.6)', 'ocean-mock-expired-01'),
-          createdAt: now - OCEAN_TTL_MS - hourMs * 2
         });
 
         entries.push({
-          id: 'ocean-mock-expired-02',
-          colorData: createTodayColorData('rgba(90, 90, 90, 0.55)', 'ocean-mock-expired-02'),
-          createdAt: now - OCEAN_TTL_MS - hourMs * 10
+          id: `room-${roomKey}-expired`,
+          roomKey,
+          displayName: '過去の余韻',
+          colorData: createTodayColorData('rgba(120, 120, 120, 0.55)', `room-${roomKey}-expired`),
+          createdAt: now - ROOM_TTL_MS - hourMs * 3
         });
 
         return entries;
       }
 
-      const MOCK_OCEAN_COLORS = buildMockGlobalColors();
-
-      function purgeExpiredColors(entries, now = Date.now()) {
+      function purgeExpiredRoomPosts(entries, now = Date.now()) {
         if (!Array.isArray(entries)) return [];
         return entries.filter((entry) => {
           const createdAt = Number(entry && entry.createdAt);
-          return Number.isFinite(createdAt) && now - createdAt < OCEAN_TTL_MS;
+          return Number.isFinite(createdAt) && now - createdAt < ROOM_TTL_MS;
         });
       }
 
-      function sortColorsNewestFirst(entries) {
+      function sortRoomPostsNewestFirst(entries) {
         return [...entries].sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
       }
 
       function parseColorData(raw) {
         if (!raw) return null;
         if (typeof raw === 'string') {
-          try {
-            return JSON.parse(raw);
-          } catch {
-            return null;
-          }
+          try { return JSON.parse(raw); } catch { return null; }
         }
         return typeof raw === 'object' ? raw : null;
       }
 
-      function resolveTodaySingleSplat(colorData, entryId) {
-        if (!colorData) return null;
-
-        if (typeof colorData.color === 'string' && colorData.color.trim()) {
-          const existing = Array.isArray(colorData.splats) && colorData.splats[0];
-          return buildTodaySingleSplat(colorData.color.trim(), {
-            id: entryId,
-            ...(existing || {})
-          });
-        }
-
-        if (Array.isArray(colorData.splats) && colorData.splats.length) {
-          const first = colorData.splats[0];
-          if (first && first.color) {
-            return buildTodaySingleSplat(first.color, {
-              id: entryId,
-              nx: 0.5,
-              ny: 0.5,
-              baseSize: first.baseSize,
-              rotation: first.rotation,
-              scaleFactor: first.scaleFactor,
-              opacity: first.opacity
-            });
-          }
-        }
-
-        return null;
-      }
-
-      function normalizeColorEntry(entry) {
+      function normalizeRoomPost(entry, roomKey) {
         if (!entry || !entry.id || entry.colorData == null) return null;
+        if (entry.roomKey && entry.roomKey !== roomKey) return null;
         const createdAt = Number(entry.createdAt);
         if (!Number.isFinite(createdAt)) return null;
+        const displayName = String(entry.displayName || '').trim();
+        if (!displayName) return null;
 
         const colorData = parseColorData(entry.colorData);
         if (!colorData) return null;
 
-        const singleSplat = resolveTodaySingleSplat(colorData, String(entry.id));
-        if (!singleSplat) return null;
+        let color = typeof colorData.color === 'string' ? colorData.color.trim() : '';
+        if (!color && Array.isArray(colorData.splats) && colorData.splats[0]) {
+          color = colorData.splats[0].color;
+        }
+        if (!color) return null;
 
+        const splat = buildTodaySingleSplat(color, { id: String(entry.id) });
         return {
           id: String(entry.id),
+          roomKey,
+          displayName,
           colorData: {
-            color: singleSplat.color,
-            splats: [singleSplat],
+            color: splat.color,
+            splats: [splat],
             canvasW: colorData.canvasW || DEFAULT_CANVAS_W,
             canvasH: colorData.canvasH || DEFAULT_CANVAS_H
           },
@@ -612,27 +681,21 @@
         };
       }
 
-      function sanitizeColorList(rawList, now = Date.now()) {
+      function sanitizeRoomPosts(rawList, roomKey, now = Date.now()) {
         const normalized = (Array.isArray(rawList) ? rawList : [])
-          .map(normalizeColorEntry)
+          .map((e) => normalizeRoomPost(e, roomKey))
           .filter(Boolean);
-        return sortColorsNewestFirst(purgeExpiredColors(normalized, now));
+        return sortRoomPostsNewestFirst(purgeExpiredRoomPosts(normalized, now));
       }
 
-      /**
-       * Replace the body of this function when connecting Firebase / Supabase.
-       * Must return Promise<Array<{ id, colorData, createdAt }>>.
-       */
-      async function fetchMockGlobalColors() {
-        return MOCK_OCEAN_COLORS;
+      async function fetchMockRoomColors(roomKey) {
+        return buildMockRoomPosts(roomKey);
       }
 
-      /**
-       * Primary data gateway — swap implementation here for production API.
-       */
-      async function fetchGlobalColors() {
-        const raw = await fetchMockGlobalColors();
-        return sanitizeColorList(raw);
+      /** Primary gateway — replace body for Firebase / Supabase */
+      async function fetchRoomColors(roomKey) {
+        const raw = await fetchMockRoomColors(roomKey);
+        return sanitizeRoomPosts(raw, roomKey);
       }
 
       function formatDotDateFromTimestamp(ts) {
@@ -644,15 +707,34 @@
         return `${y}.${mo}.${da}`;
       }
 
+      function saveRoomSession(roomKey, displayName) {
+        try {
+          sessionStorage.setItem(ROOM_KEY_STORAGE, roomKey);
+          sessionStorage.setItem(ROOM_NAME_STORAGE, displayName);
+        } catch { /* ignore */ }
+      }
+
+      function clearRoomSession() {
+        try {
+          sessionStorage.removeItem(ROOM_KEY_STORAGE);
+          sessionStorage.removeItem(ROOM_NAME_STORAGE);
+        } catch { /* ignore */ }
+      }
+
+      function loadRoomSession() {
+        try {
+          const roomKey = sessionStorage.getItem(ROOM_KEY_STORAGE) || '';
+          const displayName = sessionStorage.getItem(ROOM_NAME_STORAGE) || '';
+          if (roomKey && displayName) return { roomKey, displayName };
+        } catch { /* ignore */ }
+        return null;
+      }
+
       function loadSplatImage() {
         return new Promise((resolve, reject) => {
           splatImg.onload = () => {
-            if (splatImg.naturalWidth > 0) {
-              splatReady = true;
-              resolve();
-            } else {
-              reject(new Error('splat.png invalid'));
-            }
+            if (splatImg.naturalWidth > 0) { splatReady = true; resolve(); }
+            else reject(new Error('splat.png invalid'));
           };
           splatImg.onerror = () => reject(new Error('splat.png load failed'));
           splatImg.src = SPLAT_IMAGE;
@@ -666,20 +748,17 @@
       function createColorStamp(color) {
         if (!splatReady || !splatImg.naturalWidth) return null;
         if (stampCache[color]) return stampCache[color];
-
         const w = splatImg.naturalWidth;
         const h = splatImg.naturalHeight;
         const work = document.createElement('canvas');
         work.width = w;
         work.height = h;
         const wctx = work.getContext('2d');
-
         wctx.fillStyle = color;
         wctx.fillRect(0, 0, w, h);
         wctx.globalCompositeOperation = 'screen';
         wctx.drawImage(splatImg, 0, 0);
         wctx.globalCompositeOperation = 'source-over';
-
         stampCache[color] = work;
         return work;
       }
@@ -688,10 +767,7 @@
         let baseSize = s.baseSize || 220;
         if (baseSize < 150) baseSize *= 2.5;
         return {
-          nx: s.nx,
-          ny: s.ny,
-          color: s.color,
-          baseSize,
+          nx: s.nx, ny: s.ny, color: s.color, baseSize,
           rotation: s.rotation ?? 0,
           scaleFactor: s.scaleFactor ?? 1,
           opacity: s.opacity ?? 0.75
@@ -701,11 +777,9 @@
       function drawSplatter(c, splash, w, h) {
         const stamp = createColorStamp(splash.color);
         if (!stamp) return;
-
         const cx = splash.nx * w;
         const cy = splash.ny * h;
         const size = splash.baseSize * (splash.scaleFactor || 1);
-
         c.save();
         c.translate(cx, cy);
         c.rotate(splash.rotation || 0);
@@ -720,34 +794,26 @@
         const srcW = colorData.canvasW || DEFAULT_CANVAS_W;
         const srcH = colorData.canvasH || DEFAULT_CANVAS_H;
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-
         canvasEl.width = Math.round(srcW * dpr);
         canvasEl.height = Math.round(srcH * dpr);
         canvasEl.style.width = '100%';
         canvasEl.style.height = 'auto';
-
         const c = canvasEl.getContext('2d');
         c.setTransform(dpr, 0, 0, dpr, 0, 0);
         c.fillStyle = CANVAS_BG;
         c.fillRect(0, 0, srcW, srcH);
-
         const singleSplat = colorData.splats && colorData.splats[0];
         if (!singleSplat) return;
-
         drawSplatter(c, migrateSplash(singleSplat), srcW, srcH);
       }
 
       function spawnRipple(layer, clientX, clientY, soft) {
         const rect = layer.getBoundingClientRect();
-        const x = clientX - rect.left;
-        const y = clientY - rect.top;
-
         const ripple = document.createElement('span');
-        ripple.className = soft ? 'ocean-ripple is-soft' : 'ocean-ripple';
-        ripple.style.left = `${x}px`;
-        ripple.style.top = `${y}px`;
+        ripple.className = soft ? 'room-ripple is-soft' : 'room-ripple';
+        ripple.style.left = `${clientX - rect.left}px`;
+        ripple.style.top = `${clientY - rect.top}px`;
         layer.appendChild(ripple);
-
         ripple.addEventListener('animationend', () => ripple.remove(), { once: true });
       }
 
@@ -787,22 +853,22 @@
       }
 
       function createFramedSlide(entry) {
-        const { colorData, createdAt } = entry;
+        const { colorData, createdAt, displayName } = entry;
         const srcW = colorData.canvasW || DEFAULT_CANVAS_W;
         const srcH = colorData.canvasH || DEFAULT_CANVAS_H;
 
         const slide = document.createElement('article');
-        slide.className = 'ocean-slide';
-        slide.dataset.colorId = entry.id;
+        slide.className = 'room-slide';
+        slide.dataset.postId = entry.id;
 
         const inner = document.createElement('div');
-        inner.className = 'ocean-slide-inner';
+        inner.className = 'room-slide-inner';
 
         const wallDisplay = document.createElement('div');
         wallDisplay.className = 'museum-wall-display';
 
         const rippleLayer = document.createElement('div');
-        rippleLayer.className = 'ocean-ripple-layer';
+        rippleLayer.className = 'room-ripple-layer';
         rippleLayer.setAttribute('aria-hidden', 'true');
 
         const sculpted = document.createElement('div');
@@ -813,7 +879,7 @@
         surface.style.aspectRatio = `${srcW} / ${srcH}`;
 
         const artCanvas = document.createElement('canvas');
-        artCanvas.className = 'ocean-art-canvas';
+        artCanvas.className = 'room-art-canvas';
         renderColorDataToCanvas(artCanvas, colorData);
 
         const texture = document.createElement('div');
@@ -825,70 +891,106 @@
         sculpted.appendChild(surface);
         wallDisplay.appendChild(sculpted);
 
-        const caption = document.createElement('p');
-        caption.className = 'art-date-caption';
-        caption.textContent = formatDotDateFromTimestamp(createdAt);
-        wallDisplay.appendChild(caption);
+        const meta = document.createElement('div');
+        meta.className = 'art-meta-caption';
 
+        const dateEl = document.createElement('p');
+        dateEl.className = 'art-date-caption';
+        dateEl.textContent = formatDotDateFromTimestamp(createdAt);
+
+        const nameEl = document.createElement('p');
+        nameEl.className = 'art-display-name';
+        nameEl.textContent = displayName;
+
+        meta.appendChild(dateEl);
+        meta.appendChild(nameEl);
+        wallDisplay.appendChild(meta);
         wallDisplay.appendChild(rippleLayer);
+
         inner.appendChild(wallDisplay);
         slide.appendChild(inner);
-
         bindRippleInteraction(slide, rippleLayer);
         return slide;
       }
 
-      function renderEmptyTheater(theater) {
-        theater.classList.add('is-empty');
-        theater.innerHTML = '';
-        const glow = document.createElement('div');
-        glow.className = 'ocean-empty-glow';
-        glow.setAttribute('aria-hidden', 'true');
-        theater.appendChild(glow);
-      }
-
       function renderTimeline(entries) {
-        const theater = document.getElementById('oceanTheater');
-        if (!theater) return;
-
-        theater.classList.remove('is-empty');
-        theater.innerHTML = '';
+        if (!roomTheater) return;
+        roomTheater.classList.remove('is-empty');
+        roomTheater.innerHTML = '';
 
         if (!entries.length) {
-          renderEmptyTheater(theater);
+          roomTheater.classList.add('is-empty');
+          const glow = document.createElement('div');
+          glow.className = 'room-empty-glow';
+          glow.setAttribute('aria-hidden', 'true');
+          roomTheater.appendChild(glow);
           return;
         }
 
         entries.forEach((entry) => {
-          theater.appendChild(createFramedSlide(entry));
+          roomTheater.appendChild(createFramedSlide(entry));
         });
       }
 
-      async function refreshOceanTimeline() {
-        const colors = await fetchGlobalColors();
-        renderTimeline(colors);
+      function showGate() {
+        roomGate.classList.remove('is-hidden');
+        roomTimelineView.classList.remove('is-active');
+        activeRoomKey = '';
+        activeDisplayName = '';
       }
 
-      async function initOceanTimeline() {
-        const theater = document.getElementById('oceanTheater');
-        if (!theater) return;
+      async function enterRoom(roomKey, displayName) {
+        activeRoomKey = roomKey;
+        activeDisplayName = displayName;
+        saveRoomSession(roomKey, displayName);
 
-        try {
-          await loadSplatImage();
-        } catch {
-          /* splat texture optional fallback */
+        roomGate.classList.add('is-hidden');
+        roomTimelineView.classList.add('is-active');
+        if (roomSessionLabel) {
+          roomSessionLabel.textContent = `合言葉 — ${roomKey}`;
         }
 
-        await refreshOceanTimeline();
-
-        document.addEventListener('visibilitychange', () => {
-          if (document.visibilityState === 'visible') {
-            refreshOceanTimeline();
-          }
-        });
+        const posts = await fetchRoomColors(roomKey);
+        renderTimeline(posts);
       }
 
-      initOceanTimeline();
+      async function refreshRoomTimeline() {
+        if (!activeRoomKey) return;
+        const posts = await fetchRoomColors(activeRoomKey);
+        renderTimeline(posts);
+      }
+
+      roomGateForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const roomKey = roomKeyInput.value.trim();
+        const displayName = displayNameInput.value.trim();
+        if (!roomKey || !displayName) return;
+        enterRoom(roomKey, displayName);
+      });
+
+      roomLeaveBtn.addEventListener('click', () => {
+        clearRoomSession();
+        showGate();
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible' && activeRoomKey) {
+          refreshRoomTimeline();
+        }
+      });
+
+      async function init() {
+        try { await loadSplatImage(); } catch { /* optional */ }
+
+        const session = loadRoomSession();
+        if (session) {
+          roomKeyInput.value = session.roomKey;
+          displayNameInput.value = session.displayName;
+          await enterRoom(session.roomKey, session.displayName);
+        }
+      }
+
+      init();
     })();
   </script>
 </body>
