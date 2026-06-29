@@ -1678,6 +1678,8 @@
       const SPLAT_MID_CHAR_COUNT = 30;
       const SPLAT_TAIL_DECAY_CHARS = 120;
       const SPLAT_EXPECTED_SCALE = 1.02;
+      const TAP_RIPPLE_DURATION = 900;
+      const TAP_RIPPLE_MAX_FRAC = 0.24;
 
       const wordInput = document.getElementById('wordInput');
       const smokeText = document.getElementById('smokeText');
@@ -1731,6 +1733,7 @@
       let wheelPicking = false;
       let wheelBuilt = false;
       let shockwaves = [];
+      let tapRipples = [];
       let ambientLoopId = null;
       let zenTimer = null;
       let zenFadeTimer = null;
@@ -2619,10 +2622,20 @@
         });
       }
 
-      function drawShockwaves() {
-        const w = shockCanvas.clientWidth;
-        const h = shockCanvas.clientHeight;
-        shockCtx.clearRect(0, 0, w, h);
+      function spawnTapRipple(px, py) {
+        const w = canvas.clientWidth || 400;
+        const h = canvas.clientHeight || 300;
+        tapRipples.push({
+          x: px,
+          y: py,
+          start: performance.now(),
+          duration: TAP_RIPPLE_DURATION,
+          maxRadius: Math.min(w, h) * TAP_RIPPLE_MAX_FRAC
+        });
+        ensureAmbientLoop();
+      }
+
+      function renderShockwaves() {
         const now = performance.now();
         shockwaves = shockwaves.filter(sw => {
           const t = Math.min(1, (now - sw.start) / sw.duration);
@@ -2644,6 +2657,41 @@
         return shockwaves.length > 0;
       }
 
+      function renderTapRipples() {
+        const now = performance.now();
+        tapRipples = tapRipples.filter(ripple => {
+          const t = Math.min(1, (now - ripple.start) / ripple.duration);
+          if (t >= 1) return false;
+          const radius = ripple.maxRadius * easeOutCubic(t);
+          const alpha = 0.6 * (1 - t);
+          shockCtx.strokeStyle = `rgba(212, 175, 55, ${alpha})`;
+          shockCtx.lineWidth = 1.75;
+          shockCtx.beginPath();
+          shockCtx.arc(ripple.x, ripple.y, radius, 0, Math.PI * 2);
+          shockCtx.stroke();
+          shockCtx.strokeStyle = `rgba(243, 229, 171, ${alpha * 0.42})`;
+          shockCtx.lineWidth = 1.2;
+          shockCtx.beginPath();
+          shockCtx.arc(ripple.x, ripple.y, radius * 0.82, 0, Math.PI * 2);
+          shockCtx.stroke();
+          return true;
+        });
+        return tapRipples.length > 0;
+      }
+
+      function clearAndDrawOverlays() {
+        const w = shockCanvas.clientWidth;
+        const h = shockCanvas.clientHeight;
+        shockCtx.clearRect(0, 0, w, h);
+        const shocksActive = renderShockwaves();
+        const ripplesActive = renderTapRipples();
+        return shocksActive || ripplesActive;
+      }
+
+      function drawShockwaves() {
+        return clearAndDrawOverlays();
+      }
+
       function triggerCanvasShake() {
         canvasWrap.classList.remove('shaking');
         void canvasWrap.offsetWidth;
@@ -2658,8 +2706,8 @@
           const dt = Math.min(0.05, (now - last) / 1000);
           last = now;
           const dripsActive = updateDrips(dt);
-          const shocksActive = drawShockwaves();
-          if (dripsActive || shocksActive) {
+          const overlaysActive = clearAndDrawOverlays();
+          if (dripsActive || overlaysActive) {
             redrawCanvas();
             ambientLoopId = requestAnimationFrame(frame);
           } else {
@@ -2951,6 +2999,7 @@
           ambientLoopId = null;
         }
         shockwaves = [];
+        tapRipples = [];
         shockCtx.clearRect(0, 0, shockCanvas.width, shockCanvas.height);
 
         framedPngDataUrl = null;
@@ -3758,7 +3807,7 @@
             }
           });
           drawSplatter(splash, w, h, scale);
-          drawShockwaves();
+          clearAndDrawOverlays();
 
           if (frame < maxFrames) {
             requestAnimationFrame(tick);
@@ -3878,6 +3927,8 @@
       }
 
       function handleCanvasTapAt(coords, e) {
+        spawnTapRipple(coords.x, coords.y);
+
         if (hasPostedToday()) {
           const s = findSplashAt(coords.x, coords.y);
           if (s) showTooltip(s, coords.clientX, coords.clientY);
