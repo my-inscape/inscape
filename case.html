@@ -7,18 +7,15 @@
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="INSCAPE">
-  <meta name="mobile-web-app-capable" content="yes">
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
-  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>プロダクトプレビュー — INSCAPE</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --case-deep: #0d0d11;
-      --canvas-fabric-url: url('canvas-fabric.png');
+      --page-bg: #0d0d11;
       --canvas-bg: #f7f4eb;
     }
 
@@ -26,51 +23,33 @@
       height: 100%;
       overflow: hidden;
       font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", serif;
-      background: var(--case-deep);
+      background: var(--page-bg);
       color: #e8e6e2;
-      -webkit-tap-highlight-color: transparent;
     }
 
-    body {
-      background:
-        radial-gradient(ellipse 90% 50% at 50% -8%, rgba(60, 48, 88, 0.18) 0%, transparent 52%),
-        radial-gradient(ellipse 70% 40% at 88% 95%, rgba(20, 40, 68, 0.14) 0%, transparent 48%),
-        var(--case-deep);
-    }
-
-    .case-shell-page {
+    .page {
       height: 100dvh;
       display: flex;
       flex-direction: column;
-      overflow: hidden;
     }
 
-    .case-top {
+    .header {
       flex-shrink: 0;
-      z-index: 20;
-      padding:
-        calc(0.85rem + env(safe-area-inset-top))
-        calc(0.65rem + env(safe-area-inset-right))
-        0.5rem
-        calc(0.65rem + env(safe-area-inset-left));
-      background: linear-gradient(180deg, rgba(13, 13, 17, 0.96) 0%, rgba(13, 13, 17, 0.88) 72%, rgba(13, 13, 17, 0) 100%);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
+      padding: calc(0.85rem + env(safe-area-inset-top)) 0.65rem 0.5rem;
+      background: linear-gradient(180deg, rgba(13, 13, 17, 0.96) 0%, rgba(13, 13, 17, 0) 100%);
     }
 
-    .site-nav {
+    .nav {
       display: flex;
       gap: 0.12rem;
       overflow-x: auto;
       scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
     }
 
-    .site-nav::-webkit-scrollbar { display: none; }
+    .nav::-webkit-scrollbar { display: none; }
 
-    .site-nav-link {
+    .nav a {
       flex: 0 0 auto;
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
       font-size: 0.28rem;
       letter-spacing: 0.03em;
       color: rgba(232, 230, 226, 0.36);
@@ -80,40 +59,37 @@
       border-radius: 2px;
       background: rgba(16, 16, 22, 0.78);
       white-space: nowrap;
-      transition: color 0.35s ease, border-color 0.35s ease;
     }
 
-    .site-nav-link:hover {
-      color: rgba(232, 230, 226, 0.72);
-      border-color: rgba(184, 160, 122, 0.26);
-    }
+    .nav a:hover { color: rgba(232, 230, 226, 0.72); }
 
-    .site-nav-link.is-current {
+    .nav a.is-current {
       color: rgba(201, 169, 98, 0.56);
       border-color: rgba(201, 169, 98, 0.18);
-      background: rgba(201, 169, 98, 0.05);
       pointer-events: none;
     }
 
-    .case-main {
+    .main {
       flex: 1;
       min-height: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding:
-        0.5rem 1.25rem
-        calc(1.25rem + env(safe-area-inset-bottom));
+      padding: 0.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
     }
 
     .case-container {
       position: relative;
-      width: min(44vw, 15rem);
-      aspect-ratio: 360 / 664;
-      max-height: min(78dvh, 32rem);
+      width: 260px;
+      height: 559px;
+      max-width: min(46vw, 16.25rem);
+      max-height: min(78dvh, 35rem);
+      aspect-ratio: 260 / 559;
       overflow: hidden;
-      border-radius: 2.375rem;
+      border-radius: 40px;
+      background: var(--canvas-bg);
+      isolation: isolate;
     }
 
     #caseCanvas,
@@ -128,22 +104,19 @@
 
     #caseCanvas {
       z-index: 1;
-      object-fit: cover;
-      background-color: var(--canvas-bg);
-      background-image: var(--canvas-fabric-url);
-      background-size: cover;
-      background-position: center;
+      background: var(--canvas-bg);
     }
 
     .case-overlay {
       z-index: 2;
+      object-fit: fill;
+      mix-blend-mode: multiply;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
-      object-fit: fill;
     }
 
-    .case-note {
+    .note {
       margin-top: 1.65rem;
       max-width: 16.5rem;
       text-align: center;
@@ -157,24 +130,24 @@
   </style>
 </head>
 <body>
-  <div class="case-shell-page">
-    <div class="case-top">
-      <nav class="site-nav" aria-label="ナビゲーション">
-        <a class="site-nav-link" href="index.html">キャンバス</a>
-        <a class="site-nav-link" href="midspace.html">言葉の浮遊層</a>
-        <a class="site-nav-link" href="gallery.html">感情の回廊</a>
-        <a class="site-nav-link" href="mycolors.html">今日の私の色</a>
-        <a class="site-nav-link" href="ocean.html">感情の夜海</a>
-        <a class="site-nav-link" href="room.html">合言葉の部屋</a>
-        <a class="site-nav-link is-current" href="case.html" aria-current="page">プロダクトプレビュー</a>
+  <div class="page">
+    <header class="header">
+      <nav class="nav" aria-label="ナビゲーション">
+        <a href="index.html">キャンバス</a>
+        <a href="midspace.html">言葉の浮遊層</a>
+        <a href="gallery.html">感情の回廊</a>
+        <a href="mycolors.html">今日の私の色</a>
+        <a href="ocean.html">感情の夜海</a>
+        <a href="room.html">合言葉の部屋</a>
+        <a class="is-current" href="case.html" aria-current="page">プロダクトプレビュー</a>
       </nav>
-    </div>
+    </header>
 
-    <main class="case-main" aria-label="プロダクトプレビュー">
+    <main class="main" aria-label="プロダクトプレビュー">
       <div class="case-container" id="caseContainer">
         <canvas id="caseCanvas" aria-hidden="true"></canvas>
         <img
-          src="clear-case-src.png?v=2"
+          src="clear-case-original.png"
           class="case-overlay"
           id="caseOverlay"
           width="360"
@@ -185,7 +158,7 @@
           loading="eager"
         >
       </div>
-      <p class="case-note">※7日間アプリを続けると、あなただけの本当の色に変わります</p>
+      <p class="note">※7日間アプリを続けると、あなただけの本当の色に変わります</p>
     </main>
   </div>
 
@@ -193,29 +166,21 @@
     (function () {
       'use strict';
 
-      const INSCAPE_HISTORY_KEY = 'inscape_history';
-      const GALLERY_KEY = 'inscape_gallery';
-      const RECIPE_STORAGE_KEY = 'histories';
-      const LIVE_SPLASH_KEY = 'inscape_splashes';
-      const MAX_CASE_DAYS = 7;
-      const SPLASH_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+      const KEYS = {
+        history: 'inscape_history',
+        gallery: 'inscape_gallery',
+        recipes: 'histories',
+        live: 'inscape_splashes'
+      };
 
-      const SPLAT_IMAGE = 'splat.png';
-      const CANVAS_BG = '#f7f4eb';
-      const REF_CANVAS_W = 270;
-      const REF_CANVAS_H = 480;
-      const LEGACY_CANVAS_W = 400;
-      const LEGACY_CANVAS_H = 300;
-      const SPLAT_WIDTH_MIN_FRAC = 0.25;
-      const SPLAT_WIDTH_MID_FRAC = 0.50;
-      const SPLAT_WIDTH_MAX_FRAC = 0.70;
-      const SPLAT_MID_CHAR_COUNT = 30;
-      const SPLAT_TAIL_DECAY_CHARS = 120;
-      const SPLAT_EXPECTED_SCALE = 1.02;
-      const OPACITY_FULL_LEN = 120;
-      const WORD_MAX_LEN = 10000;
+      const SPLAT = 'splat.png';
+      const BG = '#f7f4eb';
+      const SRC_W = 270;
+      const SRC_H = 480;
+      const MAX_DAYS = 7;
+      const LIVE_MS = 7 * 24 * 60 * 60 * 1000;
 
-      const SAMPLE_SPLASHES = [
+      const SAMPLE = [
         { nx: 0.28, ny: 0.34, color: '#3d2868', word: '静けさ', baseSize: 88, scaleFactor: 1.04, rotation: -0.4, opacity: 0.82 },
         { nx: 0.62, ny: 0.28, color: '#8b5a9a', word: '余白', baseSize: 72, scaleFactor: 0.98, rotation: 1.1, opacity: 0.76 },
         { nx: 0.48, ny: 0.58, color: '#c86b9a', word: '記憶', baseSize: 102, scaleFactor: 1.08, rotation: 0.25, opacity: 0.88 },
@@ -225,93 +190,77 @@
         { nx: 0.56, ny: 0.76, color: '#2a4a6e', word: '深海', baseSize: 84, scaleFactor: 1.0, rotation: 2.1, opacity: 0.78 }
       ];
 
-      const caseContainer = document.getElementById('caseContainer');
-      const caseCanvas = document.getElementById('caseCanvas');
-      const caseOverlay = document.getElementById('caseOverlay');
+      const box = document.getElementById('caseContainer');
+      const canvas = document.getElementById('caseCanvas');
+      const overlay = document.getElementById('caseOverlay');
 
       const splatImg = new Image();
-      const stampCache = {};
-      let splatReady = false;
-      let splatLoadPromise = null;
-      let renderQueued = false;
-      let renderRetryCount = 0;
-      let activeGalleryItem = null;
+      const stamps = {};
+      let splatOk = false;
+      let splatPromise = null;
+      let queued = false;
+      let retries = 0;
+      let galleryItem = null;
 
-      function getUrlGalleryParams() {
-        const params = new URLSearchParams(window.location.search);
-        const idxRaw = params.get('idx');
-        return {
-          date: params.get('date') || '',
-          idx: idxRaw !== null && idxRaw !== '' ? Number.parseInt(idxRaw, 10) : -1
-        };
-      }
-
-      function normalizeDateKey(str) {
+      function parseDateKey(str) {
         if (!str) return '';
-        const matched = String(str).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
-        if (!matched) return String(str).trim();
-        return `${matched[1]}.${String(matched[2]).padStart(2, '0')}.${String(matched[3]).padStart(2, '0')}`;
+        const m = String(str).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+        if (!m) return String(str).trim();
+        return `${m[1]}.${m[2].padStart(2, '0')}.${m[3].padStart(2, '0')}`;
       }
 
-      function collectArtworkDateKeys(item) {
+      function urlParams() {
+        const p = new URLSearchParams(location.search);
+        const idx = p.get('idx');
+        return { date: p.get('date') || '', idx: idx !== null && idx !== '' ? parseInt(idx, 10) : -1 };
+      }
+
+      function galleryDates(item) {
         const keys = new Set();
         if (!item) return keys;
-        keys.add(normalizeDateKey(item.date));
-        if (Array.isArray(item.history)) item.history.forEach((e) => keys.add(normalizeDateKey(e.date)));
-        if (Array.isArray(item.splats)) {
-          item.splats.forEach((s) => {
-            if (!s.timestamp) return;
-            const d = new Date(s.timestamp);
-            if (!Number.isNaN(d.getTime())) {
-              keys.add(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`);
-            }
-          });
-        }
+        keys.add(parseDateKey(item.date));
+        (item.history || []).forEach((e) => keys.add(parseDateKey(e.date)));
+        (item.splats || []).forEach((s) => {
+          if (!s.timestamp) return;
+          const d = new Date(s.timestamp);
+          if (!isNaN(d)) keys.add(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`);
+        });
         keys.delete('');
         return keys;
       }
 
-      function loadRawGallery() {
+      function loadGallery() {
         try {
-          const raw = localStorage.getItem(GALLERY_KEY);
-          if (!raw) return [];
-          const data = JSON.parse(raw);
-          return Array.isArray(data) ? data : [];
-        } catch {
-          return [];
-        }
+          const raw = localStorage.getItem(KEYS.gallery);
+          return raw ? JSON.parse(raw) : [];
+        } catch { return []; }
       }
 
-      function loadGalleryItemByParams() {
-        const { date, idx } = getUrlGalleryParams();
+      function pickGallery() {
+        const { date, idx } = urlParams();
         if (!date && idx < 0) return null;
-        const gallery = loadRawGallery();
-        const targetKey = normalizeDateKey(date);
-
-        if (Number.isInteger(idx) && idx >= 0 && idx < gallery.length) {
-          const byIdx = gallery[idx];
-          if (byIdx?.splats?.length && (!targetKey || collectArtworkDateKeys(byIdx).has(targetKey))) {
-            return byIdx;
-          }
+        const list = loadGallery();
+        const key = parseDateKey(date);
+        if (idx >= 0 && idx < list.length) {
+          const item = list[idx];
+          if (item?.splats?.length && (!key || galleryDates(item).has(key))) return item;
         }
-
-        if (targetKey) {
-          for (let i = gallery.length - 1; i >= 0; i--) {
-            const item = gallery[i];
-            if (item?.splats?.length && collectArtworkDateKeys(item).has(targetKey)) return item;
+        if (key) {
+          for (let i = list.length - 1; i >= 0; i--) {
+            if (list[i]?.splats?.length && galleryDates(list[i]).has(key)) return list[i];
           }
         }
         return null;
       }
 
-      function initGalleryFromUrl() {
-        const { date, idx } = getUrlGalleryParams();
-        activeGalleryItem = (date || (Number.isInteger(idx) && idx >= 0)) ? loadGalleryItemByParams() : null;
+      function initGallery() {
+        const { date, idx } = urlParams();
+        galleryItem = (date || idx >= 0) ? pickGallery() : null;
       }
 
-      function mulberry32(seed) {
+      function rng(seed) {
         let t = seed >>> 0;
-        return function next() {
+        return () => {
           t += 0x6d2b79f5;
           let r = Math.imul(t ^ (t >>> 15), 1 | t);
           r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
@@ -319,369 +268,287 @@
         };
       }
 
-      function parseEntryDate(entry) {
-        if (!entry) return null;
+      function entryDay(entry) {
         if (entry.timestamp > 0) {
           const d = new Date(entry.timestamp);
-          if (!Number.isNaN(d.getTime())) return d;
+          if (!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
         }
         if (entry.date) {
-          const matched = String(entry.date).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
-          if (matched) {
-            const d = new Date(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3]));
-            if (!Number.isNaN(d.getTime())) return d;
-          }
+          const m = String(entry.date).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+          if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
         }
-        return null;
+        return `ts-${entry.timestamp || entry.date || Math.random()}`;
       }
 
-      function dayKeyFromEntry(entry) {
-        const d = parseEntryDate(entry);
-        if (!d) return `ts-${entry.timestamp || entry.date || Math.random()}`;
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      }
-
-      function dayKeyFromTimestamp(ts) {
-        if (!ts) return '';
-        const d = new Date(ts);
-        if (Number.isNaN(d.getTime())) return '';
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-      }
-
-      function loadHistoryEntries() {
+      function loadHistory() {
         try {
-          const raw = localStorage.getItem(INSCAPE_HISTORY_KEY);
+          const raw = localStorage.getItem(KEYS.history);
           if (!raw) return [];
           const data = JSON.parse(raw);
           if (!Array.isArray(data)) return [];
           return data
-            .map((entry) => ({
-              word: entry.word || entry.text || '',
-              color: entry.color,
-              date: entry.date || '',
-              timestamp: entry.timestamp || 0,
-              nx: typeof entry.nx === 'number' ? entry.nx : null,
-              ny: typeof entry.ny === 'number' ? entry.ny : null,
-              x: typeof entry.x === 'number' ? entry.x : null,
-              y: typeof entry.y === 'number' ? entry.y : null,
-              baseSize: entry.baseSize,
-              scaleFactor: entry.scaleFactor,
-              rotation: entry.rotation,
-              opacity: entry.opacity
+            .map((e) => ({
+              word: e.word || e.text || '',
+              color: e.color,
+              date: e.date || '',
+              timestamp: e.timestamp || 0,
+              nx: typeof e.nx === 'number' ? e.nx : null,
+              ny: typeof e.ny === 'number' ? e.ny : null,
+              x: typeof e.x === 'number' ? e.x : null,
+              y: typeof e.y === 'number' ? e.y : null,
+              baseSize: e.baseSize,
+              scaleFactor: e.scaleFactor,
+              rotation: e.rotation,
+              opacity: e.opacity
             }))
             .filter((e) => e.color && String(e.color).trim());
-        } catch {
-          return [];
-        }
+        } catch { return []; }
       }
 
-      function loadSevenDayEntries() {
-        const byDay = new Map();
-        loadHistoryEntries().forEach((entry) => {
-          const key = dayKeyFromEntry(entry);
-          const existing = byDay.get(key);
-          if (!existing || Number(entry.timestamp || 0) >= Number(existing.timestamp || 0)) {
-            byDay.set(key, entry);
-          }
+      function sevenDays() {
+        const map = new Map();
+        loadHistory().forEach((e) => {
+          const k = entryDay(e);
+          const prev = map.get(k);
+          if (!prev || (e.timestamp || 0) >= (prev.timestamp || 0)) map.set(k, e);
         });
-        return Array.from(byDay.values())
-          .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0))
-          .slice(-MAX_CASE_DAYS);
+        return [...map.values()].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)).slice(-MAX_DAYS);
       }
 
-      function loadLiveSplashes() {
-        try {
-          const raw = localStorage.getItem(LIVE_SPLASH_KEY);
-          if (!raw) return [];
-          const data = JSON.parse(raw);
-          if (!Array.isArray(data)) return [];
-          const now = Date.now();
-          return data
-            .filter((s) => s?.color && (!s.timestamp || now - s.timestamp < SPLASH_RETENTION_MS))
-            .map(migrateSplash);
-        } catch {
-          return [];
-        }
+      function migrate(s) {
+        let baseSize = s.baseSize || 95;
+        if (baseSize > 0 && baseSize < 35) baseSize *= 2.5;
+        return {
+          nx: s.nx, ny: s.ny, color: s.color, word: s.word || '', timestamp: s.timestamp || 0,
+          baseSize, rotation: s.rotation ?? 0, scaleFactor: s.scaleFactor ?? 1,
+          opacity: s.opacity ?? 0.75, canvasW: s.canvasW || SRC_W
+        };
       }
 
-      function loadSplashRecipes() {
-        const merged = new Map();
-        function addRecipe(recipe) {
-          if (!recipe?.color) return;
-          const migrated = migrateSplash(recipe);
-          const key = migrated.timestamp
-            ? `ts-${migrated.timestamp}`
-            : `c-${migrated.color}-${migrated.word || ''}-${migrated.nx}-${migrated.ny}`;
-          if (!merged.has(key)) merged.set(key, migrated);
-        }
-        try {
-          const raw = localStorage.getItem(RECIPE_STORAGE_KEY);
-          if (raw) {
-            const data = JSON.parse(raw);
-            if (Array.isArray(data)) data.forEach(addRecipe);
-          }
-        } catch { /* ignore */ }
-        loadLiveSplashes().forEach(addRecipe);
-        return Array.from(merged.values());
-      }
-
-      function wordIntensity(len) {
-        return Math.min(1, Math.log1p(len) / Math.log1p(OPACITY_FULL_LEN));
-      }
-
-      function splatWidthFractionFromWordLength(len) {
-        const n = Math.max(1, Math.min(len, WORD_MAX_LEN));
-        if (n <= SPLAT_MID_CHAR_COUNT) {
-          const t = Math.sqrt((n - 1) / (SPLAT_MID_CHAR_COUNT - 1));
-          return SPLAT_WIDTH_MIN_FRAC + (SPLAT_WIDTH_MID_FRAC - SPLAT_WIDTH_MIN_FRAC) * t;
-        }
-        const tail = 1 - Math.exp(-(n - SPLAT_MID_CHAR_COUNT) / SPLAT_TAIL_DECAY_CHARS);
-        return SPLAT_WIDTH_MID_FRAC + (SPLAT_WIDTH_MAX_FRAC - SPLAT_WIDTH_MID_FRAC) * tail;
-      }
-
-      function baseSizeFromWordLength(len, canvasW) {
-        return ((canvasW || REF_CANVAS_W) * splatWidthFractionFromWordLength(len)) / SPLAT_EXPECTED_SCALE;
-      }
-
-      function opacityFromWordLength(len, rng) {
-        const normalized = wordIntensity(len);
-        const faint = 0.3 + rng() * 0.2;
-        const bold = 0.9 + rng() * 0.1;
-        return faint + normalized * (bold - faint);
-      }
-
-      function migrateGallerySplash(s) {
+      function migrateGallery(s) {
         let baseSize = s.baseSize || 220;
         if (baseSize < 150) baseSize *= 2.5;
         return { nx: s.nx, ny: s.ny, color: s.color, baseSize, rotation: s.rotation ?? 0, scaleFactor: s.scaleFactor ?? 1, opacity: s.opacity ?? 0.75 };
       }
 
-      function migrateSplash(s) {
-        let baseSize = s.baseSize || 95;
-        if (baseSize > 0 && baseSize < 35 && baseSize < 200) baseSize *= 2.5;
-        return {
-          nx: s.nx, ny: s.ny, color: s.color, word: s.word || '', timestamp: s.timestamp || 0,
-          baseSize, rotation: s.rotation ?? 0, scaleFactor: s.scaleFactor ?? 1,
-          opacity: s.opacity ?? 0.75, canvasW: s.canvasW || REF_CANVAS_W
-        };
+      function liveSplashes() {
+        try {
+          const raw = localStorage.getItem(KEYS.live);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return [];
+          const now = Date.now();
+          return data.filter((s) => s?.color && (!s.timestamp || now - s.timestamp < LIVE_MS)).map(migrate);
+        } catch { return []; }
       }
 
-      function findRecipeForEntry(entry, recipes) {
-        if (!recipes.length) return null;
-        const dayKey = dayKeyFromEntry(entry);
-        const exact = recipes.find((r) => r.timestamp && entry.timestamp && r.timestamp === entry.timestamp);
-        if (exact) return exact;
-        const sameDay = recipes
-          .filter((r) => dayKeyFromTimestamp(r.timestamp) === dayKey)
-          .sort((a, b) => Math.abs((a.timestamp || 0) - (entry.timestamp || 0)) - Math.abs((b.timestamp || 0) - (entry.timestamp || 0)));
-        if (sameDay.length) return sameDay[0];
-        if (entry.word) {
-          const byWord = recipes.find((r) => (r.word || '') === entry.word && r.color === entry.color);
-          if (byWord) return byWord;
+      function recipes() {
+        const map = new Map();
+        const add = (r) => {
+          if (!r?.color) return;
+          const m = migrate(r);
+          const k = m.timestamp ? `ts-${m.timestamp}` : `c-${m.color}-${m.word}-${m.nx}-${m.ny}`;
+          if (!map.has(k)) map.set(k, m);
+        };
+        try {
+          const raw = localStorage.getItem(KEYS.recipes);
+          if (raw) JSON.parse(raw).forEach(add);
+        } catch { /* ignore */ }
+        liveSplashes().forEach(add);
+        return [...map.values()];
+      }
+
+      function baseSizeFromWord(n, w) {
+        const len = Math.max(1, Math.min(n, 10000));
+        const mid = 30;
+        let frac;
+        if (len <= mid) {
+          frac = 0.25 + (0.25 * Math.sqrt((len - 1) / (mid - 1)));
+        } else {
+          frac = 0.5 + 0.2 * (1 - Math.exp(-(len - mid) / 120));
         }
+        return (w * frac) / 1.02;
+      }
+
+      function findRecipe(entry, list) {
+        const day = entryDay(entry);
+        const exact = list.find((r) => r.timestamp && entry.timestamp && r.timestamp === entry.timestamp);
+        if (exact) return exact;
+        const same = list.filter((r) => {
+          if (!r.timestamp) return false;
+          const d = new Date(r.timestamp);
+          if (isNaN(d)) return false;
+          const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          return k === day;
+        }).sort((a, b) => Math.abs((a.timestamp || 0) - (entry.timestamp || 0)) - Math.abs((b.timestamp || 0) - (entry.timestamp || 0)));
+        if (same.length) return same[0];
+        if (entry.word) return list.find((r) => r.word === entry.word && r.color === entry.color) || null;
         return null;
       }
 
-      function synthesizeSplashFromEntry(entry, index, total) {
-        const rng = mulberry32(Number(entry.timestamp) || index + 1);
-        const wordLen = Math.max(1, (entry.word || '').length || 8);
+      function synth(entry, i, total) {
+        const r = rng(Number(entry.timestamp) || i + 1);
+        const len = Math.max(1, (entry.word || '').length || 8);
         let nx = entry.nx;
         let ny = entry.ny;
-        if (typeof entry.x === 'number' && typeof entry.y === 'number') { nx = entry.x; ny = entry.y; }
+        if (typeof entry.x === 'number') nx = entry.x;
+        if (typeof entry.y === 'number') ny = entry.y;
         if (typeof nx !== 'number' || typeof ny !== 'number') {
-          const angle = (index / Math.max(1, total)) * Math.PI * 2 - Math.PI / 2 + rng() * 0.35;
-          const radius = 0.2 + rng() * 0.16;
-          nx = 0.5 + Math.cos(angle) * radius;
-          ny = 0.5 + Math.sin(angle) * radius;
+          const a = (i / Math.max(1, total)) * Math.PI * 2 - Math.PI / 2 + r() * 0.35;
+          const rad = 0.2 + r() * 0.16;
+          nx = 0.5 + Math.cos(a) * rad;
+          ny = 0.5 + Math.sin(a) * rad;
         }
-        return migrateSplash({
-          nx, ny,
-          color: String(entry.color).trim(),
-          word: entry.word || '',
-          timestamp: entry.timestamp || 0,
-          baseSize: entry.baseSize || baseSizeFromWordLength(wordLen, REF_CANVAS_W),
-          rotation: entry.rotation ?? (rng() * Math.PI * 2),
-          scaleFactor: entry.scaleFactor ?? (0.92 + rng() * 0.18 + wordIntensity(wordLen) * 0.06),
-          opacity: entry.opacity ?? opacityFromWordLength(wordLen, rng)
+        const wi = Math.min(1, Math.log1p(len) / Math.log1p(120));
+        const faint = 0.3 + r() * 0.2;
+        const bold = 0.9 + r() * 0.1;
+        return migrate({
+          nx, ny, color: String(entry.color).trim(), word: entry.word || '', timestamp: entry.timestamp || 0,
+          baseSize: entry.baseSize || baseSizeFromWord(len, SRC_W),
+          rotation: entry.rotation ?? r() * Math.PI * 2,
+          scaleFactor: entry.scaleFactor ?? (0.92 + r() * 0.18 + wi * 0.06),
+          opacity: entry.opacity ?? (faint + wi * (bold - faint))
         });
       }
 
-      function resolveSplashesForCase() {
-        const entries = loadSevenDayEntries();
-        if (!entries.length) {
-          const live = loadLiveSplashes();
-          return live.length ? live : SAMPLE_SPLASHES.map(migrateSplash);
+      function resolveSplashes() {
+        const days = sevenDays();
+        if (!days.length) {
+          const live = liveSplashes();
+          return live.length ? live : SAMPLE.map(migrate);
         }
-        const recipes = loadSplashRecipes();
-        return entries.map((entry, index) => {
-          const recipe = findRecipeForEntry(entry, recipes);
-          if (recipe) {
-            const merged = migrateSplash({ ...recipe, color: entry.color || recipe.color, word: entry.word || recipe.word, timestamp: entry.timestamp || recipe.timestamp });
-            if (typeof entry.nx === 'number') merged.nx = entry.nx;
-            if (typeof entry.ny === 'number') merged.ny = entry.ny;
-            if (typeof entry.x === 'number') merged.nx = entry.x;
-            if (typeof entry.y === 'number') merged.ny = entry.y;
-            return merged;
-          }
-          return synthesizeSplashFromEntry(entry, index, entries.length);
+        const list = recipes();
+        return days.map((entry, i) => {
+          const recipe = findRecipe(entry, list);
+          if (!recipe) return synth(entry, i, days.length);
+          const m = migrate({ ...recipe, color: entry.color || recipe.color, word: entry.word || recipe.word, timestamp: entry.timestamp || recipe.timestamp });
+          if (typeof entry.nx === 'number') m.nx = entry.nx;
+          if (typeof entry.ny === 'number') m.ny = entry.ny;
+          if (typeof entry.x === 'number') m.nx = entry.x;
+          if (typeof entry.y === 'number') m.ny = entry.y;
+          return m;
         });
       }
 
-      function loadSplatImage() {
-        if (splatReady && splatImg.naturalWidth > 0) return Promise.resolve();
-        if (splatLoadPromise) return splatLoadPromise;
-        splatLoadPromise = new Promise((resolve, reject) => {
-          const onReady = () => {
-            if (!splatImg.naturalWidth) { splatLoadPromise = null; reject(new Error('splat invalid')); return; }
-            splatReady = true;
-            resolve();
-          };
-          const onFail = () => { splatLoadPromise = null; reject(new Error('splat load failed')); };
-          splatImg.onload = onReady;
-          splatImg.onerror = onFail;
-          splatImg.src = SPLAT_IMAGE;
-          if (splatImg.complete) (splatImg.naturalWidth > 0 ? onReady : onFail)();
-        });
-        return splatLoadPromise;
+      function loadSplat() {
+        if (splatOk) return Promise.resolve();
+        if (splatPromise) return splatPromise;
+        splatPromise = new Promise((resolve, reject) => {
+          splatImg.onload = () => { splatOk = !!splatImg.naturalWidth; splatOk ? resolve() : reject(); };
+          splatImg.onerror = reject;
+          splatImg.src = SPLAT;
+          if (splatImg.complete) splatImg.naturalWidth ? resolve() : reject();
+        }).catch(() => { splatPromise = null; });
+        return splatPromise;
       }
 
-      function createColorStamp(color) {
-        if (!splatReady || stampCache[color]) return stampCache[color] || null;
+      function stamp(color) {
+        if (!splatOk) return null;
+        if (stamps[color]) return stamps[color];
         const w = splatImg.naturalWidth;
         const h = splatImg.naturalHeight;
-        const work = document.createElement('canvas');
-        work.width = w;
-        work.height = h;
-        const wctx = work.getContext('2d');
-        wctx.fillStyle = color;
-        wctx.fillRect(0, 0, w, h);
-        wctx.globalCompositeOperation = 'screen';
-        wctx.drawImage(splatImg, 0, 0);
-        wctx.globalCompositeOperation = 'source-over';
-        stampCache[color] = work;
-        return work;
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, w, h);
+        ctx.globalCompositeOperation = 'screen';
+        ctx.drawImage(splatImg, 0, 0);
+        stamps[color] = c;
+        return c;
       }
 
-      function drawSplatter(c, splash, w, h) {
-        const stamp = createColorStamp(splash.color);
-        if (!stamp) return;
-        const sourceW = splash.canvasW || REF_CANVAS_W;
-        const size = splash.baseSize * (splash.scaleFactor || 1) * (w / sourceW);
-        c.save();
-        c.translate(splash.nx * w, splash.ny * h);
-        c.rotate(splash.rotation || 0);
-        c.globalAlpha = splash.opacity ?? 1;
-        c.globalCompositeOperation = 'multiply';
-        c.drawImage(stamp, -size / 2, -size / 2, size, size);
-        c.restore();
-        c.globalCompositeOperation = 'source-over';
+      function paintSplash(ctx, splash, w, h, gallery) {
+        const img = stamp(splash.color);
+        if (!img) return;
+        const size = gallery
+          ? splash.baseSize * (splash.scaleFactor || 1)
+          : splash.baseSize * (splash.scaleFactor || 1) * (w / (splash.canvasW || SRC_W));
+        ctx.save();
+        ctx.translate(splash.nx * w, splash.ny * h);
+        ctx.rotate(splash.rotation || 0);
+        ctx.globalAlpha = splash.opacity ?? 1;
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.drawImage(img, -size / 2, -size / 2, size, size);
+        ctx.restore();
+        ctx.globalCompositeOperation = 'source-over';
       }
 
-      function drawGallerySplatter(c, splash, w, h) {
-        const stamp = createColorStamp(splash.color);
-        if (!stamp) return;
-        const size = splash.baseSize * (splash.scaleFactor || 1);
-        c.save();
-        c.translate(splash.nx * w, splash.ny * h);
-        c.rotate(splash.rotation || 0);
-        c.globalAlpha = splash.opacity ?? 1;
-        c.globalCompositeOperation = 'multiply';
-        c.drawImage(stamp, -size / 2, -size / 2, size, size);
-        c.restore();
-        c.globalCompositeOperation = 'source-over';
-      }
-
-      function renderPortraitArt(ctx, splashes, destW, destH) {
+      function drawFullBleed(ctx, splashes, w, h, item) {
         const off = document.createElement('canvas');
-        off.width = REF_CANVAS_W;
-        off.height = REF_CANVAS_H;
-        const offCtx = off.getContext('2d');
-        offCtx.fillStyle = CANVAS_BG;
-        offCtx.fillRect(0, 0, REF_CANVAS_W, REF_CANVAS_H);
-        splashes.forEach((s) => drawSplatter(offCtx, s, REF_CANVAS_W, REF_CANVAS_H));
-        ctx.fillStyle = CANVAS_BG;
-        ctx.fillRect(0, 0, destW, destH);
-        ctx.drawImage(off, 0, 0, destW, destH);
+        const sw = item ? (item.canvasW || 400) : SRC_W;
+        const sh = item ? (item.canvasH || 300) : SRC_H;
+        off.width = sw;
+        off.height = sh;
+        const o = off.getContext('2d');
+        o.fillStyle = BG;
+        o.fillRect(0, 0, sw, sh);
+        splashes.forEach((s) => paintSplash(o, item ? migrateGallery(s) : s, sw, sh, !!item));
+        ctx.fillStyle = BG;
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(off, 0, 0, w, h);
       }
 
-      function renderGalleryArt(ctx, item, destW, destH) {
-        let legacyW = item?.canvasW > 0 ? Math.round(item.canvasW) : LEGACY_CANVAS_W;
-        let legacyH = item?.canvasH > 0 ? Math.round(item.canvasH) : LEGACY_CANVAS_H;
-        const off = document.createElement('canvas');
-        off.width = legacyW;
-        off.height = legacyH;
-        const offCtx = off.getContext('2d');
-        offCtx.fillStyle = CANVAS_BG;
-        offCtx.fillRect(0, 0, legacyW, legacyH);
-        if (Array.isArray(item.splats)) {
-          item.splats.map(migrateGallerySplash).forEach((s) => drawGallerySplatter(offCtx, s, legacyW, legacyH));
-        }
-        ctx.fillStyle = CANVAS_BG;
-        ctx.fillRect(0, 0, destW, destH);
-        ctx.drawImage(off, 0, 0, destW, destH);
-      }
-
-      function renderCaseArt() {
-        if (!caseCanvas || !caseContainer) return;
-        const rect = caseContainer.getBoundingClientRect();
-        const cw = Math.round(rect.width);
-        const ch = Math.round(rect.height);
+      function render() {
+        if (!canvas || !box) return;
+        const { width: w, height: h } = box.getBoundingClientRect();
+        const cw = Math.round(w);
+        const ch = Math.round(h);
         if (cw < 2 || ch < 2) {
-          if (renderRetryCount++ < 24) requestAnimationFrame(scheduleRender);
+          if (retries++ < 24) requestAnimationFrame(schedule);
           return;
         }
-        renderRetryCount = 0;
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
-        caseCanvas.width = Math.round(cw * dpr);
-        caseCanvas.height = Math.round(ch * dpr);
-        caseCanvas.style.width = `${cw}px`;
-        caseCanvas.style.height = `${ch}px`;
-        const ctx = caseCanvas.getContext('2d');
+        retries = 0;
+        const dpr = Math.min(2, devicePixelRatio || 1);
+        canvas.width = Math.round(cw * dpr);
+        canvas.height = Math.round(ch * dpr);
+        canvas.style.width = cw + 'px';
+        canvas.style.height = ch + 'px';
+        const ctx = canvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        if (activeGalleryItem?.splats?.length) {
-          renderGalleryArt(ctx, activeGalleryItem, cw, ch);
+        if (galleryItem?.splats?.length) {
+          drawFullBleed(ctx, galleryItem.splats, cw, ch, galleryItem);
         } else {
-          renderPortraitArt(ctx, resolveSplashesForCase(), cw, ch);
+          drawFullBleed(ctx, resolveSplashes(), cw, ch, null);
         }
       }
 
-      function syncContainerRatio() {
-        if (!caseContainer || !caseOverlay?.naturalWidth) return;
-        caseContainer.style.aspectRatio = `${caseOverlay.naturalWidth} / ${caseOverlay.naturalHeight}`;
+      function fitContainer() {
+        if (!box || !overlay?.naturalWidth) return;
+        box.style.aspectRatio = `${overlay.naturalWidth} / ${overlay.naturalHeight}`;
+        box.style.width = 'min(46vw, 16.25rem)';
+        box.style.height = 'auto';
       }
 
-      function scheduleRender() {
-        if (renderQueued) return;
-        renderQueued = true;
+      function schedule() {
+        if (queued) return;
+        queued = true;
         requestAnimationFrame(() => {
-          renderQueued = false;
-          loadSplatImage().then(renderCaseArt).catch(renderCaseArt);
+          queued = false;
+          loadSplat().then(render).catch(render);
         });
       }
 
-      if (caseContainer && typeof ResizeObserver !== 'undefined') {
-        new ResizeObserver(scheduleRender).observe(caseContainer);
+      if (box && typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(schedule).observe(box);
       }
 
-      if (caseOverlay) {
-        const onOverlayReady = () => { syncContainerRatio(); scheduleRender(); };
-        if (caseOverlay.complete) onOverlayReady();
-        else caseOverlay.addEventListener('load', onOverlayReady, { once: true });
+      if (overlay) {
+        const ready = () => { fitContainer(); schedule(); };
+        overlay.complete ? ready() : overlay.addEventListener('load', ready, { once: true });
       }
 
-      window.addEventListener('resize', scheduleRender);
+      window.addEventListener('resize', schedule);
       window.addEventListener('storage', (e) => {
-        if ([INSCAPE_HISTORY_KEY, RECIPE_STORAGE_KEY, LIVE_SPLASH_KEY, GALLERY_KEY].includes(e.key)) {
-          initGalleryFromUrl();
-          scheduleRender();
-        }
+        if (Object.values(KEYS).includes(e.key)) { initGallery(); schedule(); }
       });
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') { initGalleryFromUrl(); scheduleRender(); }
+        if (document.visibilityState === 'visible') { initGallery(); schedule(); }
       });
 
-      initGalleryFromUrl();
-      scheduleRender();
+      initGallery();
+      schedule();
     })();
   </script>
 </body>
