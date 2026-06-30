@@ -104,7 +104,7 @@
 
     #caseCanvas {
       z-index: 1;
-      background: var(--canvas-bg);
+      background: transparent;
     }
 
     .case-overlay {
@@ -174,7 +174,6 @@
       };
 
       const SPLAT = 'splat.png';
-      const BG = '#f7f4eb';
       const SRC_W = 270;
       const SRC_H = 480;
       const MAX_DAYS = 7;
@@ -459,35 +458,29 @@
         return c;
       }
 
-      function paintSplash(ctx, splash, w, h, gallery) {
+      function paintInkSplat(ctx, splash, destW, destH, srcW) {
         const img = stamp(splash.color);
         if (!img) return;
-        const size = gallery
-          ? splash.baseSize * (splash.scaleFactor || 1)
-          : splash.baseSize * (splash.scaleFactor || 1) * (w / (splash.canvasW || SRC_W));
+        const sourceW = splash.canvasW || srcW || SRC_W;
+        const size = splash.baseSize * (splash.scaleFactor || 1) * (destW / sourceW);
+        const x = splash.nx * destW;
+        const y = splash.ny * destH;
         ctx.save();
-        ctx.translate(splash.nx * w, splash.ny * h);
+        ctx.translate(x, y);
         ctx.rotate(splash.rotation || 0);
         ctx.globalAlpha = splash.opacity ?? 1;
-        ctx.globalCompositeOperation = 'multiply';
+        ctx.globalCompositeOperation = 'source-over';
         ctx.drawImage(img, -size / 2, -size / 2, size, size);
         ctx.restore();
-        ctx.globalCompositeOperation = 'source-over';
       }
 
-      function drawFullBleed(ctx, splashes, w, h, item) {
-        const off = document.createElement('canvas');
-        const sw = item ? (item.canvasW || 400) : SRC_W;
-        const sh = item ? (item.canvasH || 300) : SRC_H;
-        off.width = sw;
-        off.height = sh;
-        const o = off.getContext('2d');
-        o.fillStyle = BG;
-        o.fillRect(0, 0, sw, sh);
-        splashes.forEach((s) => paintSplash(o, item ? migrateGallery(s) : s, sw, sh, !!item));
-        ctx.fillStyle = BG;
-        ctx.fillRect(0, 0, w, h);
-        ctx.drawImage(off, 0, 0, w, h);
+      function drawInkOnly(ctx, splashes, destW, destH, item) {
+        ctx.clearRect(0, 0, destW, destH);
+        const srcW = item ? (item.canvasW || 400) : SRC_W;
+        splashes.forEach((raw) => {
+          const splash = item ? migrateGallery(raw) : migrate(raw);
+          paintInkSplat(ctx, splash, destW, destH, srcW);
+        });
       }
 
       function render() {
@@ -508,9 +501,9 @@
         const ctx = canvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         if (galleryItem?.splats?.length) {
-          drawFullBleed(ctx, galleryItem.splats, cw, ch, galleryItem);
+          drawInkOnly(ctx, galleryItem.splats, cw, ch, galleryItem);
         } else {
-          drawFullBleed(ctx, resolveSplashes(), cw, ch, null);
+          drawInkOnly(ctx, resolveSplashes(), cw, ch, null);
         }
       }
 
