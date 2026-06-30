@@ -110,11 +110,10 @@
     .case-container {
       position: relative;
       width: min(44vw, 15rem);
-      aspect-ratio: 100 / 215;
+      aspect-ratio: 360 / 664;
       max-height: min(78dvh, 32rem);
       overflow: hidden;
       border-radius: 2.375rem;
-      isolation: isolate;
     }
 
     #caseCanvas,
@@ -129,6 +128,7 @@
 
     #caseCanvas {
       z-index: 1;
+      object-fit: cover;
       background-color: var(--canvas-bg);
       background-image: var(--canvas-fabric-url);
       background-size: cover;
@@ -141,7 +141,6 @@
       user-select: none;
       -webkit-user-drag: none;
       object-fit: fill;
-      mix-blend-mode: multiply;
     }
 
     .case-note {
@@ -175,7 +174,7 @@
       <div class="case-container" id="caseContainer">
         <canvas id="caseCanvas" aria-hidden="true"></canvas>
         <img
-          src="clear-case-src.png"
+          src="clear-case-src.png?v=2"
           class="case-overlay"
           id="caseOverlay"
           width="360"
