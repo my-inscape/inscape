@@ -146,7 +146,7 @@
     <main class="main">
       <div class="case-container" id="caseContainer">
         <canvas id="caseCanvas"></canvas>
-        <img src="clear-case-original.png" class="case-overlay" id="caseOverlay" alt="Clear Case" width="360" height="664" decoding="sync" loading="eager">
+        <img src="clear-case-original.png" class="case-overlay" id="caseOverlay" alt="Clear Case" width="360" height="664" decoding="async" loading="eager">
       </div>
       <p class="note">※実際の製品は、あなただけの本当の色がプリントされた『クリアケース（透明）』として完成します。</p>
     </main>
@@ -156,11 +156,10 @@
     (function () {
       'use strict';
 
-      var GALLERY_KEY = 'inscape_gallery';
       var INSCAPE_HISTORY_KEY = 'inscape_history';
+      var GALLERY_KEY = 'inscape_gallery';
       var HISTORY_KEY = 'histories';
       var LIVE_KEY = 'inscape_splashes';
-      var SPLAT_IMAGE = 'splat.png';
       var CANVAS_BG = '#f7f4eb';
       var SRC_W = 270;
       var SRC_H = 480;
@@ -169,9 +168,20 @@
       var canvas = document.getElementById('caseCanvas');
       var overlay = document.getElementById('caseOverlay');
 
+      /* splat は描画を一切ブロックしない（成功時のみテクスチャに差し替え） */
       var splatImg = new Image();
-      var stampCache = {};
       var splatReady = false;
+      var stampCache = {};
+
+      splatImg.onload = function () {
+        if (splatImg.naturalWidth > 0) {
+          splatReady = true;
+          stampCache = {};
+          render();
+        }
+      };
+      splatImg.onerror = function () { splatReady = false; };
+      try { splatImg.src = 'splat.png'; } catch (e) { splatReady = false; }
 
       function loadJson(key) {
         try {
@@ -191,7 +201,7 @@
         return m[1] + '.' + m[2].padStart(2, '0') + '.' + m[3].padStart(2, '0');
       }
 
-      function pickGalleryItem() {
+      function pickGallerySplats() {
         var p = new URLSearchParams(location.search);
         var date = p.get('date') || '';
         var idxRaw = p.get('idx');
@@ -200,25 +210,28 @@
 
         var list = loadJson(GALLERY_KEY);
         var key = parseDateKey(date);
+        var i, item;
 
         if (idx >= 0 && idx < list.length) {
-          var direct = list[idx];
-          if (direct && direct.splats && direct.splats.length) return direct;
+          item = list[idx];
+          if (item && item.splats && item.splats.length) return item.splats;
         }
         if (key) {
-          for (var i = list.length - 1; i >= 0; i--) {
-            var item = list[i];
-            if (!item || !item.splats || !item.splats.length) continue;
-            if (parseDateKey(item.date) === key) return item;
+          for (i = list.length - 1; i >= 0; i--) {
+            item = list[i];
+            if (item && item.splats && item.splats.length && parseDateKey(item.date) === key) {
+              return item.splats;
+            }
           }
         }
         return null;
       }
 
+      /* inscape_history の points 配列を最優先で収集 */
       function collectHistoryPoints() {
         var history = loadJson(INSCAPE_HISTORY_KEY);
         var points = [];
-        var h, e, p, k;
+        var h, e, p;
         for (h = 0; h < history.length; h++) {
           e = history[h];
           if (!e) continue;
@@ -232,46 +245,26 @@
       }
 
       function getDrawItems() {
-        var galleryItem = pickGalleryItem();
-        if (galleryItem && galleryItem.splats && galleryItem.splats.length) {
-          return galleryItem.splats;
-        }
+        var points = collectHistoryPoints();
+        if (points.length) return points;
+
+        var gallerySplats = pickGallerySplats();
+        if (gallerySplats && gallerySplats.length) return gallerySplats;
 
         var live = loadJson(LIVE_KEY);
-        var filtered = [];
+        var out = [];
         var i;
         for (i = 0; i < live.length; i++) {
-          if (live[i] && live[i].color && typeof live[i].nx === 'number') {
-            filtered.push(live[i]);
-          }
+          if (live[i] && live[i].color) out.push(live[i]);
         }
-        if (filtered.length) return filtered;
+        if (out.length) return out;
 
         var recipes = loadJson(HISTORY_KEY);
-        filtered = [];
+        out = [];
         for (i = 0; i < recipes.length; i++) {
-          if (recipes[i] && recipes[i].color && typeof recipes[i].nx === 'number') {
-            filtered.push(recipes[i]);
-          }
+          if (recipes[i] && recipes[i].color) out.push(recipes[i]);
         }
-        if (filtered.length) return filtered;
-
-        return collectHistoryPoints();
-      }
-
-      /* バックグラウンドで splat を試みるが、描画は一切待たない */
-      splatImg.onload = function () {
-        if (splatImg.naturalWidth > 0) {
-          splatReady = true;
-          render();
-        }
-      };
-      splatImg.onerror = function () {
-        splatReady = false;
-      };
-      splatImg.src = SPLAT_IMAGE;
-      if (splatImg.complete && splatImg.naturalWidth > 0) {
-        splatReady = true;
+        return out;
       }
 
       function createColorStamp(color) {
@@ -292,8 +285,7 @@
         return work;
       }
 
-      /* splat 未読込時は arc で即座にフォールバック描画 */
-      function drawFallbackSplatter(ctx, color, size, rotation, opacity) {
+      function drawArcFallback(ctx, color, size, rotation, opacity) {
         var r = size * 0.38;
         var b, ang, dist, br;
         ctx.fillStyle = color;
@@ -312,17 +304,19 @@
         }
       }
 
-      function drawSplatter(ctx, splash, w, h) {
-        var color = splash.color;
+      function drawOne(ctx, point, w, h) {
+        var color = point.color;
         if (!color) return;
 
-        var nx = typeof splash.nx === 'number' ? splash.nx : (splash.x != null ? splash.x / 100 : 0.5);
-        var ny = typeof splash.ny === 'number' ? splash.ny : (splash.y != null ? splash.y / 100 : 0.5);
-        var baseSize = splash.baseSize || splash.size || 220;
+        var nx = typeof point.nx === 'number' ? point.nx
+          : (point.x != null ? point.x / 100 : 0.5);
+        var ny = typeof point.ny === 'number' ? point.ny
+          : (point.y != null ? point.y / 100 : 0.5);
+        var baseSize = point.baseSize || point.size || 80;
         if (baseSize < 150) baseSize = baseSize * 2.5;
-        var size = baseSize * (splash.scaleFactor != null ? splash.scaleFactor : 1);
-        var rotation = splash.rotation != null ? splash.rotation : 0;
-        var opacity = splash.opacity != null ? splash.opacity : 0.75;
+        var size = baseSize * (point.scaleFactor != null ? point.scaleFactor : 1);
+        var rotation = point.rotation != null ? point.rotation : 0;
+        var opacity = point.opacity != null ? point.opacity : 0.8;
         var cx = nx * w;
         var cy = ny * h;
         var stamp = createColorStamp(color);
@@ -336,7 +330,7 @@
           ctx.globalCompositeOperation = 'multiply';
           ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
         } else {
-          drawFallbackSplatter(ctx, color, size, rotation, opacity);
+          drawArcFallback(ctx, color, size, rotation, opacity);
         }
 
         ctx.restore();
@@ -347,12 +341,8 @@
         if (!canvas || !box) return;
 
         var rect = box.getBoundingClientRect();
-        var displayW = Math.round(rect.width);
-        var displayH = Math.round(rect.height);
-        if (displayW < 2 || displayH < 2) {
-          requestAnimationFrame(render);
-          return;
-        }
+        var displayW = Math.round(rect.width) || 260;
+        var displayH = Math.round(rect.height) || 559;
 
         var dpr = Math.min(2, window.devicePixelRatio || 1);
         canvas.width = Math.round(displayW * dpr);
@@ -376,7 +366,7 @@
 
           var i;
           for (i = 0; i < items.length; i++) {
-            drawSplatter(artCtx, items[i], SRC_W, SRC_H);
+            drawOne(artCtx, items[i], SRC_W, SRC_H);
           }
 
           var scale = displayW / SRC_W;
@@ -411,14 +401,15 @@
         box.style.height = 'auto';
       }
 
+      /* 即時描画（onload 待ちなし） */
       fitContainer();
       render();
 
-      if (overlay && !overlay.complete) {
+      if (overlay) {
         overlay.addEventListener('load', function () {
           fitContainer();
           render();
-        }, { once: true });
+        });
       }
 
       if (box && typeof ResizeObserver !== 'undefined') {
