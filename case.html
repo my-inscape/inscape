@@ -180,7 +180,10 @@
       width: min(52vw, 13.5rem);
       aspect-ratio: 9 / 16;
       max-height: min(62dvh, 30rem);
-      filter: drop-shadow(0 28px 48px rgba(0, 0, 0, 0.55));
+      filter:
+        drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45))
+        drop-shadow(0 18px 36px rgba(0, 0, 0, 0.52))
+        drop-shadow(0 32px 56px rgba(0, 0, 0, 0.38));
       transition: filter 0.4s ease;
       opacity: 0;
       transform: scale(0.94) translateY(0.35rem);
@@ -200,7 +203,10 @@
       100% {
         opacity: 1;
         transform: scale(1) translateY(0);
-        filter: drop-shadow(0 28px 48px rgba(0, 0, 0, 0.55)) brightness(1);
+        filter:
+          drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45))
+          drop-shadow(0 18px 36px rgba(0, 0, 0, 0.52))
+          drop-shadow(0 32px 56px rgba(0, 0, 0, 0.38));
       }
     }
 
@@ -230,34 +236,76 @@
       position: relative;
       width: 100%;
       height: 100%;
-      padding: 0.42rem;
-      background: linear-gradient(145deg, #2a2a32 0%, #121218 42%, #0a0a0e 100%);
-      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      padding: 0.46rem;
+      background:
+        linear-gradient(155deg, rgba(255, 255, 255, 0.14) 0%, transparent 22%),
+        linear-gradient(325deg, rgba(255, 255, 255, 0.06) 0%, transparent 28%),
+        linear-gradient(168deg, #3a3a44 0%, #222228 18%, #14141a 52%, #08080c 100%);
+      border: 0.5px solid rgba(255, 255, 255, 0.16);
       box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.12),
-        inset 0 -2px 8px rgba(0, 0, 0, 0.65),
-        0 0 0 0.5px rgba(0, 0, 0, 0.8);
+        inset 0 2px 4px rgba(255, 255, 255, 0.22),
+        inset 0 -3px 10px rgba(0, 0, 0, 0.72),
+        inset 0 0 0 1px rgba(0, 0, 0, 0.35),
+        0 0 0 0.5px rgba(0, 0, 0, 0.85),
+        0 2px 0 rgba(255, 255, 255, 0.04);
       transition: border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
+    .phone-case__bezel::before {
+      content: '';
+      position: absolute;
+      inset: 0.12rem;
+      border-radius: inherit;
+      pointer-events: none;
+      z-index: 6;
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.18),
+        inset 0 -1px 0 rgba(0, 0, 0, 0.45);
+      opacity: 0.85;
+    }
+
+    .phone-case__bezel::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      pointer-events: none;
+      z-index: 6;
+      background: linear-gradient(
+        140deg,
+        rgba(255, 255, 255, 0.1) 0%,
+        transparent 32%,
+        transparent 68%,
+        rgba(0, 0, 0, 0.18) 100%
+      );
+      mix-blend-mode: soft-light;
+    }
+
     .phone-case.is-iphone .phone-case__bezel {
-      border-radius: 2.1rem;
+      border-radius: 2.25rem;
     }
 
     .phone-case.is-android .phone-case__bezel {
-      border-radius: 1.25rem;
-      background: linear-gradient(145deg, #2e2e34 0%, #14141a 45%, #0a0a0e 100%);
+      border-radius: 1.05rem;
+      background:
+        linear-gradient(160deg, rgba(255, 255, 255, 0.1) 0%, transparent 20%),
+        linear-gradient(340deg, rgba(255, 255, 255, 0.05) 0%, transparent 24%),
+        linear-gradient(168deg, #34343c 0%, #1c1c24 42%, #0c0c10 100%);
     }
 
     .phone-case__camera {
       position: absolute;
-      z-index: 4;
+      z-index: 5;
       pointer-events: none;
-      border: 0.5px solid rgba(255, 255, 255, 0.14);
-      background: linear-gradient(145deg, #1e1e26 0%, #0c0c10 100%);
+      background:
+        linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%),
+        linear-gradient(168deg, #2a2a32 0%, #121218 55%, #06060a 100%);
+      border: 0.5px solid rgba(255, 255, 255, 0.16);
       box-shadow:
-        inset 0 1px 2px rgba(255, 255, 255, 0.08),
-        inset 0 -1px 4px rgba(0, 0, 0, 0.6);
+        inset 0 1px 3px rgba(255, 255, 255, 0.14),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.75),
+        0 3px 10px rgba(0, 0, 0, 0.55),
+        0 1px 0 rgba(255, 255, 255, 0.06);
       transition:
         top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
         left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
@@ -267,71 +315,151 @@
         border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .phone-case__camera-lenses {
+    .phone-case__camera-plate {
       position: absolute;
       inset: 0;
+    }
+
+    .phone-case__camera-plate--android {
+      display: none;
+    }
+
+    .phone-case.is-android .phone-case__camera-plate--iphone {
+      display: none;
+    }
+
+    .phone-case.is-android .phone-case__camera-plate--android {
       display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 0.22rem;
-      padding: 0.28rem;
     }
 
     .phone-case__lens {
       display: block;
       border-radius: 50%;
-      border: 0.5px solid rgba(120, 140, 180, 0.35);
-      background: radial-gradient(circle at 35% 30%, rgba(80, 100, 140, 0.5) 0%, #0a0a12 70%);
-      transition: width 0.45s ease, height 0.45s ease;
+      border: 0.5px solid rgba(100, 125, 175, 0.42);
+      background:
+        radial-gradient(circle at 30% 26%, rgba(140, 175, 230, 0.55) 0%, transparent 36%),
+        radial-gradient(circle at 72% 78%, rgba(0, 0, 0, 0.9) 0%, transparent 44%),
+        radial-gradient(circle at 50% 50%, #1c2230 0%, #06060c 74%);
+      box-shadow:
+        inset 0 1px 3px rgba(255, 255, 255, 0.38),
+        inset 0 -2px 5px rgba(0, 0, 0, 0.85),
+        0 1px 2px rgba(0, 0, 0, 0.55);
     }
 
-    /* iPhone — triple camera, top-left cluster */
+    .phone-case__sensor {
+      display: block;
+      border-radius: 50%;
+      border: 0.5px solid rgba(90, 90, 100, 0.45);
+      box-shadow:
+        inset 0 1px 2px rgba(255, 255, 255, 0.2),
+        inset 0 -1px 3px rgba(0, 0, 0, 0.7);
+    }
+
+    .phone-case__sensor--flash {
+      background:
+        radial-gradient(circle at 38% 32%, rgba(255, 248, 220, 0.9) 0%, rgba(220, 200, 140, 0.55) 42%, #8a7a50 100%);
+    }
+
+    .phone-case__sensor--lidar {
+      background:
+        radial-gradient(circle at 35% 30%, rgba(60, 60, 68, 0.8) 0%, #121218 68%);
+    }
+
+    /* iPhone — triple camera bump (Pro-style) */
     .phone-case.is-iphone .phone-case__camera {
-      top: 0.55rem;
-      left: 0.85rem;
+      top: 0.5rem;
+      left: 0.78rem;
       right: auto;
-      width: 2.35rem;
-      height: 2.35rem;
-      border-radius: 0.72rem;
+      width: 2.55rem;
+      height: 2.55rem;
+      border-radius: 0.78rem;
     }
 
-    .phone-case.is-iphone .phone-case__camera-lenses {
-      flex-wrap: wrap;
-      align-content: center;
-      justify-content: center;
-      gap: 0.18rem;
-      padding: 0.32rem;
+    .phone-case__camera-plate--iphone {
+      display: grid;
+      grid-template-columns: 1.05fr 0.92fr 0.62fr;
+      grid-template-rows: 1.05fr 0.92fr;
+      gap: 0.14rem;
+      padding: 0.34rem;
+      align-items: center;
+      justify-items: center;
     }
 
-    .phone-case.is-iphone .phone-case__lens {
+    .phone-case__lens--main {
+      grid-column: 1;
+      grid-row: 1 / span 2;
+      width: 0.88rem;
+      height: 0.88rem;
+      align-self: center;
+    }
+
+    .phone-case__lens--ultra {
+      grid-column: 2;
+      grid-row: 1;
       width: 0.62rem;
       height: 0.62rem;
     }
 
-    .phone-case.is-iphone .phone-case__lens:nth-child(1) {
-      width: 0.72rem;
-      height: 0.72rem;
+    .phone-case__lens--tele {
+      grid-column: 2;
+      grid-row: 2;
+      width: 0.62rem;
+      height: 0.62rem;
     }
 
-    /* Android — vertical pill, left edge */
+    .phone-case__camera-plate--iphone .phone-case__sensor--flash {
+      grid-column: 3;
+      grid-row: 1;
+      width: 0.34rem;
+      height: 0.34rem;
+      align-self: end;
+      justify-self: center;
+      margin-bottom: 0.06rem;
+    }
+
+    .phone-case__camera-plate--iphone .phone-case__sensor--lidar {
+      grid-column: 3;
+      grid-row: 2;
+      width: 0.3rem;
+      height: 0.3rem;
+      align-self: start;
+      justify-self: center;
+      margin-top: 0.06rem;
+    }
+
+    /* Android — vertical multi-lens pill, left edge */
     .phone-case.is-android .phone-case__camera {
-      top: 1.1rem;
-      left: 0.5rem;
+      top: 1rem;
+      left: 0.46rem;
       right: auto;
-      width: 1.15rem;
-      height: 3.1rem;
-      border-radius: 0.58rem;
+      width: 1.22rem;
+      height: 3.35rem;
+      border-radius: 0.62rem;
     }
 
-    .phone-case.is-android .phone-case__camera-lenses {
+    .phone-case__camera-plate--android {
       flex-direction: column;
-      gap: 0.2rem;
-      padding: 0.38rem 0.2rem;
+      align-items: center;
+      justify-content: center;
+      gap: 0.22rem;
+      padding: 0.4rem 0.18rem;
     }
 
-    .phone-case.is-android .phone-case__lens {
-      width: 0.52rem;
-      height: 0.52rem;
+    .phone-case__camera-plate--android .phone-case__lens {
+      width: 0.56rem;
+      height: 0.56rem;
+      flex-shrink: 0;
+    }
+
+    .phone-case__camera-plate--android .phone-case__lens--wide {
+      width: 0.64rem;
+      height: 0.64rem;
+    }
+
+    .phone-case__camera-plate--android .phone-case__sensor--flash {
+      width: 0.28rem;
+      height: 0.28rem;
+      margin-top: 0.06rem;
     }
 
     .phone-case__screen {
@@ -340,17 +468,20 @@
       height: 100%;
       overflow: hidden;
       background: var(--canvas-bg);
-      border: 0.5px solid rgba(255, 255, 255, 0.06);
-      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      box-shadow:
+        inset 0 0 0 1px rgba(0, 0, 0, 0.55),
+        inset 0 3px 8px rgba(0, 0, 0, 0.28),
+        inset 0 -2px 6px rgba(255, 255, 255, 0.04);
       transition: border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     .phone-case.is-iphone .phone-case__screen {
-      border-radius: 1.75rem;
+      border-radius: 1.82rem;
     }
 
     .phone-case.is-android .phone-case__screen {
-      border-radius: 0.95rem;
+      border-radius: 0.82rem;
     }
 
     .phone-case__art-surface {
@@ -418,10 +549,11 @@
       z-index: 2;
       pointer-events: none;
       background:
-        linear-gradient(155deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.02) 28%, transparent 48%),
-        radial-gradient(ellipse 80% 40% at 50% 0%, rgba(255, 255, 255, 0.06) 0%, transparent 55%);
+        linear-gradient(155deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.04) 22%, transparent 46%),
+        linear-gradient(335deg, rgba(255, 255, 255, 0.06) 0%, transparent 30%),
+        radial-gradient(ellipse 85% 42% at 50% -2%, rgba(255, 255, 255, 0.1) 0%, transparent 58%);
       mix-blend-mode: soft-light;
-      opacity: 0.85;
+      opacity: 0.9;
     }
 
     .phone-case__artist-frame {
@@ -470,10 +602,18 @@
         <div class="phone-case is-iphone" id="phoneCase">
           <div class="phone-case__bezel">
             <div class="phone-case__camera" aria-hidden="true">
-              <div class="phone-case__camera-lenses">
-                <span class="phone-case__lens"></span>
-                <span class="phone-case__lens"></span>
-                <span class="phone-case__lens"></span>
+              <div class="phone-case__camera-plate phone-case__camera-plate--iphone">
+                <span class="phone-case__lens phone-case__lens--main" aria-hidden="true"></span>
+                <span class="phone-case__lens phone-case__lens--ultra" aria-hidden="true"></span>
+                <span class="phone-case__lens phone-case__lens--tele" aria-hidden="true"></span>
+                <span class="phone-case__sensor phone-case__sensor--flash" aria-hidden="true"></span>
+                <span class="phone-case__sensor phone-case__sensor--lidar" aria-hidden="true"></span>
+              </div>
+              <div class="phone-case__camera-plate phone-case__camera-plate--android">
+                <span class="phone-case__lens phone-case__lens--wide" aria-hidden="true"></span>
+                <span class="phone-case__lens" aria-hidden="true"></span>
+                <span class="phone-case__lens" aria-hidden="true"></span>
+                <span class="phone-case__sensor phone-case__sensor--flash" aria-hidden="true"></span>
               </div>
             </div>
             <div class="phone-case__screen">

@@ -64,7 +64,7 @@
       min-height: 100%;
       height: auto;
       padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-      padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
+      padding-bottom: calc(3.25rem + env(safe-area-inset-bottom, 0px));
     }
 
     .top-area {
@@ -73,20 +73,29 @@
       flex-direction: column;
       align-items: center;
       width: 100%;
-      padding: 0.65rem 0 0.5rem;
+      padding: 0.85rem 0 0.5rem;
       position: relative;
     }
 
     .logo {
-      font-size: 0.55rem;
-      letter-spacing: 0.48em;
-      font-weight: 400;
-      color: var(--text-soft);
-      margin-bottom: 0.4rem;
+      font-family: "Times New Roman", "Georgia", "Hiragino Mincho ProN", "Yu Mincho", serif;
+      font-size: 0.62rem;
+      font-weight: 300;
+      letter-spacing: 0.52em;
+      text-indent: 0.52em;
+      color: rgba(232, 230, 226, 0.44);
       text-align: center;
       flex-shrink: 0;
       position: relative;
-      z-index: 2;
+      z-index: 3;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .logo--footer {
+      margin-top: 1.35rem;
+      margin-bottom: 0.15rem;
+      padding-bottom: 0.2rem;
     }
 
     .mid-panel {
@@ -100,8 +109,10 @@
     .controls {
       flex: 0 0 auto;
       width: 100%;
-      padding: 0.35rem 1.15rem calc(0.65rem + env(safe-area-inset-bottom, 0px));
-      min-height: 3.5rem;
+      padding: 0.5rem 1.15rem calc(3.75rem + env(safe-area-inset-bottom, 0px));
+      min-height: 4.5rem;
+      position: relative;
+      z-index: 2;
     }
 
     .controls-row {
@@ -1623,7 +1634,6 @@
 
     <div class="app">
       <div class="top-area">
-        <p class="logo zen-target">INSCAPE</p>
         <div class="canvas-wrap" id="canvasWrap">
           <div class="museum-frame" id="museumFrame">
             <div class="museum-frame-sculpted">
@@ -1666,6 +1676,7 @@
 
       <footer class="controls zen-target" id="controlsFooter">
         <p class="frame-progress-hint zen-target" id="frameProgressHint"></p>
+        <p class="logo logo--footer zen-target" aria-label="INSCAPE">INSCAPE</p>
       </footer>
     </div>
 
