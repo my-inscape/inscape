@@ -24,6 +24,13 @@
 
     body {
       background:
+        repeating-linear-gradient(
+          93deg,
+          transparent 0,
+          transparent 32px,
+          rgba(255, 248, 235, 0.018) 32px,
+          rgba(255, 248, 235, 0.018) 33px
+        ),
         radial-gradient(ellipse 90% 55% at 50% -8%, rgba(201, 169, 98, 0.07) 0%, transparent 50%),
         radial-gradient(ellipse 70% 40% at 50% 105%, rgba(255, 255, 255, 0.02) 0%, transparent 45%),
         #030303;
@@ -78,29 +85,11 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: relative;
       padding: 0.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
-    }
-
-    .main::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        repeating-linear-gradient(
-          93deg,
-          transparent 0,
-          transparent 32px,
-          rgba(255, 248, 235, 0.018) 32px,
-          rgba(255, 248, 235, 0.018) 33px
-        );
-      opacity: 0.85;
     }
 
     .case-container {
       position: relative;
-      z-index: 1;
       width: 260px;
       height: 559px;
       max-width: min(46vw, 16.25rem);
@@ -108,9 +97,8 @@
       aspect-ratio: 260 / 559;
       overflow: hidden;
       border-radius: 40px;
-      background: #f7f4eb;
+      background-color: #ffffff !important;
       box-shadow:
-        0 1px 0 rgba(255, 255, 255, 0.08),
         0 8px 24px rgba(0, 0, 0, 0.35),
         0 28px 56px rgba(0, 0, 0, 0.48);
     }
@@ -140,8 +128,6 @@
     }
 
     .note {
-      position: relative;
-      z-index: 1;
       margin-top: 1.65rem;
       max-width: 18rem;
       text-align: center;
@@ -171,17 +157,7 @@
     <main class="main" aria-label="プロダクトプレビュー">
       <div class="case-container" id="caseContainer">
         <canvas id="caseCanvas" aria-hidden="true"></canvas>
-        <img
-          src="clear-case-original.png"
-          class="case-overlay"
-          id="caseOverlay"
-          width="360"
-          height="664"
-          alt="Clear Case"
-          draggable="false"
-          decoding="sync"
-          loading="eager"
-        >
+        <img src="clear-case-original.png" class="case-overlay" id="caseOverlay" width="360" height="664" alt="Clear Case" draggable="false" decoding="sync" loading="eager">
       </div>
       <p class="note">※実際の製品は、あなただけの本当の色がプリントされた『クリアケース（透明）』として完成します。</p>
     </main>
@@ -199,7 +175,7 @@
       };
 
       const SPLAT = 'splat.png';
-      const CANVAS_BG = '#f7f4eb';
+      const CANVAS_BG = '#ffffff';
       const SRC_W = 270;
       const MAX_DAYS = 7;
       const LIVE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -209,9 +185,18 @@
       const overlay = document.getElementById('caseOverlay');
 
       const splatImg = new Image();
-      const stamps = {};
-      let splatOk = false;
+      const stampCache = {};
+      let splatReady = false;
       let galleryItem = null;
+
+      function loadJson(key) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : [];
+        } catch {
+          return [];
+        }
+      }
 
       function parseDateKey(str) {
         if (!str) return '';
@@ -239,15 +224,6 @@
           date: p.get('date') || '',
           idx: idx !== null && idx !== '' ? parseInt(idx, 10) : -1
         };
-      }
-
-      function loadJson(key) {
-        try {
-          const raw = localStorage.getItem(key);
-          return raw ? JSON.parse(raw) : [];
-        } catch {
-          return [];
-        }
       }
 
       function galleryDates(item) {
@@ -308,7 +284,7 @@
         return [...map.values()].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)).slice(-MAX_DAYS);
       }
 
-      function migrate(s) {
+      function migrateSplash(s) {
         let baseSize = s.baseSize || 95;
         if (baseSize > 0 && baseSize < 35) baseSize *= 2.5;
         return {
@@ -318,13 +294,13 @@
           baseSize,
           rotation: s.rotation ?? 0,
           scaleFactor: s.scaleFactor ?? 1,
-          opacity: typeof s.opacity === 'number' ? s.opacity : 0.85,
+          opacity: typeof s.opacity === 'number' ? s.opacity : 1,
           timestamp: s.timestamp || 0,
           canvasW: s.canvasW || SRC_W
         };
       }
 
-      function migrateGallery(s) {
+      function migrateGallerySplash(s) {
         let baseSize = s.baseSize || 220;
         if (baseSize < 150) baseSize *= 2.5;
         return {
@@ -334,7 +310,7 @@
           baseSize,
           rotation: s.rotation ?? 0,
           scaleFactor: s.scaleFactor ?? 1,
-          opacity: typeof s.opacity === 'number' ? s.opacity : 0.85,
+          opacity: typeof s.opacity === 'number' ? s.opacity : 1,
           canvasW: s.canvasW || 400
         };
       }
@@ -343,14 +319,14 @@
         const now = Date.now();
         return loadJson(KEYS.live)
           .filter((s) => s?.color && (!s.timestamp || now - s.timestamp < LIVE_MS))
-          .map(migrate);
+          .map(migrateSplash);
       }
 
       function recipes() {
         const map = new Map();
         const add = (r) => {
           if (!r?.color) return;
-          const m = migrate(r);
+          const m = migrateSplash(r);
           const k = m.timestamp ? `ts-${m.timestamp}` : `c-${m.color}-${m.nx}-${m.ny}`;
           if (!map.has(k)) map.set(k, m);
         };
@@ -369,11 +345,11 @@
         };
       }
 
-      function synth(entry, i, total) {
+      function synthSplash(entry, i, total) {
         const r = rng(Number(entry.timestamp) || i + 1);
         const a = (i / Math.max(1, total)) * Math.PI * 2 - Math.PI / 2 + r() * 0.35;
         const rad = 0.2 + r() * 0.16;
-        return migrate({
+        return migrateSplash({
           nx: 0.5 + Math.cos(a) * rad,
           ny: 0.5 + Math.sin(a) * rad,
           color: entry.color,
@@ -396,22 +372,20 @@
           const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
           return k === day;
         }).sort((a, b) => Math.abs((a.timestamp || 0) - (entry.timestamp || 0)) - Math.abs((b.timestamp || 0) - (entry.timestamp || 0)));
-        if (same.length) return same[0];
-        return null;
+        return same[0] || null;
       }
 
       function resolveSplashes() {
         const days = sevenDays();
         if (!days.length) {
           const live = liveSplashes();
-          if (live.length) return live;
-          return recipes();
+          return live.length ? live : recipes();
         }
         const list = recipes();
         return days.map((entry, i) => {
           const recipe = findRecipe(entry, list);
-          if (!recipe) return synth(entry, i, days.length);
-          const m = migrate({
+          if (!recipe) return synthSplash(entry, i, days.length);
+          const m = migrateSplash({
             ...recipe,
             color: entry.color || recipe.color,
             timestamp: entry.timestamp || recipe.timestamp
@@ -423,11 +397,11 @@
       }
 
       function loadSplat() {
-        if (splatOk) return Promise.resolve();
+        if (splatReady) return Promise.resolve();
         return new Promise((resolve, reject) => {
           splatImg.onload = () => {
-            splatOk = !!splatImg.naturalWidth;
-            splatOk ? resolve() : reject();
+            splatReady = !!splatImg.naturalWidth;
+            splatReady ? resolve() : reject();
           };
           splatImg.onerror = reject;
           splatImg.src = SPLAT;
@@ -436,77 +410,77 @@
       }
 
       function createColorStamp(color) {
-        if (!splatOk || !color) return null;
-        if (stamps[color]) return stamps[color];
+        if (!splatReady || !color) return null;
+        if (stampCache[color]) return stampCache[color];
 
         const w = splatImg.naturalWidth;
         const h = splatImg.naturalHeight;
-        const c = document.createElement('canvas');
-        c.width = w;
-        c.height = h;
-        const ctx = c.getContext('2d');
+        const work = document.createElement('canvas');
+        work.width = w;
+        work.height = h;
+        const wctx = work.getContext('2d');
 
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, w, h);
-        ctx.globalCompositeOperation = 'screen';
-        ctx.drawImage(splatImg, 0, 0);
-        ctx.globalCompositeOperation = 'source-over';
+        wctx.fillStyle = color;
+        wctx.fillRect(0, 0, w, h);
+        wctx.globalCompositeOperation = 'screen';
+        wctx.drawImage(splatImg, 0, 0);
+        wctx.globalCompositeOperation = 'source-over';
 
-        stamps[color] = c;
-        return c;
+        stampCache[color] = work;
+        return work;
       }
 
-      function drawSplatter(ctx, splash, destW, destH, srcW) {
+      function drawSplatter(ctx, splash, w, h, srcW) {
         if (!splash.color || typeof splash.nx !== 'number' || typeof splash.ny !== 'number') return;
 
         const stamp = createColorStamp(splash.color);
         if (!stamp) return;
 
         const sourceW = splash.canvasW || srcW || SRC_W;
-        const size = splash.baseSize * (splash.scaleFactor || 1) * (destW / sourceW);
-        const x = splash.nx * destW;
-        const y = splash.ny * destH;
+        const size = splash.baseSize * (splash.scaleFactor || 1) * (w / sourceW);
+        const cx = splash.nx * w;
+        const cy = splash.ny * h;
 
         ctx.save();
-        ctx.translate(x, y);
+        ctx.translate(cx, cy);
         ctx.rotate(splash.rotation || 0);
-        ctx.globalAlpha = splash.opacity ?? 0.85;
+        ctx.globalAlpha = splash.opacity ?? 1;
         ctx.globalCompositeOperation = 'multiply';
         ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
         ctx.restore();
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      function drawCanvas(ctx, splashes, destW, destH, item) {
+      function redraw(ctx, splashes, w, h, item) {
         ctx.fillStyle = CANVAS_BG;
-        ctx.fillRect(0, 0, destW, destH);
+        ctx.fillRect(0, 0, w, h);
         const srcW = item ? (item.canvasW || 400) : SRC_W;
         splashes.forEach((raw) => {
-          const splash = item ? migrateGallery(raw) : migrate(raw);
-          drawSplatter(ctx, splash, destW, destH, srcW);
+          const splash = item ? migrateGallerySplash(raw) : migrateSplash(raw);
+          drawSplatter(ctx, splash, w, h, srcW);
         });
       }
 
       function render() {
         if (!canvas || !box) return;
         const rect = box.getBoundingClientRect();
-        const cw = Math.round(rect.width);
-        const ch = Math.round(rect.height);
-        if (cw < 2 || ch < 2) return;
+        const w = Math.round(rect.width);
+        const h = Math.round(rect.height);
+        if (w < 2 || h < 2) return;
 
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        canvas.width = Math.round(cw * dpr);
-        canvas.height = Math.round(ch * dpr);
-        canvas.style.width = cw + 'px';
-        canvas.style.height = ch + 'px';
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
 
         const ctx = canvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         if (galleryItem?.splats?.length) {
-          drawCanvas(ctx, galleryItem.splats, cw, ch, galleryItem);
+          redraw(ctx, galleryItem.splats, w, h, galleryItem);
         } else {
-          drawCanvas(ctx, resolveSplashes(), cw, ch, null);
+          redraw(ctx, resolveSplashes(), w, h, null);
         }
       }
 
