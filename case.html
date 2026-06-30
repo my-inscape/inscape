@@ -23,14 +23,21 @@
       height: 100%;
       overflow: hidden;
       font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", serif;
-      background: var(--page-bg);
       color: #e8e6e2;
+    }
+
+    body {
+      background:
+        radial-gradient(ellipse 70% 45% at 50% 32%, rgba(255, 245, 228, 0.14) 0%, transparent 58%),
+        radial-gradient(ellipse 90% 35% at 50% 100%, rgba(0, 0, 0, 0.5) 0%, transparent 55%),
+        linear-gradient(168deg, #2c2620 0%, #1c1916 42%, #0f0e0c 100%);
     }
 
     .page {
       height: 100dvh;
       display: flex;
       flex-direction: column;
+      position: relative;
     }
 
     .header {
@@ -76,20 +83,43 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      position: relative;
       padding: 0.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+    }
+
+    .main::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(
+          93deg,
+          transparent 0,
+          transparent 32px,
+          rgba(255, 248, 235, 0.018) 32px,
+          rgba(255, 248, 235, 0.018) 33px
+        ),
+        radial-gradient(ellipse 55% 28% at 50% 62%, rgba(160, 130, 95, 0.12) 0%, transparent 70%);
+      opacity: 0.85;
     }
 
     .case-container {
       position: relative;
+      z-index: 1;
       width: 260px;
       height: 559px;
       max-width: min(46vw, 16.25rem);
       max-height: min(78dvh, 35rem);
       aspect-ratio: 260 / 559;
       overflow: hidden;
-      border-radius: 40px;
+      border-radius: 42px;
       background: var(--canvas-bg);
       isolation: isolate;
+      box-shadow:
+        0 1px 0 rgba(255, 255, 255, 0.08),
+        0 8px 24px rgba(0, 0, 0, 0.35),
+        0 28px 56px rgba(0, 0, 0, 0.48);
     }
 
     #caseCanvas,
@@ -100,6 +130,7 @@
       width: 100%;
       height: 100%;
       display: block;
+      border-radius: inherit;
     }
 
     #caseCanvas {
@@ -117,6 +148,8 @@
     }
 
     .note {
+      position: relative;
+      z-index: 1;
       margin-top: 1.65rem;
       max-width: 16.5rem;
       text-align: center;
@@ -124,8 +157,8 @@
       font-weight: 300;
       letter-spacing: 0.12em;
       line-height: 1.85;
-      color: rgba(232, 230, 226, 0.5);
-      opacity: 0.5;
+      color: rgba(232, 228, 220, 0.62);
+      opacity: 0.72;
     }
   </style>
 </head>
@@ -178,6 +211,9 @@
       const SRC_H = 480;
       const MAX_DAYS = 7;
       const LIVE_MS = 7 * 24 * 60 * 60 * 1000;
+
+      /* clear-case-original.png カメラ島（実寸比率） */
+      const CAM_MASK = { left: 0.08, top: 0.04, width: 0.32, height: 0.18, radius: 0.22 };
 
       const SAMPLE = [
         { nx: 0.28, ny: 0.34, color: '#3d2868', word: '静けさ', baseSize: 88, scaleFactor: 1.04, rotation: -0.4, opacity: 0.82 },
@@ -458,6 +494,44 @@
         return c;
       }
 
+      function roundRect(ctx, x, y, w, h, r) {
+        const rr = Math.min(r, w / 2, h / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + rr, y);
+        ctx.arcTo(x + w, y, x + w, y + h, rr);
+        ctx.arcTo(x + w, y + h, x, y + h, rr);
+        ctx.arcTo(x, y + h, x, y, rr);
+        ctx.arcTo(x, y, x + w, y, rr);
+        ctx.closePath();
+      }
+
+      function cameraRect(w, h) {
+        const cx = w * CAM_MASK.left;
+        const cy = h * CAM_MASK.top;
+        const cw = w * CAM_MASK.width;
+        const ch = h * CAM_MASK.height;
+        const r = cw * CAM_MASK.radius;
+        return { cx, cy, cw, ch, r };
+      }
+
+      function applyInkClip(ctx, w, h) {
+        const { cx, cy, cw, ch, r } = cameraRect(w, h);
+        ctx.beginPath();
+        ctx.rect(0, 0, w, h);
+        roundRect(ctx, cx, cy, cw, ch, r);
+        ctx.clip('evenodd');
+      }
+
+      function punchCameraHole(ctx, w, h) {
+        const { cx, cy, cw, ch, r } = cameraRect(w, h);
+        ctx.save();
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.fillStyle = '#000';
+        roundRect(ctx, cx, cy, cw, ch, r);
+        ctx.fill();
+        ctx.restore();
+      }
+
       function paintInkSplat(ctx, splash, destW, destH, srcW) {
         const img = stamp(splash.color);
         if (!img) return;
@@ -477,10 +551,14 @@
       function drawInkOnly(ctx, splashes, destW, destH, item) {
         ctx.clearRect(0, 0, destW, destH);
         const srcW = item ? (item.canvasW || 400) : SRC_W;
+        ctx.save();
+        applyInkClip(ctx, destW, destH);
         splashes.forEach((raw) => {
           const splash = item ? migrateGallery(raw) : migrate(raw);
           paintInkSplat(ctx, splash, destW, destH, srcW);
         });
+        ctx.restore();
+        punchCameraHole(ctx, destW, destH);
       }
 
       function render() {
