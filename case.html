@@ -118,12 +118,15 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      position: relative;
       padding:
         0.5rem 1.25rem
         calc(1.25rem + env(safe-area-inset-bottom));
     }
 
     .case-stage {
+      position: relative;
+      z-index: 1;
       display: flex;
       flex-direction: column;
       align-items: center;
@@ -179,6 +182,48 @@
       max-height: min(62dvh, 30rem);
       filter: drop-shadow(0 28px 48px rgba(0, 0, 0, 0.55));
       transition: filter 0.4s ease;
+      opacity: 0;
+      transform: scale(0.94) translateY(0.35rem);
+      animation: caseSpotlightReveal 1.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    @keyframes caseSpotlightReveal {
+      0% {
+        opacity: 0;
+        transform: scale(0.94) translateY(0.35rem);
+        filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.85)) brightness(0.45);
+      }
+      55% {
+        opacity: 1;
+        filter: drop-shadow(0 22px 40px rgba(0, 0, 0, 0.6)) brightness(0.92);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+        filter: drop-shadow(0 28px 48px rgba(0, 0, 0, 0.55)) brightness(1);
+      }
+    }
+
+    .case-main::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      background: radial-gradient(
+        ellipse 55% 42% at 50% 38%,
+        rgba(255, 252, 240, 0.14) 0%,
+        rgba(255, 252, 240, 0.04) 38%,
+        transparent 72%
+      );
+      opacity: 0;
+      animation: caseAmbientSpotlight 1.6s ease forwards;
+    }
+
+    @keyframes caseAmbientSpotlight {
+      0% { opacity: 0; }
+      40% { opacity: 1; }
+      100% { opacity: 0.55; }
     }
 
     .phone-case__bezel {
@@ -334,7 +379,24 @@
       border-radius: inherit;
     }
 
+    .phone-case__crystal {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      background: linear-gradient(
+        168deg,
+        #1a1038 0%,
+        #4a2c6e 24%,
+        #c86b9a 52%,
+        #f0a8c8 76%,
+        #1a3058 100%
+      );
+      transition: background 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
     .phone-case__art-canvas {
+      position: relative;
+      z-index: 1;
       display: block;
       width: 100%;
       height: 100%;
@@ -428,6 +490,7 @@
             <div class="phone-case__screen">
               <div class="phone-case__art-surface" id="caseArtSurface">
                 <div class="phone-case__art-cover" id="caseArtCover">
+                  <div class="phone-case__crystal" id="caseCrystal" aria-hidden="true"></div>
                   <canvas class="phone-case__art-canvas" id="caseArtCanvas" aria-hidden="true"></canvas>
                   <div class="phone-case__fabric-overlay" aria-hidden="true"></div>
                 </div>
@@ -448,7 +511,6 @@
       'use strict';
 
       const INSCAPE_HISTORY_KEY = 'inscape_history';
-      const SPLASH_STORAGE_KEY = 'inscape_splashes';
       const RECIPE_STORAGE_KEY = 'histories';
       const MAX_CASE_DAYS = 7;
       const DEVICE_STORAGE_KEY = 'inscape_case_device';
@@ -465,6 +527,16 @@
       const OPACITY_FULL_LEN = 120;
       const WORD_MAX_LEN = 10000;
 
+      const SAMPLE_CRYSTAL_COLORS = [
+        '#1a1038',
+        '#3d2868',
+        '#6b4a8e',
+        '#9a6aaa',
+        '#c86b9a',
+        '#e8a8c8',
+        '#2a4a6e'
+      ];
+
       const SAMPLE_SPLASHES = [
         { nx: 0.28, ny: 0.34, color: '#3d2868', word: '静けさ', baseSize: 88, scaleFactor: 1.04, rotation: -0.4, opacity: 0.82 },
         { nx: 0.62, ny: 0.28, color: '#8b5a9a', word: '余白', baseSize: 72, scaleFactor: 0.98, rotation: 1.1, opacity: 0.76 },
@@ -478,6 +550,7 @@
       const phoneCaseEl = document.getElementById('phoneCase');
       const caseArtCanvas = document.getElementById('caseArtCanvas');
       const caseArtCover = document.getElementById('caseArtCover');
+      const caseCrystalEl = document.getElementById('caseCrystal');
       const deviceBtns = document.querySelectorAll('.device-switch__btn');
 
       const splatImg = new Image();
@@ -575,22 +648,70 @@
           .slice(-MAX_CASE_DAYS);
       }
 
-      function loadSplashRecipes() {
-        const byKey = new Map();
-        [SPLASH_STORAGE_KEY, RECIPE_STORAGE_KEY].forEach((key) => {
-          try {
-            const raw = localStorage.getItem(key);
-            if (!raw) return;
-            const data = JSON.parse(raw);
-            if (!Array.isArray(data)) return;
-            data.forEach((s) => {
-              if (!s || !s.color) return;
-              const recipeKey = s.id || `${s.timestamp || 0}-${s.nx}-${s.ny}-${s.color}`;
-              if (!byKey.has(recipeKey)) byKey.set(recipeKey, s);
-            });
-          } catch { /* ignore */ }
+      /** 7日分の色リスト（inscape_history のみ・古い順） */
+      function loadSevenDayColors() {
+        return loadSevenDayEntries()
+          .map((entry) => String(entry.color).trim())
+          .filter(Boolean);
+      }
+
+      function buildSevenCrystalStops(userColors) {
+        if (!userColors.length) return SAMPLE_CRYSTAL_COLORS.slice();
+        if (userColors.length >= MAX_CASE_DAYS) return userColors.slice(-MAX_CASE_DAYS);
+
+        const stops = new Array(MAX_CASE_DAYS);
+        const n = userColors.length;
+        for (let i = 0; i < n; i++) {
+          const slot = n === 1 ? 3 : Math.round((i / (n - 1)) * (MAX_CASE_DAYS - 1));
+          stops[slot] = userColors[i];
+        }
+        for (let i = 0; i < MAX_CASE_DAYS; i++) {
+          if (!stops[i]) stops[i] = SAMPLE_CRYSTAL_COLORS[i];
+        }
+        return stops;
+      }
+
+      function buildCrystalGradient(colors) {
+        const stops = colors.map((color, i) => {
+          const pct = (i / Math.max(1, colors.length - 1)) * 92;
+          return `${color} ${pct.toFixed(1)}%`;
         });
-        return Array.from(byKey.values());
+        stops.push('rgba(8, 8, 14, 0.88) 100%');
+        return `linear-gradient(168deg, ${stops.join(', ')})`;
+      }
+
+      function getSevenCrystalColors() {
+        return buildSevenCrystalStops(loadSevenDayColors());
+      }
+
+      function drawCrystalBase(ctx, w, h) {
+        const colors = getSevenCrystalColors();
+        const grd = ctx.createLinearGradient(w * 0.08, 0, w * 0.92, h);
+        colors.forEach((color, i) => {
+          grd.addColorStop(i / Math.max(1, colors.length - 1), color);
+        });
+        grd.addColorStop(1, 'rgba(8, 8, 14, 0.88)');
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = grd;
+        ctx.fillRect(0, 0, w, h);
+      }
+
+      function applyCrystalGradient() {
+        if (!caseCrystalEl) return;
+        caseCrystalEl.style.background = buildCrystalGradient(getSevenCrystalColors());
+      }
+
+      function loadSplashRecipes() {
+        try {
+          const raw = localStorage.getItem(RECIPE_STORAGE_KEY);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return [];
+          return data.filter((s) => s && s.color);
+        } catch {
+          return [];
+        }
       }
 
       function wordIntensity(len) {
@@ -662,10 +783,12 @@
         return null;
       }
 
-      function synthesizeSplashFromEntry(entry) {
-        const seed = Number(entry.timestamp) || 1;
+      function synthesizeSplashFromEntry(entry, index, total) {
+        const seed = Number(entry.timestamp) || index + 1;
         const rng = mulberry32(seed);
         const wordLen = Math.max(1, (entry.word || '').length || 8);
+        const count = Math.max(1, total || 1);
+        const idx = index || 0;
 
         let nx = entry.nx;
         let ny = entry.ny;
@@ -674,8 +797,10 @@
           ny = entry.y;
         }
         if (typeof nx !== 'number' || typeof ny !== 'number') {
-          nx = 0.16 + rng() * 0.68;
-          ny = 0.16 + rng() * 0.68;
+          const angle = (idx / count) * Math.PI * 2 - Math.PI / 2 + rng() * 0.35;
+          const radius = 0.2 + rng() * 0.16;
+          nx = 0.5 + Math.cos(angle) * radius;
+          ny = 0.5 + Math.sin(angle) * radius;
         }
 
         const baseSize = entry.baseSize || baseSizeFromWordLength(wordLen, REF_CANVAS_W);
@@ -693,22 +818,28 @@
         };
       }
 
+      /** inscape_history の7日分のみから結晶デザインを再構成（単日・外部パラメータ非依存） */
       function resolveSplashesForCase() {
         const entries = loadSevenDayEntries();
         if (!entries.length) return SAMPLE_SPLASHES.map(migrateSplash);
 
         const recipes = loadSplashRecipes().map(migrateSplash);
-        return entries.map((entry) => {
+        return entries.map((entry, index) => {
           const recipe = findRecipeForEntry(entry, recipes);
           if (recipe) {
-            const merged = migrateSplash({ ...recipe, color: entry.color || recipe.color, word: entry.word || recipe.word });
+            const merged = migrateSplash({
+              ...recipe,
+              color: entry.color || recipe.color,
+              word: entry.word || recipe.word,
+              timestamp: entry.timestamp || recipe.timestamp
+            });
             if (typeof entry.nx === 'number') merged.nx = entry.nx;
             if (typeof entry.ny === 'number') merged.ny = entry.ny;
             if (typeof entry.x === 'number') merged.nx = entry.x;
             if (typeof entry.y === 'number') merged.ny = entry.y;
             return merged;
           }
-          return migrateSplash(synthesizeSplashFromEntry(entry));
+          return migrateSplash(synthesizeSplashFromEntry(entry, index, entries.length));
         });
       }
 
@@ -785,6 +916,8 @@
       function renderCaseArt() {
         if (!caseArtCanvas || !caseArtCover) return;
 
+        applyCrystalGradient();
+
         const coverRect = caseArtCover.getBoundingClientRect();
         const cw = Math.round(coverRect.width);
         const ch = Math.round(coverRect.height);
@@ -798,13 +931,15 @@
 
         const ctx = caseArtCanvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = CANVAS_BG;
-        ctx.fillRect(0, 0, cw, ch);
+        drawCrystalBase(ctx, cw, ch);
 
         const splashes = resolveSplashesForCase();
         splashes.forEach((splash) => drawSplatter(ctx, splash, cw, ch));
+      }
+
+      function applyCaseDesign() {
+        applyCrystalGradient();
+        scheduleRenderCaseArt();
       }
 
       function scheduleRenderCaseArt() {
@@ -858,16 +993,16 @@
       window.addEventListener('resize', scheduleRenderCaseArt);
 
       window.addEventListener('storage', (e) => {
-        if (e.key === INSCAPE_HISTORY_KEY || e.key === SPLASH_STORAGE_KEY || e.key === RECIPE_STORAGE_KEY) {
-          scheduleRenderCaseArt();
+        if (e.key === INSCAPE_HISTORY_KEY || e.key === RECIPE_STORAGE_KEY) {
+          applyCaseDesign();
         }
       });
 
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') scheduleRenderCaseArt();
+        if (document.visibilityState === 'visible') applyCaseDesign();
       });
 
-      scheduleRenderCaseArt();
+      applyCaseDesign();
     })();
   </script>
 </body>
