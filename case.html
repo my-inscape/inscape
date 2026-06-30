@@ -195,16 +195,35 @@
       var stampCache = {};
       var splatReady = false;
 
-      splatImg.onload = function () {
-        if (splatImg.naturalWidth > 0) {
-          splatReady = true;
-          stampCache = {};
+      function safeRender() {
+        try {
           render();
+        } catch (err) {
+          /* 実機でも描画が止まらないよう全体を保護 */
         }
+      }
+
+      splatImg.onload = function () {
+        try {
+          if (splatImg.naturalWidth > 0) {
+            splatReady = true;
+            stampCache = {};
+            safeRender();
+          }
+        } catch (e) { /* noop */ }
       };
       splatImg.onerror = function () { splatReady = false; };
       try { splatImg.src = SPLAT_IMAGE; } catch (e) { splatReady = false; }
       if (splatImg.complete && splatImg.naturalWidth > 0) splatReady = true;
+
+      setTimeout(function () {
+        try {
+          if (!splatReady && splatImg.complete && splatImg.naturalWidth > 0) {
+            splatReady = true;
+            safeRender();
+          }
+        } catch (e) { /* noop */ }
+      }, 400);
 
       function loadJson(key) {
         try {
@@ -217,47 +236,110 @@
         }
       }
 
-      function getPoints() {
-        var history = loadJson(INSCAPE_HISTORY_KEY);
-        var points = [];
-        var h, e;
+      function isRecipe(item) {
+        if (!item || !item.color) return false;
+        if (typeof item.nx === 'number' && !isNaN(item.nx)) return true;
+        if (item.x != null && !isNaN(Number(item.x))) return true;
+        if (item.y != null && !isNaN(Number(item.y))) return true;
+        return false;
+      }
 
-        for (h = 0; h < history.length; h++) {
-          e = history[h];
-          if (!e || !e.points || !Array.isArray(e.points)) continue;
-          e.points.forEach(function (pt) {
-            if (pt && pt.color) points.push(pt);
-          });
-        }
-        if (points.length) return points;
-
-        var params = new URLSearchParams(location.search);
-        var idx = params.get('idx');
-        var gallery = loadJson(GALLERY_KEY);
-        if (idx !== null && idx !== '' && gallery[parseInt(idx, 10)]) {
-          var item = gallery[parseInt(idx, 10)];
-          if (item && item.splats && item.splats.length) return item.splats;
-        }
-
+      function collectRecipes(list) {
         var out = [];
-        loadJson(LIVE_KEY).forEach(function (s) {
-          if (s && s.color) out.push(s);
-        });
-        if (out.length) return out;
-
-        loadJson(HISTORY_KEY).forEach(function (s) {
-          if (s && s.color) out.push(s);
-        });
+        var i;
+        if (!Array.isArray(list)) return out;
+        for (i = 0; i < list.length; i++) {
+          if (isRecipe(list[i])) out.push(list[i]);
+        }
         return out;
       }
 
-      /* gallery.html と100%同一のスプラッシュ描画 */
+      /* 0〜1 / 0〜100 / ピクセル座標 いずれも安全に正規化 */
+      function normalizeCoord(val, srcMax) {
+        if (val == null || val === '') return 0.5;
+        var n = Number(val);
+        if (isNaN(n)) return 0.5;
+        if (n >= 0 && n <= 1) return n;
+        if (n > 1 && n <= 100) return n / 100;
+        if (n > 100 && n <= srcMax * 1.25) return n / srcMax;
+        if (n > srcMax * 1.25) return Math.min(1, Math.max(0, n / (srcMax * 10)));
+        return 0.5;
+      }
+
+      function collectLegacyPoints() {
+        var history = loadJson(INSCAPE_HISTORY_KEY);
+        var points = [];
+        var h, e, p, pt;
+
+        for (h = 0; h < history.length; h++) {
+          e = history[h];
+          if (!e) continue;
+
+          if (e.points && Array.isArray(e.points)) {
+            for (p = 0; p < e.points.length; p++) {
+              pt = e.points[p];
+              if (pt && pt.color) points.push(pt);
+            }
+          }
+
+          if (isRecipe(e) && e.color) points.push(e);
+        }
+
+        return points;
+      }
+
+      function getPoints() {
+        try {
+          var params = new URLSearchParams(location.search);
+          var idx = params.get('idx');
+          var gallery = loadJson(GALLERY_KEY);
+          var item;
+
+          if (idx !== null && idx !== '') {
+            item = gallery[parseInt(idx, 10)];
+            if (item && item.splats && item.splats.length) {
+              return collectRecipes(item.splats);
+            }
+          }
+
+          var live = collectRecipes(loadJson(LIVE_KEY));
+          if (live.length) return live;
+
+          var recipes = collectRecipes(loadJson(HISTORY_KEY));
+          if (recipes.length) return recipes;
+
+          var legacy = collectLegacyPoints();
+          if (legacy.length) return legacy;
+
+          return [];
+        } catch (e) {
+          return [];
+        }
+      }
+
+      /* index.html migrateSplash と同一 */
       function migrateSplash(s) {
-        var baseSize = s.baseSize || s.size || 220;
-        if (baseSize < 150) baseSize = baseSize * 2.5;
+        var baseSize = s.baseSize || s.size || 95;
+        if (baseSize >= 200) {
+          /* 旧仕様の大きいデータはそのまま */
+        } else if (baseSize > 0 && baseSize < 35) {
+          baseSize = baseSize * 2.5;
+        }
+
+        var nx = typeof s.nx === 'number' ? s.nx : null;
+        var ny = typeof s.ny === 'number' ? s.ny : null;
+
+        if (nx == null || isNaN(nx)) nx = normalizeCoord(s.x, SRC_W);
+        else nx = normalizeCoord(nx, SRC_W);
+        if (ny == null || isNaN(ny)) ny = normalizeCoord(s.y, SRC_H);
+        else ny = normalizeCoord(ny, SRC_H);
+
+        nx = Math.min(1, Math.max(0, nx));
+        ny = Math.min(1, Math.max(0, ny));
+
         return {
-          nx: typeof s.nx === 'number' ? s.nx : (s.x != null ? s.x / 100 : 0.5),
-          ny: typeof s.ny === 'number' ? s.ny : (s.y != null ? s.y / 100 : 0.5),
+          nx: nx,
+          ny: ny,
           color: s.color,
           baseSize: baseSize,
           rotation: s.rotation != null ? s.rotation : 0,
@@ -266,6 +348,7 @@
         };
       }
 
+      /* gallery.html / index.html と100%同一 */
       function createColorStamp(color) {
         if (!splatReady || !splatImg.naturalWidth || !color) return null;
         if (stampCache[color]) return stampCache[color];
@@ -326,10 +409,13 @@
         artCtx.fillStyle = CANVAS_BG;
         artCtx.fillRect(0, 0, SRC_W, SRC_H);
 
-        points.forEach(function (point) {
-          if (!point || !point.color) return;
-          drawSplatter(artCtx, migrateSplash(point), SRC_W, SRC_H);
-        });
+        var i, splash;
+        for (i = 0; i < points.length; i++) {
+          if (!points[i] || !points[i].color) continue;
+          splash = migrateSplash(points[i]);
+          if (!splash.color) continue;
+          drawSplatter(artCtx, splash, SRC_W, SRC_H);
+        }
 
         var fitScale = Math.min(w / SRC_W, h / SRC_H);
         var offsetX = (w - SRC_W * fitScale) / 2;
@@ -337,15 +423,15 @@
         ctx.drawImage(art, offsetX, offsetY, SRC_W * fitScale, SRC_H * fitScale);
       }
 
-      render();
+      safeRender();
 
       if (box && typeof ResizeObserver !== 'undefined') {
-        new ResizeObserver(render).observe(box);
+        new ResizeObserver(safeRender).observe(box);
       }
-      window.addEventListener('resize', render);
-      window.addEventListener('storage', render);
+      window.addEventListener('resize', safeRender);
+      window.addEventListener('storage', safeRender);
       document.addEventListener('visibilitychange', function () {
-        if (document.visibilityState === 'visible') render();
+        if (document.visibilityState === 'visible') safeRender();
       });
     })();
   </script>
