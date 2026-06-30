@@ -29,7 +29,6 @@
       background: var(--case-deep);
       color: #e8e6e2;
       -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
     }
 
     body {
@@ -40,7 +39,6 @@
     }
 
     .case-shell-page {
-      height: 100%;
       height: 100dvh;
       display: flex;
       flex-direction: column;
@@ -62,46 +60,32 @@
 
     .site-nav {
       display: flex;
-      align-items: stretch;
-      justify-content: flex-start;
       gap: 0.12rem;
       overflow-x: auto;
-      overflow-y: hidden;
-      flex-wrap: nowrap;
-      -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
     }
 
-    .site-nav::-webkit-scrollbar { display: none; height: 0; }
+    .site-nav::-webkit-scrollbar { display: none; }
 
     .site-nav-link {
       flex: 0 0 auto;
-      min-width: max-content;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
       font-size: 0.28rem;
-      font-weight: 400;
       letter-spacing: 0.03em;
-      text-indent: 0.03em;
       color: rgba(232, 230, 226, 0.36);
       text-decoration: none;
       padding: 0.36rem 0.22rem;
       border: 0.5px solid rgba(255, 255, 255, 0.06);
       border-radius: 2px;
       background: rgba(16, 16, 22, 0.78);
-      backdrop-filter: blur(8px);
-      -webkit-backdrop-filter: blur(8px);
-      transition: color 0.35s ease, border-color 0.35s ease, background 0.35s ease;
       white-space: nowrap;
-      text-align: center;
+      transition: color 0.35s ease, border-color 0.35s ease;
     }
 
     .site-nav-link:hover {
       color: rgba(232, 230, 226, 0.72);
       border-color: rgba(184, 160, 122, 0.26);
-      background: rgba(22, 22, 28, 0.9);
     }
 
     .site-nav-link.is-current {
@@ -112,154 +96,62 @@
     }
 
     .case-main {
-      flex: 1 1 auto;
+      flex: 1;
       min-height: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: relative;
       padding:
         0.5rem 1.25rem
         calc(1.25rem + env(safe-area-inset-bottom));
     }
 
-    .case-stage {
+    .case-container {
       position: relative;
-      z-index: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      width: 100%;
-      max-width: 16rem;
-    }
-
-    /* ── Clear case preview: art (back) + photo frame (front) ── */
-    .case-preview {
-      position: relative;
-      width: min(44vw, 15.2rem);
+      width: min(44vw, 15rem);
       aspect-ratio: 360 / 664;
-      height: auto;
       max-height: min(78dvh, 32rem);
-      filter:
-        drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55))
-        drop-shadow(0 14px 28px rgba(0, 0, 0, 0.48))
-        drop-shadow(0 28px 52px rgba(0, 0, 0, 0.42));
-      opacity: 0;
-      transform: scale(0.94) translateY(0.35rem);
-      animation: caseSpotlightReveal 1.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    }
-
-    @keyframes caseSpotlightReveal {
-      0% {
-        opacity: 0;
-        transform: scale(0.94) translateY(0.35rem);
-        filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.85)) brightness(0.45);
-      }
-      55% {
-        opacity: 1;
-        filter: drop-shadow(0 22px 40px rgba(0, 0, 0, 0.6)) brightness(0.92);
-      }
-      100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-        filter:
-          drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55))
-          drop-shadow(0 14px 28px rgba(0, 0, 0, 0.48))
-          drop-shadow(0 28px 52px rgba(0, 0, 0, 0.42));
-      }
-    }
-
-    .case-main::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 0;
-      background: radial-gradient(
-        ellipse 55% 42% at 50% 38%,
-        rgba(255, 252, 240, 0.14) 0%,
-        rgba(255, 252, 240, 0.04) 38%,
-        transparent 72%
-      );
-      opacity: 0;
-      animation: caseAmbientSpotlight 1.6s ease forwards;
-    }
-
-    @keyframes caseAmbientSpotlight {
-      0% { opacity: 0; }
-      40% { opacity: 1; }
-      100% { opacity: 0.55; }
-    }
-
-    /* Back layer — user ink art (synced 1:1 with frame print window) */
-    .case-preview__art {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
       overflow: hidden;
-      background: var(--canvas-bg);
-      line-height: 0;
-      font-size: 0;
+      border-radius: 13% / 6.2%;
+      filter:
+        drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))
+        drop-shadow(0 20px 40px rgba(0, 0, 0, 0.45));
     }
 
-    /* Front layer — photographed clear-case mask frame */
-    .case-frame {
+    #caseCanvas,
+    .case-overlay {
       position: absolute;
-      inset: 0;
-      z-index: 2;
-      display: block;
+      top: 0;
+      left: 0;
       width: 100%;
       height: 100%;
-      object-fit: fill;
+      display: block;
+    }
+
+    #caseCanvas {
+      z-index: 1;
+      background-color: var(--canvas-bg);
+      background-image:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        var(--canvas-fabric-url);
+      background-size: auto, auto, cover;
+      background-blend-mode: multiply;
+    }
+
+    .case-overlay {
+      z-index: 2;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
-    }
-
-    .case-preview__crystal {
-      position: absolute;
-      inset: 0;
-      z-index: 0;
-      background: var(--canvas-bg);
-      transition: background 0.35s ease;
-    }
-
-    .case-preview__art-canvas {
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      display: block;
-      width: 100%;
-      height: 100%;
-      vertical-align: top;
-      background-color: var(--canvas-bg);
-      background-image:
-        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
-        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
-        var(--canvas-fabric-url);
-      background-blend-mode: multiply;
-      background-size: auto, auto, cover;
-    }
-
-    .case-preview__fabric-overlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 2;
-      background-color: transparent;
-      background-image: var(--canvas-fabric-url);
-      background-size: cover;
-      background-blend-mode: multiply;
-      mix-blend-mode: multiply;
-      opacity: 0.35;
+      object-fit: fill;
     }
 
     .case-note {
       margin-top: 1.65rem;
       max-width: 16.5rem;
       text-align: center;
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", serif;
       font-size: 0.52rem;
       font-weight: 300;
       letter-spacing: 0.12em;
@@ -284,27 +176,20 @@
     </div>
 
     <main class="case-main" aria-label="プロダクトプレビュー">
-      <div class="case-stage">
-        <div class="case-preview" id="phoneCase">
-          <div class="case-preview__art" id="caseArtCover">
-            <div class="case-preview__crystal" id="caseCrystal" aria-hidden="true"></div>
-            <canvas class="case-preview__art-canvas" id="caseArtCanvas" aria-hidden="true"></canvas>
-            <div class="case-preview__fabric-overlay" aria-hidden="true"></div>
-          </div>
-          <img
-            class="case-frame"
-            id="caseFrame"
-            src="clear-case.png"
-            width="360"
-            height="664"
-            alt=""
-            draggable="false"
-            decoding="async"
-          >
-        </div>
-
-        <p class="case-note">※7日間アプリを続けると、あなただけの本当の色に変わります</p>
+      <div class="case-container" id="caseContainer">
+        <canvas id="caseCanvas" aria-hidden="true"></canvas>
+        <img
+          src="clear-case.png"
+          class="case-overlay"
+          id="caseOverlay"
+          width="360"
+          height="664"
+          alt="Clear Case"
+          draggable="false"
+          decoding="async"
+        >
       </div>
+      <p class="case-note">※7日間アプリを続けると、あなただけの本当の色に変わります</p>
     </main>
   </div>
 
@@ -334,16 +219,6 @@
       const OPACITY_FULL_LEN = 120;
       const WORD_MAX_LEN = 10000;
 
-      const SAMPLE_CRYSTAL_COLORS = [
-        '#1a1038',
-        '#3d2868',
-        '#6b4a8e',
-        '#9a6aaa',
-        '#c86b9a',
-        '#e8a8c8',
-        '#2a4a6e'
-      ];
-
       const SAMPLE_SPLASHES = [
         { nx: 0.28, ny: 0.34, color: '#3d2868', word: '静けさ', baseSize: 88, scaleFactor: 1.04, rotation: -0.4, opacity: 0.82 },
         { nx: 0.62, ny: 0.28, color: '#8b5a9a', word: '余白', baseSize: 72, scaleFactor: 0.98, rotation: 1.1, opacity: 0.76 },
@@ -354,11 +229,9 @@
         { nx: 0.56, ny: 0.76, color: '#2a4a6e', word: '深海', baseSize: 84, scaleFactor: 1.0, rotation: 2.1, opacity: 0.78 }
       ];
 
-      const phoneCaseEl = document.getElementById('phoneCase');
-      const caseArtCanvas = document.getElementById('caseArtCanvas');
-      const caseArtCover = document.getElementById('caseArtCover');
-      const caseCrystalEl = document.getElementById('caseCrystal');
-      const caseFrameEl = document.getElementById('caseFrame');
+      const caseContainer = document.getElementById('caseContainer');
+      const caseCanvas = document.getElementById('caseCanvas');
+      const caseOverlay = document.getElementById('caseOverlay');
 
       const splatImg = new Image();
       const stampCache = {};
@@ -367,11 +240,6 @@
       let renderQueued = false;
       let renderRetryCount = 0;
       let activeGalleryItem = null;
-
-      function hasGalleryUrlParams() {
-        const { date, idx } = getUrlGalleryParams();
-        return !!(date || (Number.isInteger(idx) && idx >= 0));
-      }
 
       function getUrlGalleryParams() {
         const params = new URLSearchParams(window.location.search);
@@ -386,39 +254,25 @@
         if (!str) return '';
         const matched = String(str).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
         if (!matched) return String(str).trim();
-        const y = matched[1];
-        const mo = String(matched[2]).padStart(2, '0');
-        const da = String(matched[3]).padStart(2, '0');
-        return `${y}.${mo}.${da}`;
+        return `${matched[1]}.${String(matched[2]).padStart(2, '0')}.${String(matched[3]).padStart(2, '0')}`;
       }
 
       function collectArtworkDateKeys(item) {
         const keys = new Set();
         if (!item) return keys;
         keys.add(normalizeDateKey(item.date));
-        if (Array.isArray(item.history)) {
-          item.history.forEach((entry) => keys.add(normalizeDateKey(entry.date)));
-        }
+        if (Array.isArray(item.history)) item.history.forEach((e) => keys.add(normalizeDateKey(e.date)));
         if (Array.isArray(item.splats)) {
           item.splats.forEach((s) => {
-            if (s.timestamp) {
-              const d = new Date(s.timestamp);
-              if (!Number.isNaN(d.getTime())) {
-                const y = d.getFullYear();
-                const mo = String(d.getMonth() + 1).padStart(2, '0');
-                const da = String(d.getDate()).padStart(2, '0');
-                keys.add(`${y}.${mo}.${da}`);
-              }
+            if (!s.timestamp) return;
+            const d = new Date(s.timestamp);
+            if (!Number.isNaN(d.getTime())) {
+              keys.add(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`);
             }
           });
         }
         keys.delete('');
         return keys;
-      }
-
-      function artworkMatchesDate(item, targetKey) {
-        if (!item || !targetKey) return false;
-        return collectArtworkDateKeys(item).has(targetKey);
       }
 
       function loadRawGallery() {
@@ -435,32 +289,28 @@
       function loadGalleryItemByParams() {
         const { date, idx } = getUrlGalleryParams();
         if (!date && idx < 0) return null;
-
         const gallery = loadRawGallery();
         const targetKey = normalizeDateKey(date);
 
         if (Number.isInteger(idx) && idx >= 0 && idx < gallery.length) {
           const byIdx = gallery[idx];
-          if (byIdx && Array.isArray(byIdx.splats) && byIdx.splats.length) {
-            if (!targetKey || artworkMatchesDate(byIdx, targetKey)) return byIdx;
+          if (byIdx?.splats?.length && (!targetKey || collectArtworkDateKeys(byIdx).has(targetKey))) {
+            return byIdx;
           }
         }
 
         if (targetKey) {
           for (let i = gallery.length - 1; i >= 0; i--) {
-            const candidate = gallery[i];
-            if (candidate && Array.isArray(candidate.splats) && candidate.splats.length &&
-                artworkMatchesDate(candidate, targetKey)) {
-              return candidate;
-            }
+            const item = gallery[i];
+            if (item?.splats?.length && collectArtworkDateKeys(item).has(targetKey)) return item;
           }
         }
-
         return null;
       }
 
       function initGalleryFromUrl() {
-        activeGalleryItem = hasGalleryUrlParams() ? loadGalleryItemByParams() : null;
+        const { date, idx } = getUrlGalleryParams();
+        activeGalleryItem = (date || (Number.isInteger(idx) && idx >= 0)) ? loadGalleryItemByParams() : null;
       }
 
       function mulberry32(seed) {
@@ -475,19 +325,16 @@
 
       function parseEntryDate(entry) {
         if (!entry) return null;
-        if (entry.timestamp && Number(entry.timestamp) > 0) {
+        if (entry.timestamp > 0) {
           const d = new Date(entry.timestamp);
           if (!Number.isNaN(d.getTime())) return d;
         }
         if (entry.date) {
-          const dateStr = String(entry.date);
-          const matched = dateStr.match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+          const matched = String(entry.date).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
           if (matched) {
             const d = new Date(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3]));
             if (!Number.isNaN(d.getTime())) return d;
           }
-          const parsed = Date.parse(dateStr);
-          if (!Number.isNaN(parsed)) return new Date(parsed);
         }
         return null;
       }
@@ -495,20 +342,14 @@
       function dayKeyFromEntry(entry) {
         const d = parseEntryDate(entry);
         if (!d) return `ts-${entry.timestamp || entry.date || Math.random()}`;
-        const y = d.getFullYear();
-        const mo = String(d.getMonth() + 1).padStart(2, '0');
-        const da = String(d.getDate()).padStart(2, '0');
-        return `${y}-${mo}-${da}`;
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       }
 
       function dayKeyFromTimestamp(ts) {
         if (!ts) return '';
         const d = new Date(ts);
         if (Number.isNaN(d.getTime())) return '';
-        const y = d.getFullYear();
-        const mo = String(d.getMonth() + 1).padStart(2, '0');
-        const da = String(d.getDate()).padStart(2, '0');
-        return `${y}-${mo}-${da}`;
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       }
 
       function loadHistoryEntries() {
@@ -552,71 +393,6 @@
           .slice(-MAX_CASE_DAYS);
       }
 
-      /** 7日分の色リスト（inscape_history のみ・古い順） */
-      function loadSevenDayColors() {
-        return loadSevenDayEntries()
-          .map((entry) => String(entry.color).trim())
-          .filter(Boolean);
-      }
-
-      function buildSevenCrystalStops(userColors) {
-        if (!userColors.length) return SAMPLE_CRYSTAL_COLORS.slice();
-        if (userColors.length >= MAX_CASE_DAYS) return userColors.slice(-MAX_CASE_DAYS);
-
-        const stops = new Array(MAX_CASE_DAYS);
-        const n = userColors.length;
-        for (let i = 0; i < n; i++) {
-          const slot = n === 1 ? 3 : Math.round((i / (n - 1)) * (MAX_CASE_DAYS - 1));
-          stops[slot] = userColors[i];
-        }
-        for (let i = 0; i < MAX_CASE_DAYS; i++) {
-          if (!stops[i]) stops[i] = SAMPLE_CRYSTAL_COLORS[i];
-        }
-        return stops;
-      }
-
-      function buildCrystalGradient(colors) {
-        const stops = colors.map((color, i) => {
-          const pct = (i / Math.max(1, colors.length - 1)) * 92;
-          return `${color} ${pct.toFixed(1)}%`;
-        });
-        stops.push('rgba(8, 8, 14, 0.88) 100%');
-        return `linear-gradient(168deg, ${stops.join(', ')})`;
-      }
-
-      function getSevenCrystalColors() {
-        if (activeGalleryItem && Array.isArray(activeGalleryItem.splats)) {
-          return activeGalleryItem.splats
-            .map((s) => String(s.color || '').trim())
-            .filter(Boolean);
-        }
-        const dayColors = loadSevenDayColors();
-        if (dayColors.length) return buildSevenCrystalStops(dayColors);
-        const liveColors = loadLiveSplashes()
-          .map((s) => String(s.color || '').trim())
-          .filter(Boolean);
-        if (liveColors.length) return buildSevenCrystalStops(liveColors);
-        return buildSevenCrystalStops([]);
-      }
-
-      function drawCrystalBase(ctx, w, h) {
-        const colors = getSevenCrystalColors();
-        const grd = ctx.createLinearGradient(w * 0.08, 0, w * 0.92, h);
-        colors.forEach((color, i) => {
-          grd.addColorStop(i / Math.max(1, colors.length - 1), color);
-        });
-        grd.addColorStop(1, 'rgba(8, 8, 14, 0.88)');
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 1;
-        ctx.fillStyle = grd;
-        ctx.fillRect(0, 0, w, h);
-      }
-
-      function clearCrystalLayer() {
-        if (!caseCrystalEl) return;
-        caseCrystalEl.style.background = CANVAS_BG;
-      }
-
       function loadLiveSplashes() {
         try {
           const raw = localStorage.getItem(LIVE_SPLASH_KEY);
@@ -625,7 +401,7 @@
           if (!Array.isArray(data)) return [];
           const now = Date.now();
           return data
-            .filter((s) => s && s.color && (!s.timestamp || now - s.timestamp < SPLASH_RETENTION_MS))
+            .filter((s) => s?.color && (!s.timestamp || now - s.timestamp < SPLASH_RETENTION_MS))
             .map(migrateSplash);
         } catch {
           return [];
@@ -634,16 +410,14 @@
 
       function loadSplashRecipes() {
         const merged = new Map();
-
         function addRecipe(recipe) {
-          if (!recipe || !recipe.color) return;
+          if (!recipe?.color) return;
           const migrated = migrateSplash(recipe);
           const key = migrated.timestamp
             ? `ts-${migrated.timestamp}`
             : `c-${migrated.color}-${migrated.word || ''}-${migrated.nx}-${migrated.ny}`;
           if (!merged.has(key)) merged.set(key, migrated);
         }
-
         try {
           const raw = localStorage.getItem(RECIPE_STORAGE_KEY);
           if (raw) {
@@ -651,9 +425,7 @@
             if (Array.isArray(data)) data.forEach(addRecipe);
           }
         } catch { /* ignore */ }
-
         loadLiveSplashes().forEach(addRecipe);
-
         return Array.from(merged.values());
       }
 
@@ -667,15 +439,12 @@
           const t = Math.sqrt((n - 1) / (SPLAT_MID_CHAR_COUNT - 1));
           return SPLAT_WIDTH_MIN_FRAC + (SPLAT_WIDTH_MID_FRAC - SPLAT_WIDTH_MIN_FRAC) * t;
         }
-        const excess = n - SPLAT_MID_CHAR_COUNT;
-        const tail = 1 - Math.exp(-excess / SPLAT_TAIL_DECAY_CHARS);
+        const tail = 1 - Math.exp(-(n - SPLAT_MID_CHAR_COUNT) / SPLAT_TAIL_DECAY_CHARS);
         return SPLAT_WIDTH_MID_FRAC + (SPLAT_WIDTH_MAX_FRAC - SPLAT_WIDTH_MID_FRAC) * tail;
       }
 
       function baseSizeFromWordLength(len, canvasW) {
-        const w = canvasW || REF_CANVAS_W;
-        const frac = splatWidthFractionFromWordLength(len);
-        return (w * frac) / SPLAT_EXPECTED_SCALE;
+        return ((canvasW || REF_CANVAS_W) * splatWidthFractionFromWordLength(len)) / SPLAT_EXPECTED_SCALE;
       }
 
       function opacityFromWordLength(len, rng) {
@@ -688,183 +457,122 @@
       function migrateGallerySplash(s) {
         let baseSize = s.baseSize || 220;
         if (baseSize < 150) baseSize *= 2.5;
-        return {
-          nx: s.nx,
-          ny: s.ny,
-          color: s.color,
-          baseSize,
-          rotation: s.rotation ?? 0,
-          scaleFactor: s.scaleFactor ?? 1,
-          opacity: s.opacity ?? 0.75
-        };
+        return { nx: s.nx, ny: s.ny, color: s.color, baseSize, rotation: s.rotation ?? 0, scaleFactor: s.scaleFactor ?? 1, opacity: s.opacity ?? 0.75 };
       }
 
       function migrateSplash(s) {
         let baseSize = s.baseSize || 95;
-        if (baseSize >= 200) {
-          /* legacy large sizes */
-        } else if (baseSize > 0 && baseSize < 35) {
-          baseSize *= 2.5;
-        }
+        if (baseSize > 0 && baseSize < 35 && baseSize < 200) baseSize *= 2.5;
         return {
-          nx: s.nx,
-          ny: s.ny,
-          color: s.color,
-          word: s.word || '',
-          timestamp: s.timestamp || 0,
-          baseSize,
-          rotation: s.rotation ?? 0,
-          scaleFactor: s.scaleFactor ?? 1,
-          opacity: s.opacity ?? 0.75,
-          canvasW: s.canvasW || REF_CANVAS_W
+          nx: s.nx, ny: s.ny, color: s.color, word: s.word || '', timestamp: s.timestamp || 0,
+          baseSize, rotation: s.rotation ?? 0, scaleFactor: s.scaleFactor ?? 1,
+          opacity: s.opacity ?? 0.75, canvasW: s.canvasW || REF_CANVAS_W
         };
       }
 
       function findRecipeForEntry(entry, recipes) {
         if (!recipes.length) return null;
         const dayKey = dayKeyFromEntry(entry);
-
         const exact = recipes.find((r) => r.timestamp && entry.timestamp && r.timestamp === entry.timestamp);
         if (exact) return exact;
-
         const sameDay = recipes
           .filter((r) => dayKeyFromTimestamp(r.timestamp) === dayKey)
           .sort((a, b) => Math.abs((a.timestamp || 0) - (entry.timestamp || 0)) - Math.abs((b.timestamp || 0) - (entry.timestamp || 0)));
         if (sameDay.length) return sameDay[0];
-
         if (entry.word) {
           const byWord = recipes.find((r) => (r.word || '') === entry.word && r.color === entry.color);
           if (byWord) return byWord;
         }
-
         return null;
       }
 
       function synthesizeSplashFromEntry(entry, index, total) {
-        const seed = Number(entry.timestamp) || index + 1;
-        const rng = mulberry32(seed);
+        const rng = mulberry32(Number(entry.timestamp) || index + 1);
         const wordLen = Math.max(1, (entry.word || '').length || 8);
-        const count = Math.max(1, total || 1);
-        const idx = index || 0;
-
         let nx = entry.nx;
         let ny = entry.ny;
-        if (typeof entry.x === 'number' && typeof entry.y === 'number') {
-          nx = entry.x;
-          ny = entry.y;
-        }
+        if (typeof entry.x === 'number' && typeof entry.y === 'number') { nx = entry.x; ny = entry.y; }
         if (typeof nx !== 'number' || typeof ny !== 'number') {
-          const angle = (idx / count) * Math.PI * 2 - Math.PI / 2 + rng() * 0.35;
+          const angle = (index / Math.max(1, total)) * Math.PI * 2 - Math.PI / 2 + rng() * 0.35;
           const radius = 0.2 + rng() * 0.16;
           nx = 0.5 + Math.cos(angle) * radius;
           ny = 0.5 + Math.sin(angle) * radius;
         }
-
-        const baseSize = entry.baseSize || baseSizeFromWordLength(wordLen, REF_CANVAS_W);
-        return {
-          nx,
-          ny,
+        return migrateSplash({
+          nx, ny,
           color: String(entry.color).trim(),
           word: entry.word || '',
           timestamp: entry.timestamp || 0,
-          baseSize,
+          baseSize: entry.baseSize || baseSizeFromWordLength(wordLen, REF_CANVAS_W),
           rotation: entry.rotation ?? (rng() * Math.PI * 2),
           scaleFactor: entry.scaleFactor ?? (0.92 + rng() * 0.18 + wordIntensity(wordLen) * 0.06),
-          opacity: entry.opacity ?? opacityFromWordLength(wordLen, rng),
-          canvasW: REF_CANVAS_W
-        };
+          opacity: entry.opacity ?? opacityFromWordLength(wordLen, rng)
+        });
       }
 
-      /** inscape_history の7日分、またはライブキャンバスから結晶デザインを再構成 */
       function resolveSplashesForCase() {
         const entries = loadSevenDayEntries();
         if (!entries.length) {
           const live = loadLiveSplashes();
-          if (live.length) return live;
-          return SAMPLE_SPLASHES.map(migrateSplash);
+          return live.length ? live : SAMPLE_SPLASHES.map(migrateSplash);
         }
-
         const recipes = loadSplashRecipes();
         return entries.map((entry, index) => {
           const recipe = findRecipeForEntry(entry, recipes);
           if (recipe) {
-            const merged = migrateSplash({
-              ...recipe,
-              color: entry.color || recipe.color,
-              word: entry.word || recipe.word,
-              timestamp: entry.timestamp || recipe.timestamp
-            });
+            const merged = migrateSplash({ ...recipe, color: entry.color || recipe.color, word: entry.word || recipe.word, timestamp: entry.timestamp || recipe.timestamp });
             if (typeof entry.nx === 'number') merged.nx = entry.nx;
             if (typeof entry.ny === 'number') merged.ny = entry.ny;
             if (typeof entry.x === 'number') merged.nx = entry.x;
             if (typeof entry.y === 'number') merged.ny = entry.y;
             return merged;
           }
-          return migrateSplash(synthesizeSplashFromEntry(entry, index, entries.length));
+          return synthesizeSplashFromEntry(entry, index, entries.length);
         });
       }
 
       function loadSplatImage() {
         if (splatReady && splatImg.naturalWidth > 0) return Promise.resolve();
         if (splatLoadPromise) return splatLoadPromise;
-
         splatLoadPromise = new Promise((resolve, reject) => {
           const onReady = () => {
-            if (!splatImg.naturalWidth || !splatImg.naturalHeight) {
-              splatLoadPromise = null;
-              reject(new Error('splat invalid'));
-              return;
-            }
+            if (!splatImg.naturalWidth) { splatLoadPromise = null; reject(new Error('splat invalid')); return; }
             splatReady = true;
             resolve();
           };
-          const onFail = () => {
-            splatLoadPromise = null;
-            reject(new Error('splat load failed'));
-          };
+          const onFail = () => { splatLoadPromise = null; reject(new Error('splat load failed')); };
           splatImg.onload = onReady;
           splatImg.onerror = onFail;
           splatImg.src = SPLAT_IMAGE;
-          if (splatImg.complete) {
-            if (splatImg.naturalWidth > 0) onReady();
-            else onFail();
-          }
+          if (splatImg.complete) (splatImg.naturalWidth > 0 ? onReady : onFail)();
         });
-
         return splatLoadPromise;
       }
 
       function createColorStamp(color) {
-        if (!splatReady || !splatImg.naturalWidth) return null;
-        if (stampCache[color]) return stampCache[color];
-
+        if (!splatReady || stampCache[color]) return stampCache[color] || null;
         const w = splatImg.naturalWidth;
         const h = splatImg.naturalHeight;
         const work = document.createElement('canvas');
         work.width = w;
         work.height = h;
         const wctx = work.getContext('2d');
-
         wctx.fillStyle = color;
         wctx.fillRect(0, 0, w, h);
         wctx.globalCompositeOperation = 'screen';
         wctx.drawImage(splatImg, 0, 0);
         wctx.globalCompositeOperation = 'source-over';
-
         stampCache[color] = work;
         return work;
       }
 
-      function drawGallerySplatter(c, splash, w, h) {
+      function drawSplatter(c, splash, w, h) {
         const stamp = createColorStamp(splash.color);
         if (!stamp) return;
-
-        const cx = splash.nx * w;
-        const cy = splash.ny * h;
-        const size = splash.baseSize * (splash.scaleFactor || 1);
-
+        const sourceW = splash.canvasW || REF_CANVAS_W;
+        const size = splash.baseSize * (splash.scaleFactor || 1) * (w / sourceW);
         c.save();
-        c.translate(cx, cy);
+        c.translate(splash.nx * w, splash.ny * h);
         c.rotate(splash.rotation || 0);
         c.globalAlpha = splash.opacity ?? 1;
         c.globalCompositeOperation = 'multiply';
@@ -873,175 +581,117 @@
         c.globalCompositeOperation = 'source-over';
       }
 
-      function getLegacyArtDimensions(item) {
-        let legacyW = item && item.canvasW > 0 ? Math.round(item.canvasW) : 0;
-        let legacyH = item && item.canvasH > 0 ? Math.round(item.canvasH) : 0;
-        if (!legacyW || !legacyH) {
-          legacyW = LEGACY_CANVAS_W;
-          legacyH = LEGACY_CANVAS_H;
-        }
-        return { legacyW, legacyH };
+      function drawGallerySplatter(c, splash, w, h) {
+        const stamp = createColorStamp(splash.color);
+        if (!stamp) return;
+        const size = splash.baseSize * (splash.scaleFactor || 1);
+        c.save();
+        c.translate(splash.nx * w, splash.ny * h);
+        c.rotate(splash.rotation || 0);
+        c.globalAlpha = splash.opacity ?? 1;
+        c.globalCompositeOperation = 'multiply';
+        c.drawImage(stamp, -size / 2, -size / 2, size, size);
+        c.restore();
+        c.globalCompositeOperation = 'source-over';
       }
 
-      function renderGalleryArtExact(ctx, item, destW, destH) {
-        const { legacyW, legacyH } = getLegacyArtDimensions(item);
-
+      function renderGalleryArt(ctx, item, destW, destH) {
+        let legacyW = item?.canvasW > 0 ? Math.round(item.canvasW) : LEGACY_CANVAS_W;
+        let legacyH = item?.canvasH > 0 ? Math.round(item.canvasH) : LEGACY_CANVAS_H;
         const off = document.createElement('canvas');
         off.width = legacyW;
         off.height = legacyH;
         const offCtx = off.getContext('2d');
         offCtx.fillStyle = CANVAS_BG;
         offCtx.fillRect(0, 0, legacyW, legacyH);
-
         if (Array.isArray(item.splats)) {
-          item.splats.map(migrateGallerySplash).forEach((splash) => {
-            drawGallerySplatter(offCtx, splash, legacyW, legacyH);
-          });
+          item.splats.map(migrateGallerySplash).forEach((s) => drawGallerySplatter(offCtx, s, legacyW, legacyH));
         }
-
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 1;
         ctx.fillStyle = CANVAS_BG;
         ctx.fillRect(0, 0, destW, destH);
-        ctx.drawImage(off, 0, 0, destW, destH);
+        const scale = Math.max(destW / legacyW, destH / legacyH);
+        const drawW = legacyW * scale;
+        const drawH = legacyH * scale;
+        ctx.drawImage(off, (destW - drawW) / 2, (destH - drawH) / 2, drawW, drawH);
       }
 
-      function renderPortraitArtExact(ctx, splashes, srcW, srcH, destW, destH, withCrystal) {
+      function renderPortraitArt(ctx, splashes, destW, destH) {
         const off = document.createElement('canvas');
-        off.width = srcW;
-        off.height = srcH;
+        off.width = REF_CANVAS_W;
+        off.height = REF_CANVAS_H;
         const offCtx = off.getContext('2d');
-        if (withCrystal) {
-          drawCrystalBase(offCtx, srcW, srcH);
-        } else {
-          offCtx.fillStyle = CANVAS_BG;
-          offCtx.fillRect(0, 0, srcW, srcH);
-        }
-        splashes.forEach((splash) => drawSplatter(offCtx, splash, srcW, srcH));
-
+        offCtx.fillStyle = CANVAS_BG;
+        offCtx.fillRect(0, 0, REF_CANVAS_W, REF_CANVAS_H);
+        splashes.forEach((s) => drawSplatter(offCtx, s, REF_CANVAS_W, REF_CANVAS_H));
         ctx.fillStyle = CANVAS_BG;
         ctx.fillRect(0, 0, destW, destH);
-        const srcAspect = srcW / srcH;
-        const destAspect = destW / destH;
-        if (Math.abs(srcAspect - destAspect) < 0.02) {
-          ctx.drawImage(off, 0, 0, destW, destH);
-        } else {
-          const scale = Math.max(destW / srcW, destH / srcH);
-          const drawW = srcW * scale;
-          const drawH = srcH * scale;
-          ctx.drawImage(off, (destW - drawW) / 2, (destH - drawH) / 2, drawW, drawH);
-        }
-      }
-
-      function drawSplatter(c, splash, w, h) {
-        const stamp = createColorStamp(splash.color);
-        if (!stamp) return;
-
-        const cx = splash.nx * w;
-        const cy = splash.ny * h;
-        const sourceW = splash.canvasW || REF_CANVAS_W;
-        const size = splash.baseSize * (splash.scaleFactor || 1) * (w / sourceW);
-
-        c.save();
-        c.translate(cx, cy);
-        c.rotate(splash.rotation || 0);
-        c.globalAlpha = splash.opacity ?? 1;
-        c.globalCompositeOperation = 'multiply';
-        c.drawImage(stamp, -size / 2, -size / 2, size, size);
-        c.restore();
-        c.globalCompositeOperation = 'source-over';
+        const scale = Math.max(destW / REF_CANVAS_W, destH / REF_CANVAS_H);
+        const drawW = REF_CANVAS_W * scale;
+        const drawH = REF_CANVAS_H * scale;
+        ctx.drawImage(off, (destW - drawW) / 2, (destH - drawH) / 2, drawW, drawH);
       }
 
       function renderCaseArt() {
-        if (!caseArtCanvas || !caseArtCover) return;
-
-        const coverRect = caseArtCover.getBoundingClientRect();
-        const cw = Math.round(coverRect.width);
-        const ch = Math.round(coverRect.height);
+        if (!caseCanvas || !caseContainer) return;
+        const rect = caseContainer.getBoundingClientRect();
+        const cw = Math.round(rect.width);
+        const ch = Math.round(rect.height);
         if (cw < 2 || ch < 2) {
-          if (renderRetryCount < 24) {
-            renderRetryCount += 1;
-            requestAnimationFrame(() => scheduleRenderCaseArt());
-          }
+          if (renderRetryCount++ < 24) requestAnimationFrame(scheduleRender);
           return;
         }
         renderRetryCount = 0;
-
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        caseArtCanvas.width = Math.round(cw * dpr);
-        caseArtCanvas.height = Math.round(ch * dpr);
-        caseArtCanvas.style.width = `${cw}px`;
-        caseArtCanvas.style.height = `${ch}px`;
-
-        const ctx = caseArtCanvas.getContext('2d');
+        caseCanvas.width = Math.round(cw * dpr);
+        caseCanvas.height = Math.round(ch * dpr);
+        caseCanvas.style.width = `${cw}px`;
+        caseCanvas.style.height = `${ch}px`;
+        const ctx = caseCanvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-        clearCrystalLayer();
-
-        if (activeGalleryItem && Array.isArray(activeGalleryItem.splats) && activeGalleryItem.splats.length) {
-          renderGalleryArtExact(ctx, activeGalleryItem, cw, ch);
-          return;
+        if (activeGalleryItem?.splats?.length) {
+          renderGalleryArt(ctx, activeGalleryItem, cw, ch);
+        } else {
+          renderPortraitArt(ctx, resolveSplashesForCase(), cw, ch);
         }
-
-        const splashes = resolveSplashesForCase();
-        renderPortraitArtExact(ctx, splashes, REF_CANVAS_W, REF_CANVAS_H, cw, ch, false);
       }
 
-      function applyCaseDesign() {
-        clearCrystalLayer();
-        scheduleRenderCaseArt();
+      function syncContainerRatio() {
+        if (!caseContainer || !caseOverlay?.naturalWidth) return;
+        caseContainer.style.aspectRatio = `${caseOverlay.naturalWidth} / ${caseOverlay.naturalHeight}`;
       }
 
-      function syncCaseFrameRatio() {
-        if (!phoneCaseEl || !caseFrameEl || !caseFrameEl.naturalWidth) return;
-        phoneCaseEl.style.aspectRatio = `${caseFrameEl.naturalWidth} / ${caseFrameEl.naturalHeight}`;
-      }
-
-      function scheduleRenderCaseArt() {
+      function scheduleRender() {
         if (renderQueued) return;
         renderQueued = true;
         requestAnimationFrame(() => {
           renderQueued = false;
-          loadSplatImage()
-            .then(() => renderCaseArt())
-            .catch(() => renderCaseArt());
+          loadSplatImage().then(renderCaseArt).catch(renderCaseArt);
         });
       }
 
-      if (phoneCaseEl && typeof ResizeObserver !== 'undefined') {
-        const ro = new ResizeObserver(() => scheduleRenderCaseArt());
-        ro.observe(phoneCaseEl);
-        if (caseArtCover) ro.observe(caseArtCover);
+      if (caseContainer && typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(scheduleRender).observe(caseContainer);
       }
 
-      if (caseFrameEl) {
-        if (caseFrameEl.complete) syncCaseFrameRatio();
-        else caseFrameEl.addEventListener('load', () => {
-          syncCaseFrameRatio();
-          scheduleRenderCaseArt();
-        }, { once: true });
+      if (caseOverlay) {
+        const onOverlayReady = () => { syncContainerRatio(); scheduleRender(); };
+        if (caseOverlay.complete) onOverlayReady();
+        else caseOverlay.addEventListener('load', onOverlayReady, { once: true });
       }
 
-      window.addEventListener('resize', scheduleRenderCaseArt);
-
+      window.addEventListener('resize', scheduleRender);
       window.addEventListener('storage', (e) => {
-        if (e.key === INSCAPE_HISTORY_KEY || e.key === RECIPE_STORAGE_KEY ||
-            e.key === LIVE_SPLASH_KEY || e.key === GALLERY_KEY) {
+        if ([INSCAPE_HISTORY_KEY, RECIPE_STORAGE_KEY, LIVE_SPLASH_KEY, GALLERY_KEY].includes(e.key)) {
           initGalleryFromUrl();
-          applyCaseDesign();
+          scheduleRender();
         }
       });
-
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') {
-          initGalleryFromUrl();
-          applyCaseDesign();
-        }
+        if (document.visibilityState === 'visible') { initGalleryFromUrl(); scheduleRender(); }
       });
 
       initGalleryFromUrl();
-      applyCaseDesign();
-      setTimeout(scheduleRenderCaseArt, 1500);
+      scheduleRender();
     })();
   </script>
 </body>
