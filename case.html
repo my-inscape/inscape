@@ -157,6 +157,7 @@
       'use strict';
 
       var GALLERY_KEY = 'inscape_gallery';
+      var INSCAPE_HISTORY_KEY = 'inscape_history';
       var HISTORY_KEY = 'histories';
       var LIVE_KEY = 'inscape_splashes';
       var SPLAT_IMAGE = 'splat.png';
@@ -214,14 +215,32 @@
         return null;
       }
 
-      function getSplats() {
+      function collectHistoryPoints() {
+        var history = loadJson(INSCAPE_HISTORY_KEY);
+        var points = [];
+        var h, e, p, k;
+        for (h = 0; h < history.length; h++) {
+          e = history[h];
+          if (!e) continue;
+          if (e.points && Array.isArray(e.points)) {
+            for (p = 0; p < e.points.length; p++) {
+              if (e.points[p] && e.points[p].color) points.push(e.points[p]);
+            }
+          }
+        }
+        return points;
+      }
+
+      function getDrawItems() {
         var galleryItem = pickGalleryItem();
         if (galleryItem && galleryItem.splats && galleryItem.splats.length) {
           return galleryItem.splats;
         }
+
         var live = loadJson(LIVE_KEY);
         var filtered = [];
-        for (var i = 0; i < live.length; i++) {
+        var i;
+        for (i = 0; i < live.length; i++) {
           if (live[i] && live[i].color && typeof live[i].nx === 'number') {
             filtered.push(live[i]);
           }
@@ -230,35 +249,31 @@
 
         var recipes = loadJson(HISTORY_KEY);
         filtered = [];
-        for (var j = 0; j < recipes.length; j++) {
-          if (recipes[j] && recipes[j].color && typeof recipes[j].nx === 'number') {
-            filtered.push(recipes[j]);
+        for (i = 0; i < recipes.length; i++) {
+          if (recipes[i] && recipes[i].color && typeof recipes[i].nx === 'number') {
+            filtered.push(recipes[i]);
           }
         }
-        return filtered;
+        if (filtered.length) return filtered;
+
+        return collectHistoryPoints();
       }
 
-      function loadSplatImage() {
-        if (splatReady) return Promise.resolve();
-        return new Promise(function (resolve, reject) {
-          splatImg.onload = function () {
-            if (splatImg.naturalWidth > 0) {
-              splatReady = true;
-              resolve();
-            } else {
-              reject(new Error('splat invalid'));
-            }
-          };
-          splatImg.onerror = function () { reject(new Error('splat failed')); };
-          splatImg.src = SPLAT_IMAGE;
-          if (splatImg.complete && splatImg.naturalWidth > 0) {
-            splatReady = true;
-            resolve();
-          }
-        });
+      /* バックグラウンドで splat を試みるが、描画は一切待たない */
+      splatImg.onload = function () {
+        if (splatImg.naturalWidth > 0) {
+          splatReady = true;
+          render();
+        }
+      };
+      splatImg.onerror = function () {
+        splatReady = false;
+      };
+      splatImg.src = SPLAT_IMAGE;
+      if (splatImg.complete && splatImg.naturalWidth > 0) {
+        splatReady = true;
       }
 
-      /* gallery.html と同一のスタンプ生成・描画 */
       function createColorStamp(color) {
         if (!splatReady || !splatImg.naturalWidth || !color) return null;
         if (stampCache[color]) return stampCache[color];
@@ -277,11 +292,29 @@
         return work;
       }
 
+      /* splat 未読込時は arc で即座にフォールバック描画 */
+      function drawFallbackSplatter(ctx, color, size, rotation, opacity) {
+        var r = size * 0.38;
+        var b, ang, dist, br;
+        ctx.fillStyle = color;
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = opacity;
+        ctx.beginPath();
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.fill();
+        for (b = 0; b < 6; b++) {
+          ang = rotation + b * 1.05;
+          dist = r * (0.55 + b * 0.12);
+          br = r * (0.22 + b * 0.04);
+          ctx.beginPath();
+          ctx.arc(Math.cos(ang) * dist, Math.sin(ang) * dist, br, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      }
+
       function drawSplatter(ctx, splash, w, h) {
         var color = splash.color;
         if (!color) return;
-        var stamp = createColorStamp(color);
-        if (!stamp) return;
 
         var nx = typeof splash.nx === 'number' ? splash.nx : (splash.x != null ? splash.x / 100 : 0.5);
         var ny = typeof splash.ny === 'number' ? splash.ny : (splash.y != null ? splash.y / 100 : 0.5);
@@ -290,16 +323,22 @@
         var size = baseSize * (splash.scaleFactor != null ? splash.scaleFactor : 1);
         var rotation = splash.rotation != null ? splash.rotation : 0;
         var opacity = splash.opacity != null ? splash.opacity : 0.75;
-
         var cx = nx * w;
         var cy = ny * h;
+        var stamp = createColorStamp(color);
 
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(rotation);
         ctx.globalAlpha = opacity;
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
+
+        if (stamp) {
+          ctx.globalCompositeOperation = 'multiply';
+          ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
+        } else {
+          drawFallbackSplatter(ctx, color, size, rotation, opacity);
+        }
+
         ctx.restore();
         ctx.globalCompositeOperation = 'source-over';
       }
@@ -326,8 +365,8 @@
         ctx.fillStyle = CANVAS_BG;
         ctx.fillRect(0, 0, displayW, displayH);
 
-        var splats = getSplats();
-        if (splats.length > 0) {
+        var items = getDrawItems();
+        if (items.length > 0) {
           var art = document.createElement('canvas');
           art.width = SRC_W;
           art.height = SRC_H;
@@ -335,11 +374,11 @@
           artCtx.fillStyle = CANVAS_BG;
           artCtx.fillRect(0, 0, SRC_W, SRC_H);
 
-          for (var i = 0; i < splats.length; i++) {
-            drawSplatter(artCtx, splats[i], SRC_W, SRC_H);
+          var i;
+          for (i = 0; i < items.length; i++) {
+            drawSplatter(artCtx, items[i], SRC_W, SRC_H);
           }
 
-          /* 横幅を基準に均等スケール（引き伸ばし防止） */
           var scale = displayW / SRC_W;
           var drawW = displayW;
           var drawH = SRC_H * scale;
@@ -355,7 +394,6 @@
           ctx.drawImage(art, offsetX, offsetY, drawW, drawH);
         }
 
-        /* 左上カメラユニットのみピンポイント型抜き */
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         var cameraW = canvas.width * 0.42;
@@ -365,25 +403,22 @@
       }
 
       function fitContainer() {
-        if (!box || !overlay || !overlay.naturalWidth) return;
-        box.style.aspectRatio = overlay.naturalWidth + ' / ' + overlay.naturalHeight;
+        if (!box) return;
+        var ow = overlay && overlay.naturalWidth ? overlay.naturalWidth : 360;
+        var oh = overlay && overlay.naturalHeight ? overlay.naturalHeight : 664;
+        box.style.aspectRatio = ow + ' / ' + oh;
         box.style.width = 'min(46vw, 16.25rem)';
         box.style.height = 'auto';
       }
 
-      function boot() {
-        loadSplatImage()
-          .catch(function () {})
-          .then(function () {
-            if (overlay && !overlay.complete) {
-              overlay.addEventListener('load', function () {
-                fitContainer();
-                render();
-              }, { once: true });
-            }
-            fitContainer();
-            render();
-          });
+      fitContainer();
+      render();
+
+      if (overlay && !overlay.complete) {
+        overlay.addEventListener('load', function () {
+          fitContainer();
+          render();
+        }, { once: true });
       }
 
       if (box && typeof ResizeObserver !== 'undefined') {
@@ -394,8 +429,6 @@
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') render();
       });
-
-      boot();
     })();
   </script>
 </body>
