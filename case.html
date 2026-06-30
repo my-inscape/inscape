@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0D0D11">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="INSCAPE">
+  <meta name="mobile-web-app-capable" content="yes">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>プロダクトプレビュー — INSCAPE</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --case-deep: #0d0d11;
+      --case-accent: rgba(201, 169, 98, 0.35);
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", serif;
+      background: var(--case-deep);
+      color: #e8e6e2;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    body {
+      background:
+        radial-gradient(ellipse 90% 50% at 50% -8%, rgba(60, 48, 88, 0.18) 0%, transparent 52%),
+        radial-gradient(ellipse 70% 40% at 88% 95%, rgba(20, 40, 68, 0.14) 0%, transparent 48%),
+        var(--case-deep);
+    }
+
+    .case-shell-page {
+      height: 100%;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .case-top {
+      flex-shrink: 0;
+      z-index: 20;
+      padding:
+        calc(0.85rem + env(safe-area-inset-top))
+        calc(0.65rem + env(safe-area-inset-right))
+        0.5rem
+        calc(0.65rem + env(safe-area-inset-left));
+      background: linear-gradient(180deg, rgba(13, 13, 17, 0.96) 0%, rgba(13, 13, 17, 0.88) 72%, rgba(13, 13, 17, 0) 100%);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .site-nav {
+      display: flex;
+      align-items: stretch;
+      justify-content: flex-start;
+      gap: 0.12rem;
+      overflow-x: auto;
+      overflow-y: hidden;
+      flex-wrap: nowrap;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+    }
+
+    .site-nav::-webkit-scrollbar { display: none; height: 0; }
+
+    .site-nav-link {
+      flex: 0 0 auto;
+      min-width: max-content;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.28rem;
+      font-weight: 400;
+      letter-spacing: 0.03em;
+      text-indent: 0.03em;
+      color: rgba(232, 230, 226, 0.36);
+      text-decoration: none;
+      padding: 0.36rem 0.22rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.06);
+      border-radius: 2px;
+      background: rgba(16, 16, 22, 0.78);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: color 0.35s ease, border-color 0.35s ease, background 0.35s ease;
+      white-space: nowrap;
+      text-align: center;
+    }
+
+    .site-nav-link:hover {
+      color: rgba(232, 230, 226, 0.72);
+      border-color: rgba(184, 160, 122, 0.26);
+      background: rgba(22, 22, 28, 0.9);
+    }
+
+    .site-nav-link.is-current {
+      color: rgba(201, 169, 98, 0.56);
+      border-color: rgba(201, 169, 98, 0.18);
+      background: rgba(201, 169, 98, 0.05);
+      pointer-events: none;
+    }
+
+    .case-main {
+      flex: 1 1 auto;
+      min-height: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding:
+        0.75rem 1.25rem
+        calc(1.25rem + env(safe-area-inset-bottom));
+    }
+
+    .case-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 22rem;
+    }
+
+    /* ── Phone case object (layered for future artist frame PNG) ── */
+    .phone-case {
+      position: relative;
+      width: min(52vw, 13.5rem);
+      aspect-ratio: 9 / 16;
+      max-height: min(68dvh, 32rem);
+      filter: drop-shadow(0 28px 48px rgba(0, 0, 0, 0.55));
+    }
+
+    .phone-case__bezel {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 2.1rem;
+      padding: 0.42rem;
+      background: linear-gradient(145deg, #2a2a32 0%, #121218 42%, #0a0a0e 100%);
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.12),
+        inset 0 -2px 8px rgba(0, 0, 0, 0.65),
+        0 0 0 0.5px rgba(0, 0, 0, 0.8);
+    }
+
+    .phone-case__camera {
+      position: absolute;
+      top: 0.55rem;
+      right: 0.85rem;
+      z-index: 4;
+      width: 2.1rem;
+      height: 2.1rem;
+      border-radius: 0.65rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      background: linear-gradient(145deg, #1e1e26 0%, #0c0c10 100%);
+      box-shadow:
+        inset 0 1px 2px rgba(255, 255, 255, 0.08),
+        inset 0 -1px 4px rgba(0, 0, 0, 0.6);
+      pointer-events: none;
+    }
+
+    .phone-case__camera::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 0.72rem;
+      height: 0.72rem;
+      border-radius: 50%;
+      border: 0.5px solid rgba(120, 140, 180, 0.35);
+      background: radial-gradient(circle at 35% 30%, rgba(80, 100, 140, 0.5) 0%, #0a0a12 70%);
+    }
+
+    .phone-case__screen {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      border-radius: 1.75rem;
+      overflow: hidden;
+      background: #08080c;
+      border: 0.5px solid rgba(255, 255, 255, 0.06);
+      box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+    }
+
+    .phone-case__gradient {
+      position: absolute;
+      inset: 0;
+      z-index: 1;
+      background: linear-gradient(
+        165deg,
+        #1a1038 0%,
+        #4a2c6e 24%,
+        #c86b9a 52%,
+        #f0a8c8 76%,
+        #1a3058 100%
+      );
+      transition: background 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .phone-case__artist-frame {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background: transparent center / cover no-repeat;
+      /* Future: background-image: url('case-artist-frame.png'); */
+    }
+
+    .phone-case__glass {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      pointer-events: none;
+      background:
+        linear-gradient(
+          155deg,
+          rgba(255, 255, 255, 0.14) 0%,
+          rgba(255, 255, 255, 0.02) 28%,
+          transparent 48%
+        ),
+        radial-gradient(
+          ellipse 80% 40% at 50% 0%,
+          rgba(255, 255, 255, 0.06) 0%,
+          transparent 55%
+        );
+      mix-blend-mode: soft-light;
+      opacity: 0.85;
+    }
+
+    .case-note {
+      margin-top: 1.65rem;
+      max-width: 16.5rem;
+      text-align: center;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", serif;
+      font-size: 0.52rem;
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      line-height: 1.85;
+      color: rgba(232, 230, 226, 0.5);
+      opacity: 0.5;
+    }
+  </style>
+</head>
+<body>
+  <div class="case-shell-page">
+    <div class="case-top">
+      <nav class="site-nav" aria-label="ナビゲーション">
+        <a class="site-nav-link" href="index.html">キャンバス</a>
+        <a class="site-nav-link" href="midspace.html">言葉の浮遊層</a>
+        <a class="site-nav-link" href="gallery.html">感情の回廊</a>
+        <a class="site-nav-link" href="mycolors.html">今日の私の色</a>
+        <a class="site-nav-link" href="ocean.html">感情の夜海</a>
+        <a class="site-nav-link" href="room.html">合言葉の部屋</a>
+        <a class="site-nav-link is-current" href="case.html" aria-current="page">プロダクトプレビュー</a>
+      </nav>
+    </div>
+
+    <main class="case-main" aria-label="プロダクトプレビュー">
+      <div class="case-stage">
+        <div class="phone-case" id="phoneCase">
+          <div class="phone-case__bezel">
+            <div class="phone-case__camera" aria-hidden="true"></div>
+            <div class="phone-case__screen">
+              <div class="phone-case__gradient" id="caseGradient" aria-hidden="true"></div>
+              <div class="phone-case__glass" aria-hidden="true"></div>
+              <div class="phone-case__artist-frame" id="caseArtistFrame" aria-hidden="true"></div>
+            </div>
+          </div>
+        </div>
+        <p class="case-note">※7日間アプリを続けると、あなただけの本当の色に変わります</p>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    (function () {
+      'use strict';
+
+      const INSCAPE_HISTORY_KEY = 'inscape_history';
+      const MAX_CASE_COLORS = 7;
+
+      const DEMO_GRADIENT = 'linear-gradient(165deg, #1a1038 0%, #4a2c6e 22%, #8b5a9a 40%, #c86b9a 55%, #f0a8c8 72%, #2a4a6e 88%, #0d1a2e 100%)';
+
+      const caseGradientEl = document.getElementById('caseGradient');
+
+      function loadHistoryColors() {
+        try {
+          const raw = localStorage.getItem(INSCAPE_HISTORY_KEY);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return [];
+          return data
+            .filter((entry) => entry && typeof entry.color === 'string' && entry.color.trim())
+            .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0))
+            .slice(-MAX_CASE_COLORS)
+            .map((entry) => entry.color.trim());
+        } catch {
+          return [];
+        }
+      }
+
+      function buildGradientFromColors(colors) {
+        if (!colors.length) return DEMO_GRADIENT;
+        if (colors.length === 1) {
+          const c = colors[0];
+          return `linear-gradient(165deg, ${c} 0%, ${c} 55%, rgba(8, 8, 12, 0.92) 100%)`;
+        }
+        const stops = colors.map((color, i) => {
+          const pct = (i / (colors.length - 1)) * 88;
+          return `${color} ${pct.toFixed(1)}%`;
+        });
+        stops.push('rgba(8, 8, 14, 0.95) 100%');
+        return `linear-gradient(165deg, ${stops.join(', ')})`;
+      }
+
+      function applyCaseGradient() {
+        if (!caseGradientEl) return;
+        const colors = loadHistoryColors();
+        caseGradientEl.style.background = buildGradientFromColors(colors);
+      }
+
+      applyCaseGradient();
+
+      window.addEventListener('storage', (e) => {
+        if (e.key === INSCAPE_HISTORY_KEY) applyCaseGradient();
+      });
+    })();
+  </script>
+</body>
+</html>
