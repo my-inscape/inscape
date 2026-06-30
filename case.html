@@ -84,18 +84,48 @@
 
     .case-container {
       position: relative;
-      width: 315px;
-      height: 560px;
-      max-width: min(52vw, 19.7rem);
-      max-height: min(78dvh, 35rem);
-      margin: 0 auto;
-      background-image: url('white-case.png');
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: center;
+      width: 280px;
+      height: 520px;
+      max-width: min(50vw, 17.5rem);
+      max-height: min(78dvh, 32.5rem);
+      background-color: #f8f9fa;
+      border-radius: 45px;
       overflow: hidden;
-      border-radius: 40px;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 28px 56px rgba(0, 0, 0, 0.48);
+      border: 1px solid rgba(0, 0, 0, 0.05);
+      box-shadow:
+        0 4px 14px rgba(0, 0, 0, 0.12),
+        0 22px 48px rgba(0, 0, 0, 0.38),
+        inset 0 2px 0 rgba(255, 255, 255, 0.95),
+        inset 0 -3px 10px rgba(0, 0, 0, 0.05),
+        inset 3px 0 8px rgba(255, 255, 255, 0.4),
+        inset -3px 0 8px rgba(0, 0, 0, 0.04);
+    }
+
+    .camera-hole {
+      position: absolute;
+      top: 25px;
+      left: 25px;
+      width: 90px;
+      height: 90px;
+      border-radius: 24px;
+      z-index: 3;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(
+          93deg,
+          transparent 0,
+          transparent 32px,
+          rgba(255, 248, 235, 0.018) 32px,
+          rgba(255, 248, 235, 0.018) 33px
+        ),
+        radial-gradient(ellipse 90% 55% at 50% -8%, rgba(201, 169, 98, 0.07) 0%, transparent 50%),
+        radial-gradient(ellipse 70% 40% at 50% 105%, rgba(255, 255, 255, 0.02) 0%, transparent 45%),
+        #030303;
+      box-shadow:
+        inset 0 3px 8px rgba(0, 0, 0, 0.45),
+        inset 0 -1px 3px rgba(255, 255, 255, 0.12),
+        inset 2px 0 5px rgba(0, 0, 0, 0.2),
+        inset -1px 0 3px rgba(255, 255, 255, 0.08);
     }
 
     #caseCanvas {
@@ -106,7 +136,7 @@
       height: 100%;
       display: block;
       background: transparent;
-      border-radius: inherit;
+      z-index: 1;
     }
 
     .note {
@@ -138,6 +168,7 @@
 
     <main class="main">
       <div class="case-container" id="caseContainer">
+        <div class="camera-hole" aria-hidden="true"></div>
         <canvas id="caseCanvas"></canvas>
       </div>
       <p class="note">※実際の製品は、あなただけの本当の色がプリントされた『クリアケース（透明）』として完成します。</p>
@@ -152,11 +183,28 @@
       var HISTORY_KEY = 'histories';
       var LIVE_KEY = 'inscape_splashes';
       var GALLERY_KEY = 'inscape_gallery';
+      var SPLAT_IMAGE = 'splat.png';
+      var CANVAS_BG = '#f7f4eb';
       var SRC_W = 270;
       var SRC_H = 480;
 
       var box = document.getElementById('caseContainer');
       var canvas = document.getElementById('caseCanvas');
+
+      var splatImg = new Image();
+      var stampCache = {};
+      var splatReady = false;
+
+      splatImg.onload = function () {
+        if (splatImg.naturalWidth > 0) {
+          splatReady = true;
+          stampCache = {};
+          render();
+        }
+      };
+      splatImg.onerror = function () { splatReady = false; };
+      try { splatImg.src = SPLAT_IMAGE; } catch (e) { splatReady = false; }
+      if (splatImg.complete && splatImg.naturalWidth > 0) splatReady = true;
 
       function loadJson(key) {
         try {
@@ -172,82 +220,91 @@
       function getPoints() {
         var history = loadJson(INSCAPE_HISTORY_KEY);
         var points = [];
-        var h, e, p;
+        var h, e;
 
         for (h = 0; h < history.length; h++) {
           e = history[h];
-          if (!e) continue;
-          if (e.points && Array.isArray(e.points)) {
-            e.points.forEach(function (pt) {
-              if (pt && pt.color) points.push(pt);
-            });
-          }
+          if (!e || !e.points || !Array.isArray(e.points)) continue;
+          e.points.forEach(function (pt) {
+            if (pt && pt.color) points.push(pt);
+          });
         }
         if (points.length) return points;
 
-        var gallery = loadJson(GALLERY_KEY);
         var params = new URLSearchParams(location.search);
         var idx = params.get('idx');
+        var gallery = loadJson(GALLERY_KEY);
         if (idx !== null && idx !== '' && gallery[parseInt(idx, 10)]) {
           var item = gallery[parseInt(idx, 10)];
           if (item && item.splats && item.splats.length) return item.splats;
         }
 
-        var live = loadJson(LIVE_KEY);
         var out = [];
-        live.forEach(function (s) {
+        loadJson(LIVE_KEY).forEach(function (s) {
           if (s && s.color) out.push(s);
         });
         if (out.length) return out;
 
-        var recipes = loadJson(HISTORY_KEY);
-        recipes.forEach(function (s) {
+        loadJson(HISTORY_KEY).forEach(function (s) {
           if (s && s.color) out.push(s);
         });
         return out;
       }
 
-      function pointNx(point) {
-        if (typeof point.nx === 'number') return point.nx;
-        if (point.x != null) return point.x / 100;
-        return 0.5;
+      /* gallery.html と100%同一のスプラッシュ描画 */
+      function migrateSplash(s) {
+        var baseSize = s.baseSize || s.size || 220;
+        if (baseSize < 150) baseSize = baseSize * 2.5;
+        return {
+          nx: typeof s.nx === 'number' ? s.nx : (s.x != null ? s.x / 100 : 0.5),
+          ny: typeof s.ny === 'number' ? s.ny : (s.y != null ? s.y / 100 : 0.5),
+          color: s.color,
+          baseSize: baseSize,
+          rotation: s.rotation != null ? s.rotation : 0,
+          scaleFactor: s.scaleFactor != null ? s.scaleFactor : 1,
+          opacity: s.opacity != null ? s.opacity : 0.75
+        };
       }
 
-      function pointNy(point) {
-        if (typeof point.ny === 'number') return point.ny;
-        if (point.y != null) return point.y / 100;
-        return 0.5;
+      function createColorStamp(color) {
+        if (!splatReady || !splatImg.naturalWidth || !color) return null;
+        if (stampCache[color]) return stampCache[color];
+        var w = splatImg.naturalWidth;
+        var h = splatImg.naturalHeight;
+        var work = document.createElement('canvas');
+        work.width = w;
+        work.height = h;
+        var wctx = work.getContext('2d');
+        wctx.fillStyle = color;
+        wctx.fillRect(0, 0, w, h);
+        wctx.globalCompositeOperation = 'screen';
+        wctx.drawImage(splatImg, 0, 0);
+        wctx.globalCompositeOperation = 'source-over';
+        stampCache[color] = work;
+        return work;
       }
 
-      function pointSize(point, scale) {
-        var size = point.baseSize || point.size || 80;
-        if (size < 150) size = size * 2.5;
-        return size * (point.scaleFactor != null ? point.scaleFactor : 1) * scale;
-      }
-
-      function drawSplatter(ctx, point, cx, cy, radius, rotation, opacity) {
-        var color = point.color;
-        var b, ang, dist, br;
-        ctx.fillStyle = color;
-        ctx.globalAlpha = opacity;
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.fill();
-        for (b = 0; b < 5; b++) {
-          ang = rotation + b * 1.1;
-          dist = radius * (0.55 + b * 0.13);
-          br = radius * (0.28 + b * 0.05);
-          ctx.beginPath();
-          ctx.arc(cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist, br, 0, Math.PI * 2);
-          ctx.fill();
-        }
+      function drawSplatter(c, splash, w, h) {
+        var stamp = createColorStamp(splash.color);
+        if (!stamp) return;
+        var cx = splash.nx * w;
+        var cy = splash.ny * h;
+        var size = splash.baseSize * (splash.scaleFactor || 1);
+        c.save();
+        c.translate(cx, cy);
+        c.rotate(splash.rotation || 0);
+        c.globalAlpha = splash.opacity != null ? splash.opacity : 1;
+        c.globalCompositeOperation = 'multiply';
+        c.drawImage(stamp, -size / 2, -size / 2, size, size);
+        c.restore();
+        c.globalCompositeOperation = 'source-over';
       }
 
       function render() {
         if (!canvas || !box) return;
 
-        var w = Math.round(box.clientWidth) || 315;
-        var h = Math.round(box.clientHeight) || 560;
+        var w = Math.round(box.clientWidth) || 280;
+        var h = Math.round(box.clientHeight) || 520;
         var dpr = Math.min(2, window.devicePixelRatio || 1);
 
         canvas.width = Math.round(w * dpr);
@@ -262,23 +319,22 @@
         var points = getPoints();
         if (!points.length) return;
 
-        var fitScale = Math.min(w / SRC_W, h / SRC_H);
-        var offsetX = (w - SRC_W * fitScale) / 2;
-        var offsetY = (h - SRC_H * fitScale) / 2;
+        var art = document.createElement('canvas');
+        art.width = SRC_W;
+        art.height = SRC_H;
+        var artCtx = art.getContext('2d');
+        artCtx.fillStyle = CANVAS_BG;
+        artCtx.fillRect(0, 0, SRC_W, SRC_H);
 
         points.forEach(function (point) {
           if (!point || !point.color) return;
-          var nx = pointNx(point);
-          var ny = pointNy(point);
-          var cx = offsetX + nx * SRC_W * fitScale;
-          var cy = offsetY + ny * SRC_H * fitScale;
-          var radius = pointSize(point, fitScale) * 0.35;
-          var rotation = point.rotation != null ? point.rotation : 0;
-          var opacity = point.opacity != null ? point.opacity : 0.85;
-          drawSplatter(ctx, point, cx, cy, radius, rotation, opacity);
+          drawSplatter(artCtx, migrateSplash(point), SRC_W, SRC_H);
         });
 
-        ctx.globalAlpha = 1;
+        var fitScale = Math.min(w / SRC_W, h / SRC_H);
+        var offsetX = (w - SRC_W * fitScale) / 2;
+        var offsetY = (h - SRC_H * fitScale) / 2;
+        ctx.drawImage(art, offsetX, offsetY, SRC_W * fitScale, SRC_H * fitScale);
       }
 
       render();
