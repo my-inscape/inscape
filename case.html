@@ -18,7 +18,6 @@
 
     :root {
       --case-deep: #0d0d11;
-      --case-accent: rgba(201, 169, 98, 0.35);
     }
 
     html, body {
@@ -118,7 +117,7 @@
       align-items: center;
       justify-content: center;
       padding:
-        0.75rem 1.25rem
+        0.5rem 1.25rem
         calc(1.25rem + env(safe-area-inset-bottom));
     }
 
@@ -130,20 +129,60 @@
       max-width: 22rem;
     }
 
-    /* ── Phone case object (layered for future artist frame PNG) ── */
+    .device-switch {
+      display: flex;
+      align-items: stretch;
+      gap: 0.35rem;
+      margin-bottom: 1.1rem;
+      padding: 0.22rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.07);
+      border-radius: 2px;
+      background: rgba(255, 255, 255, 0.025);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+
+    .device-switch__btn {
+      flex: 1 1 0;
+      min-width: 4.5rem;
+      padding: 0.42rem 0.65rem;
+      border: 0.5px solid transparent;
+      border-radius: 1px;
+      background: transparent;
+      color: rgba(232, 230, 226, 0.38);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", serif;
+      font-size: 0.48rem;
+      font-weight: 300;
+      letter-spacing: 0.14em;
+      text-indent: 0.14em;
+      cursor: pointer;
+      transition: color 0.35s ease, border-color 0.35s ease, background 0.35s ease;
+    }
+
+    .device-switch__btn:hover {
+      color: rgba(232, 230, 226, 0.68);
+    }
+
+    .device-switch__btn.is-active {
+      color: rgba(201, 169, 98, 0.72);
+      border-color: rgba(201, 169, 98, 0.22);
+      background: rgba(201, 169, 98, 0.07);
+    }
+
+    /* ── Phone case (layered — artist frame ready) ── */
     .phone-case {
       position: relative;
       width: min(52vw, 13.5rem);
       aspect-ratio: 9 / 16;
-      max-height: min(68dvh, 32rem);
+      max-height: min(62dvh, 30rem);
       filter: drop-shadow(0 28px 48px rgba(0, 0, 0, 0.55));
+      transition: filter 0.4s ease;
     }
 
     .phone-case__bezel {
       position: relative;
       width: 100%;
       height: 100%;
-      border-radius: 2.1rem;
       padding: 0.42rem;
       background: linear-gradient(145deg, #2a2a32 0%, #121218 42%, #0a0a0e 100%);
       border: 0.5px solid rgba(255, 255, 255, 0.1);
@@ -151,46 +190,120 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.12),
         inset 0 -2px 8px rgba(0, 0, 0, 0.65),
         0 0 0 0.5px rgba(0, 0, 0, 0.8);
+      transition: border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .phone-case.is-iphone .phone-case__bezel {
+      border-radius: 2.1rem;
+    }
+
+    .phone-case.is-android .phone-case__bezel {
+      border-radius: 1.25rem;
+      background: linear-gradient(145deg, #2e2e34 0%, #14141a 45%, #0a0a0e 100%);
     }
 
     .phone-case__camera {
       position: absolute;
-      top: 0.55rem;
-      right: 0.85rem;
       z-index: 4;
-      width: 2.1rem;
-      height: 2.1rem;
-      border-radius: 0.65rem;
+      pointer-events: none;
       border: 0.5px solid rgba(255, 255, 255, 0.14);
       background: linear-gradient(145deg, #1e1e26 0%, #0c0c10 100%);
       box-shadow:
         inset 0 1px 2px rgba(255, 255, 255, 0.08),
         inset 0 -1px 4px rgba(0, 0, 0, 0.6);
-      pointer-events: none;
+      transition:
+        top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+        left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+        right 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+        width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+        height 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+        border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .phone-case__camera::before {
-      content: '';
+    .phone-case__camera-lenses {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      width: 0.72rem;
-      height: 0.72rem;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.22rem;
+      padding: 0.28rem;
+    }
+
+    .phone-case__lens {
+      display: block;
       border-radius: 50%;
       border: 0.5px solid rgba(120, 140, 180, 0.35);
       background: radial-gradient(circle at 35% 30%, rgba(80, 100, 140, 0.5) 0%, #0a0a12 70%);
+      transition: width 0.45s ease, height 0.45s ease;
+    }
+
+    /* iPhone — triple camera, top-left cluster */
+    .phone-case.is-iphone .phone-case__camera {
+      top: 0.55rem;
+      left: 0.85rem;
+      right: auto;
+      width: 2.35rem;
+      height: 2.35rem;
+      border-radius: 0.72rem;
+    }
+
+    .phone-case.is-iphone .phone-case__camera-lenses {
+      flex-wrap: wrap;
+      align-content: center;
+      justify-content: center;
+      gap: 0.18rem;
+      padding: 0.32rem;
+    }
+
+    .phone-case.is-iphone .phone-case__lens {
+      width: 0.62rem;
+      height: 0.62rem;
+    }
+
+    .phone-case.is-iphone .phone-case__lens:nth-child(1) {
+      width: 0.72rem;
+      height: 0.72rem;
+    }
+
+    /* Android — vertical pill, left edge */
+    .phone-case.is-android .phone-case__camera {
+      top: 1.1rem;
+      left: 0.5rem;
+      right: auto;
+      width: 1.15rem;
+      height: 3.1rem;
+      border-radius: 0.58rem;
+    }
+
+    .phone-case.is-android .phone-case__camera-lenses {
+      flex-direction: column;
+      gap: 0.2rem;
+      padding: 0.38rem 0.2rem;
+    }
+
+    .phone-case.is-android .phone-case__lens {
+      width: 0.52rem;
+      height: 0.52rem;
     }
 
     .phone-case__screen {
       position: relative;
       width: 100%;
       height: 100%;
-      border-radius: 1.75rem;
       overflow: hidden;
       background: #08080c;
       border: 0.5px solid rgba(255, 255, 255, 0.06);
       box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
+      transition: border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1);
+    }
+
+    .phone-case.is-iphone .phone-case__screen {
+      border-radius: 1.75rem;
+    }
+
+    .phone-case.is-android .phone-case__screen {
+      border-radius: 0.95rem;
     }
 
     .phone-case__gradient {
@@ -208,34 +321,24 @@
       transition: background 1.2s cubic-bezier(0.22, 1, 0.36, 1);
     }
 
-    .phone-case__artist-frame {
-      position: absolute;
-      inset: 0;
-      z-index: 3;
-      pointer-events: none;
-      background: transparent center / cover no-repeat;
-      /* Future: background-image: url('case-artist-frame.png'); */
-    }
-
     .phone-case__glass {
       position: absolute;
       inset: 0;
       z-index: 2;
       pointer-events: none;
       background:
-        linear-gradient(
-          155deg,
-          rgba(255, 255, 255, 0.14) 0%,
-          rgba(255, 255, 255, 0.02) 28%,
-          transparent 48%
-        ),
-        radial-gradient(
-          ellipse 80% 40% at 50% 0%,
-          rgba(255, 255, 255, 0.06) 0%,
-          transparent 55%
-        );
+        linear-gradient(155deg, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0.02) 28%, transparent 48%),
+        radial-gradient(ellipse 80% 40% at 50% 0%, rgba(255, 255, 255, 0.06) 0%, transparent 55%);
       mix-blend-mode: soft-light;
       opacity: 0.85;
+    }
+
+    .phone-case__artist-frame {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      pointer-events: none;
+      background: transparent center / cover no-repeat;
     }
 
     .case-note {
@@ -268,9 +371,20 @@
 
     <main class="case-main" aria-label="プロダクトプレビュー">
       <div class="case-stage">
-        <div class="phone-case" id="phoneCase">
+        <div class="device-switch" role="tablist" aria-label="ケースモデル">
+          <button type="button" class="device-switch__btn is-active" data-device="iphone" role="tab" aria-selected="true">iPhone</button>
+          <button type="button" class="device-switch__btn" data-device="android" role="tab" aria-selected="false">Android</button>
+        </div>
+
+        <div class="phone-case is-iphone" id="phoneCase">
           <div class="phone-case__bezel">
-            <div class="phone-case__camera" aria-hidden="true"></div>
+            <div class="phone-case__camera" aria-hidden="true">
+              <div class="phone-case__camera-lenses">
+                <span class="phone-case__lens"></span>
+                <span class="phone-case__lens"></span>
+                <span class="phone-case__lens"></span>
+              </div>
+            </div>
             <div class="phone-case__screen">
               <div class="phone-case__gradient" id="caseGradient" aria-hidden="true"></div>
               <div class="phone-case__glass" aria-hidden="true"></div>
@@ -278,6 +392,7 @@
             </div>
           </div>
         </div>
+
         <p class="case-note">※7日間アプリを続けると、あなただけの本当の色に変わります</p>
       </div>
     </main>
@@ -288,52 +403,165 @@
       'use strict';
 
       const INSCAPE_HISTORY_KEY = 'inscape_history';
-      const MAX_CASE_COLORS = 7;
+      const MAX_CASE_DAYS = 7;
+      const DEVICE_STORAGE_KEY = 'inscape_case_device';
 
-      const DEMO_GRADIENT = 'linear-gradient(165deg, #1a1038 0%, #4a2c6e 22%, #8b5a9a 40%, #c86b9a 55%, #f0a8c8 72%, #2a4a6e 88%, #0d1a2e 100%)';
+      const SAMPLE_CRYSTAL_COLORS = [
+        '#1a1038',
+        '#3d2868',
+        '#6b4a8e',
+        '#9a6aaa',
+        '#c86b9a',
+        '#e8a8c8',
+        '#2a4a6e'
+      ];
 
+      const phoneCaseEl = document.getElementById('phoneCase');
       const caseGradientEl = document.getElementById('caseGradient');
+      const deviceBtns = document.querySelectorAll('.device-switch__btn');
 
-      function loadHistoryColors() {
+      function parseEntryDate(entry) {
+        if (!entry) return null;
+        if (entry.timestamp && Number(entry.timestamp) > 0) {
+          const d = new Date(entry.timestamp);
+          if (!Number.isNaN(d.getTime())) return d;
+        }
+        if (entry.date) {
+          const dateStr = String(entry.date);
+          const matched = dateStr.match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+          if (matched) {
+            const d = new Date(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3]));
+            if (!Number.isNaN(d.getTime())) return d;
+          }
+          const parsed = Date.parse(dateStr);
+          if (!Number.isNaN(parsed)) return new Date(parsed);
+        }
+        return null;
+      }
+
+      function dayKeyFromEntry(entry) {
+        const d = parseEntryDate(entry);
+        if (!d) return `ts-${entry.timestamp || entry.date || Math.random()}`;
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        return `${y}-${mo}-${da}`;
+      }
+
+      function loadHistoryEntries() {
         try {
           const raw = localStorage.getItem(INSCAPE_HISTORY_KEY);
           if (!raw) return [];
           const data = JSON.parse(raw);
           if (!Array.isArray(data)) return [];
           return data
-            .filter((entry) => entry && typeof entry.color === 'string' && entry.color.trim())
-            .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0))
-            .slice(-MAX_CASE_COLORS)
-            .map((entry) => entry.color.trim());
+            .map((entry) => ({
+              word: entry.word || entry.text || '',
+              color: entry.color,
+              date: entry.date || '',
+              timestamp: entry.timestamp || 0
+            }))
+            .filter((e) => e.color && String(e.color).trim());
         } catch {
           return [];
         }
       }
 
-      function buildGradientFromColors(colors) {
-        if (!colors.length) return DEMO_GRADIENT;
-        if (colors.length === 1) {
-          const c = colors[0];
-          return `linear-gradient(165deg, ${c} 0%, ${c} 55%, rgba(8, 8, 12, 0.92) 100%)`;
+      /** One color per diary day, up to 7 days — oldest → newest */
+      function loadSevenDayColors() {
+        const byDay = new Map();
+        loadHistoryEntries().forEach((entry) => {
+          const key = dayKeyFromEntry(entry);
+          const existing = byDay.get(key);
+          if (!existing || Number(entry.timestamp || 0) >= Number(existing.timestamp || 0)) {
+            byDay.set(key, entry);
+          }
+        });
+
+        return Array.from(byDay.values())
+          .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0))
+          .slice(-MAX_CASE_DAYS)
+          .map((entry) => String(entry.color).trim());
+      }
+
+      /** Blend sparse user colors with sample palette to fill 7 crystal stops */
+      function buildSevenCrystalStops(userColors) {
+        if (!userColors.length) return SAMPLE_CRYSTAL_COLORS.slice();
+
+        if (userColors.length >= MAX_CASE_DAYS) {
+          return userColors.slice(-MAX_CASE_DAYS);
         }
+
+        const stops = new Array(MAX_CASE_DAYS);
+        const n = userColors.length;
+
+        for (let i = 0; i < n; i++) {
+          const slot = n === 1 ? 3 : Math.round((i / (n - 1)) * (MAX_CASE_DAYS - 1));
+          stops[slot] = userColors[i];
+        }
+
+        for (let i = 0; i < MAX_CASE_DAYS; i++) {
+          if (!stops[i]) {
+            stops[i] = SAMPLE_CRYSTAL_COLORS[i];
+          }
+        }
+
+        return stops;
+      }
+
+      function buildCrystalGradient(colors) {
         const stops = colors.map((color, i) => {
-          const pct = (i / (colors.length - 1)) * 88;
+          const pct = (i / Math.max(1, colors.length - 1)) * 92;
           return `${color} ${pct.toFixed(1)}%`;
         });
-        stops.push('rgba(8, 8, 14, 0.95) 100%');
-        return `linear-gradient(165deg, ${stops.join(', ')})`;
+        stops.push('rgba(8, 8, 14, 0.96) 100%');
+        return `linear-gradient(168deg, ${stops.join(', ')})`;
       }
 
       function applyCaseGradient() {
         if (!caseGradientEl) return;
-        const colors = loadHistoryColors();
-        caseGradientEl.style.background = buildGradientFromColors(colors);
+        const userColors = loadSevenDayColors();
+        const crystal = buildSevenCrystalStops(userColors);
+        caseGradientEl.style.background = buildCrystalGradient(crystal);
       }
+
+      function setDeviceModel(device) {
+        const model = device === 'android' ? 'android' : 'iphone';
+        if (phoneCaseEl) {
+          phoneCaseEl.classList.remove('is-iphone', 'is-android');
+          phoneCaseEl.classList.add(model === 'android' ? 'is-android' : 'is-iphone');
+        }
+        deviceBtns.forEach((btn) => {
+          const active = btn.dataset.device === model;
+          btn.classList.toggle('is-active', active);
+          btn.setAttribute('aria-selected', active ? 'true' : 'false');
+        });
+        try {
+          sessionStorage.setItem(DEVICE_STORAGE_KEY, model);
+        } catch { /* ignore */ }
+      }
+
+      deviceBtns.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          setDeviceModel(btn.dataset.device);
+        });
+      });
+
+      try {
+        const saved = sessionStorage.getItem(DEVICE_STORAGE_KEY);
+        if (saved === 'android' || saved === 'iphone') {
+          setDeviceModel(saved);
+        }
+      } catch { /* ignore */ }
 
       applyCaseGradient();
 
       window.addEventListener('storage', (e) => {
         if (e.key === INSCAPE_HISTORY_KEY) applyCaseGradient();
+      });
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') applyCaseGradient();
       });
     })();
   </script>
