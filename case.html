@@ -312,24 +312,26 @@
       position: absolute;
       inset: 0;
       z-index: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
       overflow: hidden;
       background: var(--canvas-bg);
     }
 
-    .phone-case__canvas-square {
-      position: relative;
-      width: 100%;
+    .phone-case__art-cover {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      min-width: 100%;
+      min-height: 100%;
       aspect-ratio: 1 / 1;
-      max-height: 100%;
-      flex-shrink: 0;
+      width: auto;
+      height: auto;
       line-height: 0;
       font-size: 0;
-      box-shadow:
-        inset 4px 4px 12px rgba(0, 0, 0, 0.28),
-        inset -2px -2px 8px rgba(255, 255, 255, 0.45);
+    }
+
+    .phone-case__art-cover .phone-case__fabric-overlay {
+      border-radius: inherit;
     }
 
     .phone-case__art-canvas {
@@ -425,7 +427,7 @@
             </div>
             <div class="phone-case__screen">
               <div class="phone-case__art-surface" id="caseArtSurface">
-                <div class="phone-case__canvas-square" id="caseCanvasSquare">
+                <div class="phone-case__art-cover" id="caseArtCover">
                   <canvas class="phone-case__art-canvas" id="caseArtCanvas" aria-hidden="true"></canvas>
                   <div class="phone-case__fabric-overlay" aria-hidden="true"></div>
                 </div>
@@ -475,7 +477,7 @@
 
       const phoneCaseEl = document.getElementById('phoneCase');
       const caseArtCanvas = document.getElementById('caseArtCanvas');
-      const caseCanvasSquare = document.getElementById('caseCanvasSquare');
+      const caseArtCover = document.getElementById('caseArtCover');
       const deviceBtns = document.querySelectorAll('.device-switch__btn');
 
       const splatImg = new Image();
@@ -781,11 +783,11 @@
       }
 
       function renderCaseArt() {
-        if (!caseArtCanvas || !caseCanvasSquare) return;
+        if (!caseArtCanvas || !caseArtCover) return;
 
-        const squareRect = caseCanvasSquare.getBoundingClientRect();
-        const cw = Math.round(squareRect.width);
-        const ch = Math.round(squareRect.height);
+        const coverRect = caseArtCover.getBoundingClientRect();
+        const cw = Math.round(coverRect.width);
+        const ch = Math.round(coverRect.height);
         if (cw < 2 || ch < 2) return;
 
         const dpr = Math.min(2, window.devicePixelRatio || 1);
@@ -846,9 +848,11 @@
         }
       } catch { /* ignore */ }
 
-      if (caseCanvasSquare && typeof ResizeObserver !== 'undefined') {
+      if (caseArtCover && typeof ResizeObserver !== 'undefined') {
         const ro = new ResizeObserver(() => scheduleRenderCaseArt());
-        ro.observe(caseCanvasSquare);
+        ro.observe(caseArtCover);
+        const caseScreen = document.querySelector('.phone-case__screen');
+        if (caseScreen) ro.observe(caseScreen);
       }
 
       window.addEventListener('resize', scheduleRenderCaseArt);

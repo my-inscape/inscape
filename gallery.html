@@ -728,6 +728,42 @@
       transform: scale(0.98);
     }
 
+    .case-preview-btn {
+      display: inline-block;
+      padding: 0.65rem 1.15rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.14);
+      border-radius: 1px;
+      background: rgba(255, 255, 255, 0.03);
+      color: rgba(232, 230, 226, 0.62);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      font-size: 0.52rem;
+      font-weight: 300;
+      letter-spacing: 0.22em;
+      text-indent: 0.22em;
+      text-decoration: none;
+      cursor: pointer;
+      transition:
+        color 0.3s ease,
+        border-color 0.3s ease,
+        background 0.3s ease,
+        box-shadow 0.3s ease;
+    }
+
+    .case-preview-btn:hover {
+      color: rgba(201, 169, 98, 0.82);
+      border-color: rgba(201, 169, 98, 0.38);
+      background: rgba(201, 169, 98, 0.07);
+      box-shadow: 0 0 20px rgba(201, 169, 98, 0.1);
+    }
+
+    .case-preview-btn:active {
+      transform: scale(0.98);
+    }
+
+    .modal-content .case-preview-btn {
+      color: rgba(232, 230, 226, 0.68);
+    }
+
     .save-art-btn:disabled,
     .share-art-btn:disabled {
       opacity: 0.45;
@@ -1111,7 +1147,7 @@
       function stripPrivacyTextFromClone(clonedRoot) {
         if (!clonedRoot) return;
         clonedRoot.querySelectorAll(
-          '.art-date, .share-art-btn, .save-art-btn, .modal-art-actions, ' +
+          '.art-date, .share-art-btn, .save-art-btn, .case-preview-btn, .modal-art-actions, ' +
           '.museum-brand-logo, .memory-popover, [data-export-hide], .privacy-export-hidden'
         ).forEach((node) => node.remove());
 
@@ -1315,6 +1351,18 @@
           saveFramedArtwork(containerEl, btn);
         });
         return btn;
+      }
+
+      function createCasePreviewLink() {
+        const link = document.createElement('a');
+        link.className = 'case-preview-btn';
+        link.href = 'case.html';
+        link.textContent = 'このデザインのスマホケースを見る';
+        link.setAttribute('aria-label', 'このデザインのスマホケースを見る');
+        link.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+        return link;
       }
 
       function formatDotDate(d) {
@@ -1684,6 +1732,7 @@
         modalShareBtn.classList.add('modal-share');
         actionsWrap.appendChild(modalShareBtn);
         actionsWrap.appendChild(createSaveButton(() => modalBody));
+        actionsWrap.appendChild(createCasePreviewLink());
         modalBody.appendChild(actionsWrap);
 
         hideMemoryPopover();
