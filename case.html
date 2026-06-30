@@ -210,10 +210,8 @@
       const MAX_DAYS = 7;
       const LIVE_MS = 7 * 24 * 60 * 60 * 1000;
 
-      const CAM_CLEAR_W = 110;
-      const CAM_CLEAR_H = 110;
-      const CASE_REF_W = 260;
-      const CASE_REF_H = 559;
+      const CAM_CLEAR_W_RATIO = 0.42;
+      const CAM_CLEAR_H_RATIO = 0.22;
 
       const SAMPLE = [
         { nx: 0.28, ny: 0.34, color: '#3d2868', word: '静けさ', baseSize: 88, scaleFactor: 1.04, rotation: -0.4, opacity: 0.92 },
@@ -547,6 +545,22 @@
         });
       }
 
+      function hexToRgb(hex) {
+        const h = String(hex).replace('#', '').trim();
+        if (h.length === 3) {
+          return {
+            r: parseInt(h[0] + h[0], 16),
+            g: parseInt(h[1] + h[1], 16),
+            b: parseInt(h[2] + h[2], 16)
+          };
+        }
+        return {
+          r: parseInt(h.slice(0, 2), 16) || 0,
+          g: parseInt(h.slice(2, 4), 16) || 0,
+          b: parseInt(h.slice(4, 6), 16) || 0
+        };
+      }
+
       function stamp(color) {
         if (!splatOk) return null;
         if (stamps[color]) return stamps[color];
@@ -556,11 +570,20 @@
         c.width = w;
         c.height = h;
         const ctx = c.getContext('2d');
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, w, h);
-        ctx.globalCompositeOperation = 'screen';
+        const { r, g, b } = hexToRgb(color);
+
         ctx.drawImage(splatImg, 0, 0);
-        ctx.globalCompositeOperation = 'source-over';
+        const data = ctx.getImageData(0, 0, w, h);
+        const px = data.data;
+        for (let i = 0; i < px.length; i += 4) {
+          const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+          const alpha = Math.round(255 * Math.pow(Math.max(0, 1 - lum / 255), 0.9));
+          px[i] = r;
+          px[i + 1] = g;
+          px[i + 2] = b;
+          px[i + 3] = alpha;
+        }
+        ctx.putImageData(data, 0, 0);
         stamps[color] = c;
         return c;
       }
@@ -589,9 +612,7 @@
       }
 
       function clearCameraArea(ctx, w, h) {
-        const cw = w * (CAM_CLEAR_W / CASE_REF_W);
-        const ch = h * (CAM_CLEAR_H / CASE_REF_H);
-        ctx.clearRect(0, 0, cw, ch);
+        ctx.clearRect(0, 0, w * CAM_CLEAR_W_RATIO, h * CAM_CLEAR_H_RATIO);
       }
 
       function paintInkSplat(ctx, splash, destW, destH, srcW) {
@@ -642,6 +663,7 @@
         canvas.style.height = ch + 'px';
         const ctx = canvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
         if (galleryItem?.splats?.length) {
           drawInkOnly(ctx, galleryItem.splats, cw, ch, galleryItem);
         } else {
