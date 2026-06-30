@@ -78,11 +78,29 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      position: relative;
       padding: 0.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+    }
+
+    .main::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        repeating-linear-gradient(
+          93deg,
+          transparent 0,
+          transparent 32px,
+          rgba(255, 248, 235, 0.018) 32px,
+          rgba(255, 248, 235, 0.018) 33px
+        );
+      opacity: 0.85;
     }
 
     .case-container {
       position: relative;
+      z-index: 1;
       width: 260px;
       height: 559px;
       max-width: min(46vw, 16.25rem);
@@ -90,7 +108,7 @@
       aspect-ratio: 260 / 559;
       overflow: hidden;
       border-radius: 40px;
-      background: transparent;
+      background: #f7f4eb;
       box-shadow:
         0 1px 0 rgba(255, 255, 255, 0.08),
         0 8px 24px rgba(0, 0, 0, 0.35),
@@ -110,26 +128,26 @@
 
     #caseCanvas {
       z-index: 1;
-      background: transparent;
     }
 
     .case-overlay {
       z-index: 2;
       object-fit: fill;
       opacity: 1;
-      background: transparent;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
     }
 
     .note {
+      position: relative;
+      z-index: 1;
       margin-top: 1.65rem;
-      max-width: 16.5rem;
+      max-width: 18rem;
       text-align: center;
       font-size: 0.52rem;
       font-weight: 300;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.1em;
       line-height: 1.85;
       color: rgba(232, 228, 220, 0.62);
       opacity: 0.72;
@@ -165,7 +183,7 @@
           loading="eager"
         >
       </div>
-      <p class="note">※7日間アプリを続けると、あなただけの本当の色に変わります</p>
+      <p class="note">※実際の製品は、あなただけの本当の色がプリントされた『クリアケース（透明）』として完成します。</p>
     </main>
   </div>
 
@@ -181,11 +199,10 @@
       };
 
       const SPLAT = 'splat.png';
+      const CANVAS_BG = '#f7f4eb';
       const SRC_W = 270;
       const MAX_DAYS = 7;
       const LIVE_MS = 7 * 24 * 60 * 60 * 1000;
-      const CAM_W_RATIO = 0.42;
-      const CAM_H_RATIO = 0.22;
 
       const box = document.getElementById('caseContainer');
       const canvas = document.getElementById('caseCanvas');
@@ -301,7 +318,7 @@
           baseSize,
           rotation: s.rotation ?? 0,
           scaleFactor: s.scaleFactor ?? 1,
-          opacity: typeof s.opacity === 'number' ? s.opacity : 1,
+          opacity: typeof s.opacity === 'number' ? s.opacity : 0.85,
           timestamp: s.timestamp || 0,
           canvasW: s.canvasW || SRC_W
         };
@@ -317,7 +334,7 @@
           baseSize,
           rotation: s.rotation ?? 0,
           scaleFactor: s.scaleFactor ?? 1,
-          opacity: typeof s.opacity === 'number' ? s.opacity : 1,
+          opacity: typeof s.opacity === 'number' ? s.opacity : 0.85,
           canvasW: s.canvasW || 400
         };
       }
@@ -364,7 +381,7 @@
           baseSize: 88 + r() * 24,
           rotation: r() * Math.PI * 2,
           scaleFactor: 0.92 + r() * 0.18,
-          opacity: 1
+          opacity: 0.75 + r() * 0.2
         });
       }
 
@@ -388,8 +405,7 @@
         if (!days.length) {
           const live = liveSplashes();
           if (live.length) return live;
-          const all = recipes();
-          return all.length ? all : [];
+          return recipes();
         }
         const list = recipes();
         return days.map((entry, i) => {
@@ -398,8 +414,7 @@
           const m = migrate({
             ...recipe,
             color: entry.color || recipe.color,
-            timestamp: entry.timestamp || recipe.timestamp,
-            opacity: recipe.opacity ?? 1
+            timestamp: entry.timestamp || recipe.timestamp
           });
           if (typeof recipe.nx === 'number') m.nx = recipe.nx;
           if (typeof recipe.ny === 'number') m.ny = recipe.ny;
@@ -407,83 +422,17 @@
         });
       }
 
-      function isCameraPixel(x, y, w, h) {
-        const fx = x / w;
-        const fy = y / h;
-        return fx >= 0.06 && fx <= 0.42 && fy >= 0.03 && fy <= 0.22;
-      }
-
-      function isInsideCase(x, y, w, h) {
-        const fx = x / w;
-        const fy = y / h;
-        return fx >= 0.05 && fx <= 0.95 && fy >= 0.03 && fy <= 0.97;
-      }
-
-      function buildFrameOverlay(img) {
-        const w = img.naturalWidth;
-        const h = img.naturalHeight;
-        if (!w || !h) return null;
-
-        const work = document.createElement('canvas');
-        work.width = w;
-        work.height = h;
-        const ctx = work.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        let data;
-        try {
-          data = ctx.getImageData(0, 0, w, h);
-        } catch {
-          return null;
-        }
-
-        const px = data.data;
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const i = (y * w + x) * 4;
-            const r = px[i];
-            const g = px[i + 1];
-            const b = px[i + 2];
-            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-            const neutral = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
-            const inside = isInsideCase(x, y, w, h);
-            const camera = isCameraPixel(x, y, w, h);
-
-            if (!inside) {
-              if (lum > 230 && neutral < 25) px[i + 3] = 0;
-              continue;
-            }
-
-            if (camera && lum <= 80) continue;
-
-            if (neutral < 50 && lum > 65) {
-              px[i + 3] = 0;
-            }
-          }
-        }
-
-        ctx.putImageData(data, 0, 0);
-        return work.toDataURL('image/png');
-      }
-
-      function loadImage(src) {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve(img);
-          img.onerror = reject;
-          img.src = src;
-          if (img.complete && img.naturalWidth) resolve(img);
-        });
-      }
-
       function loadSplat() {
         if (splatOk) return Promise.resolve();
-        return loadImage(SPLAT).then((img) => {
-          splatImg.src = img.src;
-          splatOk = !!splatImg.naturalWidth;
-        }).catch(() => {
-          splatOk = false;
-        });
+        return new Promise((resolve, reject) => {
+          splatImg.onload = () => {
+            splatOk = !!splatImg.naturalWidth;
+            splatOk ? resolve() : reject();
+          };
+          splatImg.onerror = reject;
+          splatImg.src = SPLAT;
+          if (splatImg.complete) splatImg.naturalWidth ? resolve() : reject();
+        }).catch(() => {});
       }
 
       function createColorStamp(color) {
@@ -503,51 +452,39 @@
         ctx.drawImage(splatImg, 0, 0);
         ctx.globalCompositeOperation = 'source-over';
 
-        const data = ctx.getImageData(0, 0, w, h);
-        const px = data.data;
-        for (let i = 0; i < px.length; i += 4) {
-          const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-          if (lum >= 198) px[i + 3] = 0;
-        }
-        ctx.putImageData(data, 0, 0);
-
         stamps[color] = c;
         return c;
       }
 
-      function paintSplash(ctx, splash, destW, destH, srcW) {
+      function drawSplatter(ctx, splash, destW, destH, srcW) {
         if (!splash.color || typeof splash.nx !== 'number' || typeof splash.ny !== 'number') return;
+
+        const stamp = createColorStamp(splash.color);
+        if (!stamp) return;
 
         const sourceW = splash.canvasW || srcW || SRC_W;
         const size = splash.baseSize * (splash.scaleFactor || 1) * (destW / sourceW);
         const x = splash.nx * destW;
         const y = splash.ny * destH;
-        const img = createColorStamp(splash.color);
-        if (!img) return;
 
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(splash.rotation || 0);
-        ctx.globalAlpha = 1;
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.drawImage(img, -size / 2, -size / 2, size, size);
+        ctx.globalAlpha = splash.opacity ?? 0.85;
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
         ctx.restore();
+        ctx.globalCompositeOperation = 'source-over';
       }
 
-      function clearCameraCutout(ctx, destW, destH) {
-        const camW = destW * CAM_W_RATIO;
-        const camH = destH * CAM_H_RATIO;
-        ctx.clearRect(0, 0, camW, camH);
-      }
-
-      function drawInk(ctx, splashes, destW, destH, item) {
-        ctx.clearRect(0, 0, destW, destH);
+      function drawCanvas(ctx, splashes, destW, destH, item) {
+        ctx.fillStyle = CANVAS_BG;
+        ctx.fillRect(0, 0, destW, destH);
         const srcW = item ? (item.canvasW || 400) : SRC_W;
         splashes.forEach((raw) => {
           const splash = item ? migrateGallery(raw) : migrate(raw);
-          paintSplash(ctx, splash, destW, destH, srcW);
+          drawSplatter(ctx, splash, destW, destH, srcW);
         });
-        clearCameraCutout(ctx, destW, destH);
       }
 
       function render() {
@@ -567,9 +504,9 @@
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
         if (galleryItem?.splats?.length) {
-          drawInk(ctx, galleryItem.splats, cw, ch, galleryItem);
+          drawCanvas(ctx, galleryItem.splats, cw, ch, galleryItem);
         } else {
-          drawInk(ctx, resolveSplashes(), cw, ch, null);
+          drawCanvas(ctx, resolveSplashes(), cw, ch, null);
         }
       }
 
@@ -580,25 +517,15 @@
         box.style.height = 'auto';
       }
 
-      async function prepareOverlay() {
-        try {
-          const src = overlay.complete && overlay.naturalWidth
-            ? overlay
-            : await loadImage('clear-case-original.png');
-          const frameUrl = buildFrameOverlay(src);
-          if (frameUrl) overlay.src = frameUrl;
-        } catch {
-          /* 加工失敗時は元画像のまま */
-        }
-        fitContainer();
-        render();
-      }
-
-      async function boot() {
+      function boot() {
         initGallery();
-        await loadSplat();
-        await prepareOverlay();
-        render();
+        loadSplat().finally(() => {
+          fitContainer();
+          render();
+        });
+        if (overlay && !overlay.complete) {
+          overlay.addEventListener('load', () => { fitContainer(); render(); }, { once: true });
+        }
       }
 
       if (box && typeof ResizeObserver !== 'undefined') {
