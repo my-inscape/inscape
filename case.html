@@ -134,53 +134,13 @@
       max-width: 16rem;
     }
 
-    .device-switch {
-      display: flex;
-      align-items: stretch;
-      gap: 0.35rem;
-      margin-bottom: 1.1rem;
-      padding: 0.22rem;
-      border: 0.5px solid rgba(255, 255, 255, 0.07);
-      border-radius: 2px;
-      background: rgba(255, 255, 255, 0.025);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-    }
-
-    .device-switch__btn {
-      flex: 1 1 0;
-      min-width: 4.5rem;
-      padding: 0.42rem 0.65rem;
-      border: 0.5px solid transparent;
-      border-radius: 1px;
-      background: transparent;
-      color: rgba(232, 230, 226, 0.38);
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", serif;
-      font-size: 0.48rem;
-      font-weight: 300;
-      letter-spacing: 0.14em;
-      text-indent: 0.14em;
-      cursor: pointer;
-      transition: color 0.35s ease, border-color 0.35s ease, background 0.35s ease;
-    }
-
-    .device-switch__btn:hover {
-      color: rgba(232, 230, 226, 0.68);
-    }
-
-    .device-switch__btn.is-active {
-      color: rgba(201, 169, 98, 0.72);
-      border-color: rgba(201, 169, 98, 0.22);
-      background: rgba(201, 169, 98, 0.07);
-    }
-
-    /* ── Phone case (layered — artist frame ready) ── */
+    /* ── Clear case preview (photo frame + art back-layer) ── */
     .phone-case {
       position: relative;
-      width: min(40vw, 15rem);
-      aspect-ratio: 100 / 215;
-      max-height: min(78dvh, 32.25rem);
+      width: min(44vw, 15.2rem);
+      aspect-ratio: 360 / 664;
       height: auto;
+      max-height: min(78dvh, 32rem);
       filter:
         drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55))
         drop-shadow(0 14px 28px rgba(0, 0, 0, 0.48))
@@ -189,6 +149,13 @@
       opacity: 0;
       transform: scale(0.94) translateY(0.35rem);
       animation: caseSpotlightReveal 1.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+    }
+
+    .phone-case__stack {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      isolation: isolate;
     }
 
     @keyframes caseSpotlightReveal {
@@ -233,391 +200,28 @@
       100% { opacity: 0.55; }
     }
 
-    .phone-case__bezel {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      padding: 0.52rem;
-      background:
-        linear-gradient(148deg, rgba(255, 255, 255, 0.22) 0%, rgba(255, 255, 255, 0.04) 18%, transparent 42%),
-        linear-gradient(328deg, rgba(255, 255, 255, 0.08) 0%, transparent 26%),
-        linear-gradient(175deg, rgba(210, 212, 222, 0.18) 0%, rgba(140, 142, 152, 0.12) 12%, rgba(42, 42, 50, 0.88) 38%, rgba(12, 12, 16, 0.96) 100%);
-      border: 1px solid rgba(255, 255, 255, 0.38);
-      box-shadow:
-        inset 0 0 0 1px rgba(255, 255, 255, 0.52),
-        inset 0 0 0 2px rgba(160, 162, 172, 0.22),
-        inset 0 2px 6px rgba(255, 255, 255, 0.28),
-        inset 0 -5px 14px rgba(0, 0, 0, 0.62),
-        inset 3px 0 8px rgba(255, 255, 255, 0.06),
-        inset -4px 0 10px rgba(0, 0, 0, 0.28),
-        0 0 0 0.5px rgba(0, 0, 0, 0.9),
-        0 3px 0 rgba(255, 255, 255, 0.06);
-      transition: border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    .phone-case__rim {
-      position: absolute;
-      inset: 0.1rem;
-      border-radius: inherit;
-      pointer-events: none;
-      z-index: 7;
-      border: 1px solid rgba(255, 255, 255, 0.45);
-      box-shadow:
-        inset 0 0 0 1px rgba(0, 0, 0, 0.18),
-        inset 0 1px 0 rgba(255, 255, 255, 0.42),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.35);
-      opacity: 0.92;
-    }
-
-    .phone-case__gloss {
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      pointer-events: none;
-      z-index: 8;
-      background:
-        linear-gradient(
-          128deg,
-          rgba(255, 255, 255, 0.28) 0%,
-          rgba(255, 255, 255, 0.08) 14%,
-          transparent 34%,
-          transparent 62%,
-          rgba(0, 0, 0, 0.12) 100%
-        );
-      mix-blend-mode: soft-light;
-      opacity: 0.88;
-    }
-
-    .phone-case__bezel::after {
-      content: '';
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      pointer-events: none;
-      z-index: 6;
-      background: radial-gradient(
-        ellipse 90% 70% at 28% 12%,
-        rgba(255, 255, 255, 0.12) 0%,
-        transparent 55%
-      );
-    }
-
-    .phone-case.is-iphone .phone-case__bezel {
-      border-radius: clamp(2.25rem, 19%, 3rem);
-    }
-
-    .phone-case.is-android .phone-case__bezel {
-      border-radius: clamp(0.85rem, 7.2%, 1.1rem);
-      background:
-        linear-gradient(155deg, rgba(255, 255, 255, 0.16) 0%, transparent 20%),
-        linear-gradient(335deg, rgba(255, 255, 255, 0.06) 0%, transparent 24%),
-        linear-gradient(175deg, rgba(200, 202, 210, 0.14) 0%, rgba(48, 48, 56, 0.9) 40%, rgba(10, 10, 14, 0.98) 100%);
-      border-color: rgba(255, 255, 255, 0.32);
-    }
-
-    .phone-case__side-btns {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 9;
-    }
-
-    .phone-case__side-btn {
-      position: absolute;
-      display: block;
-      border-radius: 1px;
-      background: linear-gradient(180deg, rgba(220, 222, 230, 0.55) 0%, rgba(120, 122, 132, 0.45) 48%, rgba(60, 62, 72, 0.65) 100%);
-      box-shadow:
-        inset 0 1px 0 rgba(255, 255, 255, 0.45),
-        inset 0 -1px 0 rgba(0, 0, 0, 0.35),
-        1px 0 2px rgba(0, 0, 0, 0.35);
-    }
-
-    .phone-case__side-btn--vol-up {
-      left: -0.14rem;
-      top: 24%;
-      width: 0.14rem;
-      height: 0.72rem;
-    }
-
-    .phone-case__side-btn--vol-dn {
-      left: -0.14rem;
-      top: 32%;
-      width: 0.14rem;
-      height: 0.72rem;
-    }
-
-    .phone-case__side-btn--power {
-      right: -0.14rem;
-      top: 28%;
-      width: 0.14rem;
-      height: 1.15rem;
-    }
-
-    .phone-case.is-android .phone-case__side-btn--vol-up { top: 22%; height: 0.65rem; }
-    .phone-case.is-android .phone-case__side-btn--vol-dn { top: 30%; height: 0.65rem; }
-    .phone-case.is-android .phone-case__side-btn--power { top: 26%; height: 1rem; }
-
-    .phone-case__camera {
-      position: absolute;
-      z-index: 10;
-      pointer-events: none;
-      overflow: hidden;
-      box-sizing: border-box;
-      background:
-        linear-gradient(152deg, rgba(255, 255, 255, 0.06) 0%, transparent 35%),
-        linear-gradient(168deg, #1c1c22 0%, #0a0a0e 58%, #020204 100%);
-      border: 0.5px solid rgba(255, 255, 255, 0.12);
-      box-shadow:
-        inset 0 1px 4px rgba(255, 255, 255, 0.1),
-        inset 0 -3px 8px rgba(0, 0, 0, 0.85),
-        0 4px 12px rgba(0, 0, 0, 0.62),
-        0 1px 0 rgba(255, 255, 255, 0.05);
-      transition:
-        top 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-        left 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-        width 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-        height 0.45s cubic-bezier(0.22, 1, 0.36, 1),
-        border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    .phone-case__camera-plate {
-      position: absolute;
-      inset: 0;
-      box-sizing: border-box;
-    }
-
-    .phone-case__camera-plate--android {
-      display: none;
-    }
-
-    .phone-case.is-android .phone-case__camera-plate--iphone {
-      display: none;
-    }
-
-    .phone-case.is-android .phone-case__camera-plate--android {
-      display: flex;
-    }
-
-    .phone-case__lens {
-      position: relative;
-      display: block;
-      flex-shrink: 0;
-      border-radius: 50%;
-      aspect-ratio: 1;
-      background:
-        radial-gradient(circle at 32% 28%, rgba(90, 120, 180, 0.35) 0%, transparent 38%),
-        radial-gradient(circle at 68% 76%, rgba(0, 0, 0, 0.95) 0%, transparent 46%),
-        radial-gradient(circle at 50% 50%, #141820 0%, #020204 78%);
-      box-shadow:
-        inset 0 2px 4px rgba(255, 255, 255, 0.22),
-        inset 0 -3px 7px rgba(0, 0, 0, 0.92),
-        0 1px 3px rgba(0, 0, 0, 0.65);
-    }
-
-    .phone-case__lens::before {
-      content: '';
-      position: absolute;
-      inset: -6%;
-      border-radius: 50%;
-      border: 1px solid rgba(195, 200, 215, 0.55);
-      box-shadow:
-        0 0 0 0.5px rgba(110, 115, 130, 0.45),
-        inset 0 0 0 0.5px rgba(220, 225, 235, 0.25);
-      pointer-events: none;
-    }
-
-    .phone-case__lens::after {
-      content: '';
-      position: absolute;
-      top: 16%;
-      left: 20%;
-      width: 24%;
-      height: 24%;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.98) 0%, rgba(255, 255, 255, 0.35) 38%, transparent 72%);
-      pointer-events: none;
-    }
-
-    .phone-case__sensor {
-      position: relative;
-      display: block;
-      flex-shrink: 0;
-      border-radius: 50%;
-      aspect-ratio: 1;
-      box-shadow:
-        inset 0 1px 2px rgba(255, 255, 255, 0.25),
-        inset 0 -1px 3px rgba(0, 0, 0, 0.75);
-    }
-
-    .phone-case__sensor--flash {
-      background:
-        radial-gradient(circle at 36% 30%, rgba(255, 252, 238, 1) 0%, rgba(245, 235, 200, 0.85) 38%, rgba(180, 165, 120, 0.7) 100%);
-      border: 0.5px solid rgba(255, 255, 255, 0.35);
-    }
-
-    .phone-case__sensor--lidar {
-      background:
-        radial-gradient(circle at 34% 28%, rgba(48, 50, 58, 0.9) 0%, #08080c 72%);
-      border: 0.5px solid rgba(70, 72, 82, 0.55);
-    }
-
-    .phone-case__lens--pro::before {
-      inset: -5%;
-      border: 1.5px solid rgba(205, 210, 222, 0.82);
-      box-shadow:
-        0 0 0 0.5px rgba(130, 135, 148, 0.55),
-        inset 0 1px 2px rgba(255, 255, 255, 0.45),
-        inset 0 -1px 1px rgba(0, 0, 0, 0.35);
-    }
-
-    /*
-     * iPhone Pro — camera island ~45% screen width, dense 3-lens triangle
-     */
-    .phone-case.is-iphone .phone-case__camera {
-      top: 5%;
-      left: 5%;
-      width: 45%;
-      height: auto;
-      aspect-ratio: 1;
-      border-radius: 26%;
-      box-shadow:
-        inset 0 1px 5px rgba(255, 255, 255, 0.12),
-        inset 0 -4px 10px rgba(0, 0, 0, 0.88),
-        0 5px 14px rgba(0, 0, 0, 0.68),
-        0 1px 0 rgba(255, 255, 255, 0.06);
-    }
-
-    .phone-case__camera-plate--iphone {
-      display: grid;
-      grid-template-columns: 1fr 1fr 0.3fr;
-      grid-template-rows: 1fr 1fr;
-      gap: 2.6% 2.8%;
-      padding: 6.2%;
-      align-items: center;
-      justify-items: center;
-    }
-
-    .phone-case__camera-plate--iphone .phone-case__lens--pro {
-      width: 98%;
-      max-width: 98%;
-    }
-
-    .phone-case__camera-plate--iphone .phone-case__lens--pro:nth-child(1) {
-      grid-column: 1;
-      grid-row: 1;
-      justify-self: center;
-      align-self: end;
-    }
-
-    .phone-case__camera-plate--iphone .phone-case__lens--pro:nth-child(2) {
-      grid-column: 1;
-      grid-row: 2;
-      justify-self: center;
-      align-self: start;
-    }
-
-    .phone-case__camera-plate--iphone .phone-case__lens--pro:nth-child(3) {
-      grid-column: 2;
-      grid-row: 1 / 3;
-      width: 97%;
-      justify-self: center;
-      align-self: center;
-    }
-
-    .phone-case__camera-plate--iphone .phone-case__sensor--flash {
-      grid-column: 3;
-      grid-row: 1;
-      width: 82%;
-      align-self: start;
-      justify-self: center;
-      margin-top: 4%;
-    }
-
-    .phone-case__camera-plate--iphone .phone-case__sensor--lidar {
-      grid-column: 3;
-      grid-row: 2;
-      width: 72%;
-      align-self: end;
-      justify-self: center;
-      margin-bottom: 5%;
-    }
-
-    /*
-     * Android — vertical pill (slim tall body: ~12% width, ~14.5% height)
-     * 2 lenses + centered flash
-     */
-    .phone-case.is-android .phone-case__camera {
-      top: 4.5%;
-      left: 4.5%;
-      width: 12%;
-      height: 14.5%;
-      border-radius: 999px;
-      aspect-ratio: auto;
-    }
-
-    .phone-case__camera-plate--android {
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-evenly;
-      padding: 8% 6%;
-      gap: 5%;
-    }
-
-    .phone-case__camera-plate--android .phone-case__lens--android {
-      width: 78%;
-    }
-
-    .phone-case__camera-plate--android .phone-case__sensor--flash {
-      width: 32%;
-    }
-
-    .phone-case__screen {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      background: var(--canvas-bg);
-      border: 0.5px solid rgba(255, 255, 255, 0.14);
-      box-shadow:
-        inset 0 0 0 1px rgba(0, 0, 0, 0.5),
-        inset 0 0 0 2px rgba(255, 255, 255, 0.08),
-        inset 0 4px 10px rgba(0, 0, 0, 0.32),
-        inset 0 -3px 8px rgba(255, 255, 255, 0.05),
-        inset 2px 0 6px rgba(0, 0, 0, 0.12);
-      transition: border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    .phone-case.is-iphone .phone-case__screen {
-      border-radius: clamp(1.75rem, 15.5%, 2.5rem);
-    }
-
-    .phone-case.is-android .phone-case__screen {
-      border-radius: clamp(0.65rem, 5.5%, 0.85rem);
-    }
-
-    .phone-case__art-surface {
+    /* Back layer — user ink art (full bleed behind transparent print window) */
+    .phone-case__art-back {
       position: absolute;
       inset: 0;
       z-index: 1;
       overflow: hidden;
-      border-radius: inherit;
       background: var(--canvas-bg);
-    }
-
-    .phone-case__art-cover {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      border-radius: inherit;
       line-height: 0;
       font-size: 0;
     }
 
-    .phone-case__art-cover .phone-case__fabric-overlay {
-      border-radius: inherit;
+    /* Front layer — clear case photo (print window is alpha-transparent) */
+    .phone-case__frame {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      pointer-events: none;
+      user-select: none;
+      -webkit-user-drag: none;
     }
 
     .phone-case__crystal {
@@ -658,28 +262,6 @@
       opacity: 0.35;
     }
 
-    .phone-case__glass {
-      position: absolute;
-      inset: 0;
-      z-index: 2;
-      pointer-events: none;
-      background:
-        linear-gradient(152deg, rgba(255, 255, 255, 0.26) 0%, rgba(255, 255, 255, 0.06) 18%, transparent 44%),
-        linear-gradient(328deg, rgba(255, 255, 255, 0.08) 0%, transparent 28%),
-        radial-gradient(ellipse 88% 44% at 50% -1%, rgba(255, 255, 255, 0.14) 0%, transparent 58%),
-        linear-gradient(180deg, transparent 72%, rgba(0, 0, 0, 0.06) 100%);
-      mix-blend-mode: soft-light;
-      opacity: 0.92;
-    }
-
-    .phone-case__artist-frame {
-      position: absolute;
-      inset: 0;
-      z-index: 3;
-      pointer-events: none;
-      background: transparent center / cover no-repeat;
-    }
-
     .case-note {
       margin-top: 1.65rem;
       max-width: 16.5rem;
@@ -710,45 +292,22 @@
 
     <main class="case-main" aria-label="プロダクトプレビュー">
       <div class="case-stage">
-        <div class="device-switch" role="tablist" aria-label="ケースモデル">
-          <button type="button" class="device-switch__btn is-active" data-device="iphone" role="tab" aria-selected="true">iPhone</button>
-          <button type="button" class="device-switch__btn" data-device="android" role="tab" aria-selected="false">Android</button>
-        </div>
-
-        <div class="phone-case is-iphone" id="phoneCase">
-          <div class="phone-case__bezel">
-            <div class="phone-case__rim" aria-hidden="true"></div>
-            <div class="phone-case__gloss" aria-hidden="true"></div>
-            <div class="phone-case__side-btns" aria-hidden="true">
-              <span class="phone-case__side-btn phone-case__side-btn--vol-up"></span>
-              <span class="phone-case__side-btn phone-case__side-btn--vol-dn"></span>
-              <span class="phone-case__side-btn phone-case__side-btn--power"></span>
+        <div class="phone-case" id="phoneCase">
+          <div class="phone-case__stack">
+            <div class="phone-case__art-back" id="caseArtCover">
+              <div class="phone-case__crystal" id="caseCrystal" aria-hidden="true"></div>
+              <canvas class="phone-case__art-canvas" id="caseArtCanvas" aria-hidden="true"></canvas>
+              <div class="phone-case__fabric-overlay" aria-hidden="true"></div>
             </div>
-            <div class="phone-case__screen">
-              <div class="phone-case__camera" aria-hidden="true">
-                <div class="phone-case__camera-plate phone-case__camera-plate--iphone">
-                  <span class="phone-case__lens phone-case__lens--pro" aria-hidden="true"></span>
-                  <span class="phone-case__lens phone-case__lens--pro" aria-hidden="true"></span>
-                  <span class="phone-case__lens phone-case__lens--pro" aria-hidden="true"></span>
-                  <span class="phone-case__sensor phone-case__sensor--flash" aria-hidden="true"></span>
-                  <span class="phone-case__sensor phone-case__sensor--lidar" aria-hidden="true"></span>
-                </div>
-                <div class="phone-case__camera-plate phone-case__camera-plate--android">
-                  <span class="phone-case__lens phone-case__lens--android" aria-hidden="true"></span>
-                  <span class="phone-case__sensor phone-case__sensor--flash" aria-hidden="true"></span>
-                  <span class="phone-case__lens phone-case__lens--android" aria-hidden="true"></span>
-                </div>
-              </div>
-              <div class="phone-case__art-surface" id="caseArtSurface">
-                <div class="phone-case__art-cover" id="caseArtCover">
-                  <div class="phone-case__crystal" id="caseCrystal" aria-hidden="true"></div>
-                  <canvas class="phone-case__art-canvas" id="caseArtCanvas" aria-hidden="true"></canvas>
-                  <div class="phone-case__fabric-overlay" aria-hidden="true"></div>
-                </div>
-              </div>
-              <div class="phone-case__glass" aria-hidden="true"></div>
-              <div class="phone-case__artist-frame" id="caseArtistFrame" aria-hidden="true"></div>
-            </div>
+            <img
+              class="phone-case__frame"
+              src="images/clear-case.png"
+              width="360"
+              height="664"
+              alt=""
+              draggable="false"
+              decoding="async"
+            >
           </div>
         </div>
 
@@ -767,7 +326,6 @@
       const LIVE_SPLASH_KEY = 'inscape_splashes';
       const MAX_CASE_DAYS = 7;
       const SPLASH_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
-      const DEVICE_STORAGE_KEY = 'inscape_case_device';
 
       const SPLAT_IMAGE = 'splat.png';
       const CANVAS_BG = '#f7f4eb';
@@ -808,7 +366,7 @@
       const caseArtCanvas = document.getElementById('caseArtCanvas');
       const caseArtCover = document.getElementById('caseArtCover');
       const caseCrystalEl = document.getElementById('caseCrystal');
-      const deviceBtns = document.querySelectorAll('.device-switch__btn');
+      const caseFrameEl = document.querySelector('.phone-case__frame');
 
       const splatImg = new Image();
       const stampCache = {};
@@ -1453,41 +1011,14 @@
         });
       }
 
-      function setDeviceModel(device) {
-        const model = device === 'android' ? 'android' : 'iphone';
-        if (phoneCaseEl) {
-          phoneCaseEl.classList.remove('is-iphone', 'is-android');
-          phoneCaseEl.classList.add(model === 'android' ? 'is-android' : 'is-iphone');
-        }
-        deviceBtns.forEach((btn) => {
-          const active = btn.dataset.device === model;
-          btn.classList.toggle('is-active', active);
-          btn.setAttribute('aria-selected', active ? 'true' : 'false');
-        });
-        try {
-          sessionStorage.setItem(DEVICE_STORAGE_KEY, model);
-        } catch { /* ignore */ }
-        scheduleRenderCaseArt();
+      if (phoneCaseEl && typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(() => scheduleRenderCaseArt());
+        ro.observe(phoneCaseEl);
+        if (caseArtCover) ro.observe(caseArtCover);
       }
 
-      deviceBtns.forEach((btn) => {
-        btn.addEventListener('click', () => {
-          setDeviceModel(btn.dataset.device);
-        });
-      });
-
-      try {
-        const saved = sessionStorage.getItem(DEVICE_STORAGE_KEY);
-        if (saved === 'android' || saved === 'iphone') {
-          setDeviceModel(saved);
-        }
-      } catch { /* ignore */ }
-
-      if (caseArtCover && typeof ResizeObserver !== 'undefined') {
-        const ro = new ResizeObserver(() => scheduleRenderCaseArt());
-        ro.observe(caseArtCover);
-        const caseScreen = document.querySelector('.phone-case__screen');
-        if (caseScreen) ro.observe(caseScreen);
+      if (caseFrameEl && !caseFrameEl.complete) {
+        caseFrameEl.addEventListener('load', scheduleRenderCaseArt, { once: true });
       }
 
       window.addEventListener('resize', scheduleRenderCaseArt);
