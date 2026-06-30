@@ -115,7 +115,6 @@
       overflow: hidden;
       border-radius: 42px;
       background: var(--canvas-bg);
-      isolation: isolate;
       box-shadow:
         0 1px 0 rgba(255, 255, 255, 0.08),
         0 8px 24px rgba(0, 0, 0, 0.35),
@@ -141,7 +140,7 @@
     .case-overlay {
       z-index: 2;
       object-fit: fill;
-      mix-blend-mode: multiply;
+      opacity: 0.92;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
@@ -212,8 +211,11 @@
       const MAX_DAYS = 7;
       const LIVE_MS = 7 * 24 * 60 * 60 * 1000;
 
-      /* clear-case-original.png カメラ島（実寸比率） */
-      const CAM_MASK = { left: 0.08, top: 0.04, width: 0.32, height: 0.18, radius: 0.22 };
+      /* カメラ島くり抜き（260×559 基準 px → 比率でスケール） */
+      const CAM_CLEAR_W = 110;
+      const CAM_CLEAR_H = 110;
+      const CASE_REF_W = 260;
+      const CASE_REF_H = 559;
 
       const SAMPLE = [
         { nx: 0.28, ny: 0.34, color: '#3d2868', word: '静けさ', baseSize: 88, scaleFactor: 1.04, rotation: -0.4, opacity: 0.82 },
@@ -356,14 +358,14 @@
         return {
           nx: s.nx, ny: s.ny, color: s.color, word: s.word || '', timestamp: s.timestamp || 0,
           baseSize, rotation: s.rotation ?? 0, scaleFactor: s.scaleFactor ?? 1,
-          opacity: s.opacity ?? 0.75, canvasW: s.canvasW || SRC_W
+          opacity: s.opacity ?? 1, canvasW: s.canvasW || SRC_W
         };
       }
 
       function migrateGallery(s) {
         let baseSize = s.baseSize || 220;
         if (baseSize < 150) baseSize *= 2.5;
-        return { nx: s.nx, ny: s.ny, color: s.color, baseSize, rotation: s.rotation ?? 0, scaleFactor: s.scaleFactor ?? 1, opacity: s.opacity ?? 0.75 };
+        return { nx: s.nx, ny: s.ny, color: s.color, baseSize, rotation: s.rotation ?? 0, scaleFactor: s.scaleFactor ?? 1, opacity: s.opacity ?? 1 };
       }
 
       function liveSplashes() {
@@ -465,6 +467,31 @@
         });
       }
 
+      function processOverlayFrame(img) {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        if (!w || !h) return null;
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        const data = ctx.getImageData(0, 0, w, h);
+        const px = data.data;
+        for (let i = 0; i < px.length; i += 4) {
+          const r = px[i];
+          const g = px[i + 1];
+          const b = px[i + 2];
+          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+          const neutral = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
+          if (lum >= 165 && neutral < 28) {
+            px[i + 3] = 0;
+          }
+        }
+        ctx.putImageData(data, 0, 0);
+        return c.toDataURL('image/png');
+      }
+
       function loadSplat() {
         if (splatOk) return Promise.resolve();
         if (splatPromise) return splatPromise;
@@ -494,42 +521,10 @@
         return c;
       }
 
-      function roundRect(ctx, x, y, w, h, r) {
-        const rr = Math.min(r, w / 2, h / 2);
-        ctx.beginPath();
-        ctx.moveTo(x + rr, y);
-        ctx.arcTo(x + w, y, x + w, y + h, rr);
-        ctx.arcTo(x + w, y + h, x, y + h, rr);
-        ctx.arcTo(x, y + h, x, y, rr);
-        ctx.arcTo(x, y, x + w, y, rr);
-        ctx.closePath();
-      }
-
-      function cameraRect(w, h) {
-        const cx = w * CAM_MASK.left;
-        const cy = h * CAM_MASK.top;
-        const cw = w * CAM_MASK.width;
-        const ch = h * CAM_MASK.height;
-        const r = cw * CAM_MASK.radius;
-        return { cx, cy, cw, ch, r };
-      }
-
-      function applyInkClip(ctx, w, h) {
-        const { cx, cy, cw, ch, r } = cameraRect(w, h);
-        ctx.beginPath();
-        ctx.rect(0, 0, w, h);
-        roundRect(ctx, cx, cy, cw, ch, r);
-        ctx.clip('evenodd');
-      }
-
-      function punchCameraHole(ctx, w, h) {
-        const { cx, cy, cw, ch, r } = cameraRect(w, h);
-        ctx.save();
-        ctx.globalCompositeOperation = 'destination-out';
-        ctx.fillStyle = '#000';
-        roundRect(ctx, cx, cy, cw, ch, r);
-        ctx.fill();
-        ctx.restore();
+      function clearCameraArea(ctx, w, h) {
+        const cw = w * (CAM_CLEAR_W / CASE_REF_W);
+        const ch = h * (CAM_CLEAR_H / CASE_REF_H);
+        ctx.clearRect(0, 0, cw, ch);
       }
 
       function paintInkSplat(ctx, splash, destW, destH, srcW) {
@@ -550,15 +545,14 @@
 
       function drawInkOnly(ctx, splashes, destW, destH, item) {
         ctx.clearRect(0, 0, destW, destH);
+        ctx.fillStyle = '#f7f4eb';
+        ctx.fillRect(0, 0, destW, destH);
         const srcW = item ? (item.canvasW || 400) : SRC_W;
-        ctx.save();
-        applyInkClip(ctx, destW, destH);
         splashes.forEach((raw) => {
           const splash = item ? migrateGallery(raw) : migrate(raw);
           paintInkSplat(ctx, splash, destW, destH, srcW);
         });
-        ctx.restore();
-        punchCameraHole(ctx, destW, destH);
+        clearCameraArea(ctx, destW, destH);
       }
 
       function render() {
@@ -606,7 +600,12 @@
       }
 
       if (overlay) {
-        const ready = () => { fitContainer(); schedule(); };
+        const ready = () => {
+          const stripped = processOverlayFrame(overlay);
+          if (stripped) overlay.src = stripped;
+          fitContainer();
+          schedule();
+        };
         overlay.complete ? ready() : overlay.addEventListener('load', ready, { once: true });
       }
 
