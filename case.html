@@ -514,8 +514,9 @@
       const SPLAT_IMAGE = 'splat.png';
       const CANVAS_BG = '#f7f4eb';
       const REF_CANVAS_W = 270;
-      const DEFAULT_CANVAS_H = 480;
-      const DEFAULT_CANVAS_H = 300;
+      const REF_CANVAS_H = 480;
+      const LEGACY_CANVAS_W = 400;
+      const LEGACY_CANVAS_H = 300;
       const SPLAT_WIDTH_MIN_FRAC = 0.25;
       const SPLAT_WIDTH_MID_FRAC = 0.50;
       const SPLAT_WIDTH_MAX_FRAC = 0.70;
@@ -1020,20 +1021,29 @@
         c.globalCompositeOperation = 'source-over';
       }
 
+      function getLegacyArtDimensions(item) {
+        let legacyW = item && item.canvasW > 0 ? Math.round(item.canvasW) : 0;
+        let legacyH = item && item.canvasH > 0 ? Math.round(item.canvasH) : 0;
+        if (!legacyW || !legacyH) {
+          legacyW = LEGACY_CANVAS_W;
+          legacyH = LEGACY_CANVAS_H;
+        }
+        return { legacyW, legacyH };
+      }
+
       function renderGalleryArtExact(ctx, item, destW, destH) {
-        const srcW = item.canvasW > 0 ? Math.round(item.canvasW) : REF_CANVAS_W;
-        const srcH = item.canvasH > 0 ? Math.round(item.canvasH) : DEFAULT_CANVAS_H;
+        const { legacyW, legacyH } = getLegacyArtDimensions(item);
 
         const off = document.createElement('canvas');
-        off.width = srcW;
-        off.height = srcH;
+        off.width = legacyW;
+        off.height = legacyH;
         const offCtx = off.getContext('2d');
         offCtx.fillStyle = CANVAS_BG;
-        offCtx.fillRect(0, 0, srcW, srcH);
+        offCtx.fillRect(0, 0, legacyW, legacyH);
 
         if (Array.isArray(item.splats)) {
           item.splats.map(migrateGallerySplash).forEach((splash) => {
-            drawGallerySplatter(offCtx, splash, srcW, srcH);
+            drawGallerySplatter(offCtx, splash, legacyW, legacyH);
           });
         }
 
@@ -1041,20 +1051,7 @@
         ctx.globalAlpha = 1;
         ctx.fillStyle = CANVAS_BG;
         ctx.fillRect(0, 0, destW, destH);
-
-        const srcAspect = srcW / srcH;
-        const destAspect = destW / destH;
-        if (Math.abs(srcAspect - destAspect) < 0.02) {
-          ctx.drawImage(off, 0, 0, destW, destH);
-          return;
-        }
-
-        const scale = Math.max(destW / srcW, destH / srcH);
-        const drawW = srcW * scale;
-        const drawH = srcH * scale;
-        const dx = (destW - drawW) / 2;
-        const dy = (destH - drawH) / 2;
-        ctx.drawImage(off, dx, dy, drawW, drawH);
+        ctx.drawImage(off, 0, 0, destW, destH);
       }
 
       function renderPortraitArtExact(ctx, splashes, srcW, srcH, destW, destH, withCrystal) {
@@ -1128,7 +1125,7 @@
 
         applyCrystalGradient();
         const splashes = resolveSplashesForCase();
-        renderPortraitArtExact(ctx, splashes, REF_CANVAS_W, DEFAULT_CANVAS_H, cw, ch, true);
+        renderPortraitArtExact(ctx, splashes, REF_CANVAS_W, REF_CANVAS_H, cw, ch, true);
       }
 
       function applyCaseDesign() {

@@ -284,7 +284,7 @@
     .gallery-art-canvas {
       display: block;
       width: 100%;
-      height: auto;
+      height: 100%;
       vertical-align: top;
       background-color: #f7f4eb;
       background-image:
@@ -921,6 +921,8 @@
       const CANVAS_BG = '#f7f4eb';
       const DEFAULT_CANVAS_W = 270;
       const DEFAULT_CANVAS_H = 480;
+      const LEGACY_CANVAS_W = 400;
+      const LEGACY_CANVAS_H = 300;
       const SHARE_APP_URL = 'https://my-inscape.github.io/inscape/';
       const SHARE_HASHTAG = '#INSCAPE';
       const EXPORT_W = 1080;
@@ -1093,29 +1095,62 @@
         c.globalCompositeOperation = 'source-over';
       }
 
-      function getArtDimensions(item) {
-        const srcW = item.canvasW > 0 ? Math.round(item.canvasW) : DEFAULT_CANVAS_W;
-        const srcH = item.canvasH > 0 ? Math.round(item.canvasH) : DEFAULT_CANVAS_H;
-        return { srcW, srcH };
+      function getLegacyArtDimensions(item) {
+        let legacyW = item && item.canvasW > 0 ? Math.round(item.canvasW) : 0;
+        let legacyH = item && item.canvasH > 0 ? Math.round(item.canvasH) : 0;
+        if (!legacyW || !legacyH) {
+          legacyW = LEGACY_CANVAS_W;
+          legacyH = LEGACY_CANVAS_H;
+        }
+        return { legacyW, legacyH };
       }
 
-      function renderRecipeToCanvas(canvasEl, splats, srcW, srcH) {
+      function getArtDimensions(item) {
+        return { srcW: DEFAULT_CANVAS_W, srcH: DEFAULT_CANVAS_H };
+      }
+
+      function isPortrait916(w, h) {
+        if (!w || !h) return false;
+        return Math.abs((w / h) - (DEFAULT_CANVAS_W / DEFAULT_CANVAS_H)) < 0.04;
+      }
+
+      function renderRecipeToCanvas(canvasEl, splats, item) {
+        const { legacyW, legacyH } = getLegacyArtDimensions(item);
+        const targetW = DEFAULT_CANVAS_W;
+        const targetH = DEFAULT_CANVAS_H;
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        canvasEl.width = Math.round(srcW * dpr);
-        canvasEl.height = Math.round(srcH * dpr);
+        canvasEl.width = Math.round(targetW * dpr);
+        canvasEl.height = Math.round(targetH * dpr);
         canvasEl.style.width = '100%';
-        canvasEl.style.height = 'auto';
+        canvasEl.style.height = '100%';
 
         const c = canvasEl.getContext('2d');
         c.setTransform(dpr, 0, 0, dpr, 0, 0);
         c.fillStyle = CANVAS_BG;
-        c.fillRect(0, 0, srcW, srcH);
+        c.fillRect(0, 0, targetW, targetH);
 
-        if (!Array.isArray(splats)) return;
+        if (!Array.isArray(splats) || !splats.length) return;
 
+        const needsRemap = !isPortrait916(legacyW, legacyH) ||
+          legacyW !== targetW || legacyH !== targetH;
+
+        if (!needsRemap) {
+          splats.map(migrateSplash).forEach((splash) => {
+            drawSplatter(c, splash, targetW, targetH);
+          });
+          return;
+        }
+
+        const off = document.createElement('canvas');
+        off.width = legacyW;
+        off.height = legacyH;
+        const offCtx = off.getContext('2d');
+        offCtx.fillStyle = CANVAS_BG;
+        offCtx.fillRect(0, 0, legacyW, legacyH);
         splats.map(migrateSplash).forEach((splash) => {
-          drawSplatter(c, splash, srcW, srcH);
+          drawSplatter(offCtx, splash, legacyW, legacyH);
         });
+        c.drawImage(off, 0, 0, targetW, targetH);
       }
 
       function loadGallery() {
@@ -1456,7 +1491,6 @@
       }
 
       function createFramedArtwork(item) {
-        const { srcW, srcH } = getArtDimensions(item);
         const artWrapper = document.createElement('div');
         artWrapper.className = 'gallery-item';
 
@@ -1468,11 +1502,11 @@
 
         const surface = document.createElement('div');
         surface.className = 'art-surface';
-        surface.style.aspectRatio = `${srcW} / ${srcH}`;
+        surface.style.aspectRatio = '9 / 16';
 
         const artCanvas = document.createElement('canvas');
         artCanvas.className = 'gallery-art-canvas';
-        renderRecipeToCanvas(artCanvas, item.splats, srcW, srcH);
+        renderRecipeToCanvas(artCanvas, item.splats, item);
 
         const texture = document.createElement('div');
         texture.className = 'paper-texture-overlay';
@@ -1735,18 +1769,13 @@
         hideMemoryPopover();
         modalBody.innerHTML = artwork.innerHTML;
 
-        const srcCanvas = artwork.querySelector('.gallery-art-canvas');
+        const galleryItem = item || artwork._galleryItem;
+
         const modalCanvas = modalBody.querySelector('.gallery-art-canvas');
-        if (srcCanvas && modalCanvas) {
-          modalCanvas.width = srcCanvas.width;
-          modalCanvas.height = srcCanvas.height;
-          modalCanvas.style.width = '100%';
-          modalCanvas.style.height = 'auto';
-          const surface = modalBody.querySelector('.art-surface');
-          if (surface && srcCanvas.parentElement) {
-            surface.style.aspectRatio = srcCanvas.parentElement.style.aspectRatio || '';
-          }
-          modalCanvas.getContext('2d').drawImage(srcCanvas, 0, 0);
+        const surface = modalBody.querySelector('.art-surface');
+        if (surface) surface.style.aspectRatio = '9 / 16';
+        if (modalCanvas && galleryItem) {
+          renderRecipeToCanvas(modalCanvas, galleryItem.splats, galleryItem);
         }
 
         const listShareBtn = modalBody.querySelector('.share-art-btn');
@@ -1755,8 +1784,6 @@
         if (listSaveBtn) listSaveBtn.remove();
         const listActions = modalBody.querySelector('.modal-art-actions');
         if (listActions) listActions.remove();
-
-        const galleryItem = item || artwork._galleryItem;
 
         const actionsWrap = document.createElement('div');
         actionsWrap.className = 'modal-art-actions';
