@@ -63,8 +63,30 @@
       flex-direction: column;
       min-height: 100%;
       height: auto;
-      padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
-      padding-bottom: calc(3.25rem + env(safe-area-inset-bottom, 0px));
+      padding:
+        0
+        env(safe-area-inset-right)
+        calc(2.5rem + env(safe-area-inset-bottom, 0px))
+        env(safe-area-inset-left);
+    }
+
+    .logo--header {
+      flex: 0 0 auto;
+      width: 100%;
+      margin: 0;
+      padding:
+        calc(0.65rem + env(safe-area-inset-top, 0px))
+        1.15rem
+        0.55rem;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Times New Roman", "Georgia", serif;
+      font-size: 0.68rem;
+      font-weight: 300;
+      letter-spacing: 0.56em;
+      text-indent: 0.56em;
+      color: rgba(232, 230, 226, 0.58);
+      text-shadow:
+        0 0 28px rgba(255, 255, 255, 0.1),
+        0 1px 0 rgba(0, 0, 0, 0.35);
     }
 
     .top-area {
@@ -73,12 +95,12 @@
       flex-direction: column;
       align-items: center;
       width: 100%;
-      padding: 0.85rem 0 0.5rem;
+      padding: 0.35rem 0 0.5rem;
       position: relative;
     }
 
     .logo {
-      font-family: "Times New Roman", "Georgia", "Hiragino Mincho ProN", "Yu Mincho", serif;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Times New Roman", "Georgia", serif;
       font-size: 0.62rem;
       font-weight: 300;
       letter-spacing: 0.52em;
@@ -92,10 +114,13 @@
       user-select: none;
     }
 
-    .logo--footer {
-      margin-top: 1.35rem;
-      margin-bottom: 0.15rem;
-      padding-bottom: 0.2rem;
+    .controls {
+      flex: 0 0 auto;
+      width: 100%;
+      padding: 0.35rem 1.15rem 0.5rem;
+      min-height: 0;
+      position: relative;
+      z-index: 2;
     }
 
     .mid-panel {
@@ -104,15 +129,6 @@
       padding: 0.85rem 1.15rem 0.65rem;
       scroll-margin-top: 0.5rem;
       scroll-margin-bottom: 1.5rem;
-    }
-
-    .controls {
-      flex: 0 0 auto;
-      width: 100%;
-      padding: 0.5rem 1.15rem calc(3.75rem + env(safe-area-inset-bottom, 0px));
-      min-height: 4.5rem;
-      position: relative;
-      z-index: 2;
     }
 
     .controls-row {
@@ -897,11 +913,12 @@
     }
 
     .header-actions {
-      position: absolute;
-      top: calc(0.85rem + env(safe-area-inset-top));
-      left: calc(0.65rem + env(safe-area-inset-left));
-      right: calc(0.65rem + env(safe-area-inset-right));
-      z-index: 10035;
+      position: relative;
+      flex: 0 0 auto;
+      width: 100%;
+      margin: 0 0 0.85rem;
+      padding: 0 0.65rem;
+      z-index: 10;
       display: flex;
       align-items: stretch;
       justify-content: flex-start;
@@ -911,7 +928,6 @@
       flex-wrap: nowrap;
       -webkit-overflow-scrolling: touch;
       scrollbar-width: none;
-      pointer-events: none;
     }
 
     .header-actions::-webkit-scrollbar {
@@ -920,7 +936,6 @@
     }
 
     .header-actions > * {
-      pointer-events: auto;
       flex: 0 0 auto;
       min-width: max-content;
     }
@@ -1586,17 +1601,6 @@
 </head>
 <body>
   <div class="phone-shell" id="phoneShell">
-    <header class="header-actions" aria-label="ナビゲーション">
-      <button type="button" class="header-action-btn release-share-btn" id="releaseShareBtn" aria-label="この瞬間を放流する">この瞬間を放流する</button>
-      <a class="header-action-btn is-current" href="index.html" aria-current="page">キャンバス</a>
-      <a class="header-action-btn midspace-link" href="midspace.html">言葉の浮遊層</a>
-      <a class="header-action-btn gallery-link" href="gallery.html">感情の回廊</a>
-      <a class="header-action-btn mycolors-link" href="mycolors.html">今日の私の色</a>
-      <a class="header-action-btn ocean-link" href="ocean.html">感情の夜海</a>
-      <a class="header-action-btn room-link" href="room.html">合言葉の部屋</a>
-      <a class="header-action-btn case-link" href="case.html">プロダクトプレビュー</a>
-    </header>
-
     <p class="daily-lock-message" id="dailyLockMessage" aria-hidden="true">
       今日の日記は紡がれました
     </p>
@@ -1633,6 +1637,19 @@
     </div>
 
     <div class="app">
+      <p class="logo logo--header zen-target" aria-label="INSCAPE">INSCAPE</p>
+
+      <header class="header-actions" aria-label="ナビゲーション">
+        <button type="button" class="header-action-btn release-share-btn" id="releaseShareBtn" aria-label="この瞬間を放流する">この瞬間を放流する</button>
+        <a class="header-action-btn is-current" href="index.html" aria-current="page">キャンバス</a>
+        <a class="header-action-btn midspace-link" href="midspace.html">言葉の浮遊層</a>
+        <a class="header-action-btn gallery-link" href="gallery.html">感情の回廊</a>
+        <a class="header-action-btn mycolors-link" href="mycolors.html">今日の私の色</a>
+        <a class="header-action-btn ocean-link" href="ocean.html">感情の夜海</a>
+        <a class="header-action-btn room-link" href="room.html">合言葉の部屋</a>
+        <a class="header-action-btn case-link" href="case.html">プロダクトプレビュー</a>
+      </header>
+
       <div class="top-area">
         <div class="canvas-wrap" id="canvasWrap">
           <div class="museum-frame" id="museumFrame">
@@ -1676,7 +1693,6 @@
 
       <footer class="controls zen-target" id="controlsFooter">
         <p class="frame-progress-hint zen-target" id="frameProgressHint"></p>
-        <p class="logo logo--footer zen-target" aria-label="INSCAPE">INSCAPE</p>
       </footer>
     </div>
 
