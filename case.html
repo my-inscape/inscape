@@ -113,10 +113,7 @@
       aspect-ratio: 360 / 664;
       max-height: min(78dvh, 32rem);
       overflow: hidden;
-      border-radius: 13% / 6.2%;
-      filter:
-        drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5))
-        drop-shadow(0 20px 40px rgba(0, 0, 0, 0.45));
+      border-radius: clamp(2rem, 16%, 2.5rem);
     }
 
     #caseCanvas,
@@ -132,12 +129,9 @@
     #caseCanvas {
       z-index: 1;
       background-color: var(--canvas-bg);
-      background-image:
-        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
-        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
-        var(--canvas-fabric-url);
-      background-size: auto, auto, cover;
-      background-blend-mode: multiply;
+      background-image: var(--canvas-fabric-url);
+      background-size: cover;
+      background-position: center;
     }
 
     .case-overlay {
@@ -186,7 +180,8 @@
           height="664"
           alt="Clear Case"
           draggable="false"
-          decoding="async"
+          decoding="sync"
+          loading="eager"
         >
       </div>
       <p class="case-note">※7日間アプリを続けると、あなただけの本当の色に変わります</p>
@@ -595,6 +590,19 @@
         c.globalCompositeOperation = 'source-over';
       }
 
+      function renderPortraitArt(ctx, splashes, destW, destH) {
+        const off = document.createElement('canvas');
+        off.width = REF_CANVAS_W;
+        off.height = REF_CANVAS_H;
+        const offCtx = off.getContext('2d');
+        offCtx.fillStyle = CANVAS_BG;
+        offCtx.fillRect(0, 0, REF_CANVAS_W, REF_CANVAS_H);
+        splashes.forEach((s) => drawSplatter(offCtx, s, REF_CANVAS_W, REF_CANVAS_H));
+        ctx.fillStyle = CANVAS_BG;
+        ctx.fillRect(0, 0, destW, destH);
+        ctx.drawImage(off, 0, 0, destW, destH);
+      }
+
       function renderGalleryArt(ctx, item, destW, destH) {
         let legacyW = item?.canvasW > 0 ? Math.round(item.canvasW) : LEGACY_CANVAS_W;
         let legacyH = item?.canvasH > 0 ? Math.round(item.canvasH) : LEGACY_CANVAS_H;
@@ -609,26 +617,7 @@
         }
         ctx.fillStyle = CANVAS_BG;
         ctx.fillRect(0, 0, destW, destH);
-        const scale = Math.max(destW / legacyW, destH / legacyH);
-        const drawW = legacyW * scale;
-        const drawH = legacyH * scale;
-        ctx.drawImage(off, (destW - drawW) / 2, (destH - drawH) / 2, drawW, drawH);
-      }
-
-      function renderPortraitArt(ctx, splashes, destW, destH) {
-        const off = document.createElement('canvas');
-        off.width = REF_CANVAS_W;
-        off.height = REF_CANVAS_H;
-        const offCtx = off.getContext('2d');
-        offCtx.fillStyle = CANVAS_BG;
-        offCtx.fillRect(0, 0, REF_CANVAS_W, REF_CANVAS_H);
-        splashes.forEach((s) => drawSplatter(offCtx, s, REF_CANVAS_W, REF_CANVAS_H));
-        ctx.fillStyle = CANVAS_BG;
-        ctx.fillRect(0, 0, destW, destH);
-        const scale = Math.max(destW / REF_CANVAS_W, destH / REF_CANVAS_H);
-        const drawW = REF_CANVAS_W * scale;
-        const drawH = REF_CANVAS_H * scale;
-        ctx.drawImage(off, (destW - drawW) / 2, (destH - drawH) / 2, drawW, drawH);
+        ctx.drawImage(off, 0, 0, destW, destH);
       }
 
       function renderCaseArt() {
