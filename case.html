@@ -84,36 +84,29 @@
 
     .case-container {
       position: relative;
-      width: 260px;
-      height: 559px;
-      max-width: min(46vw, 16.25rem);
+      width: 315px;
+      height: 560px;
+      max-width: min(52vw, 19.7rem);
       max-height: min(78dvh, 35rem);
-      aspect-ratio: 260 / 559;
+      margin: 0 auto;
+      background-image: url('white-case.png');
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
       overflow: hidden;
       border-radius: 40px;
-      background-color: #ffffff !important;
       box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35), 0 28px 56px rgba(0, 0, 0, 0.48);
     }
 
-    #caseCanvas,
-    .case-overlay {
+    #caseCanvas {
       position: absolute;
       top: 0;
       left: 0;
       width: 100%;
       height: 100%;
       display: block;
+      background: transparent;
       border-radius: inherit;
-    }
-
-    #caseCanvas { z-index: 1; }
-
-    .case-overlay {
-      z-index: 2;
-      object-fit: fill;
-      pointer-events: none;
-      user-select: none;
-      -webkit-user-drag: none;
     }
 
     .note {
@@ -146,7 +139,6 @@
     <main class="main">
       <div class="case-container" id="caseContainer">
         <canvas id="caseCanvas"></canvas>
-        <img src="clear-case-original.png" class="case-overlay" id="caseOverlay" alt="Clear Case" width="360" height="664" decoding="async" loading="eager">
       </div>
       <p class="note">※実際の製品は、あなただけの本当の色がプリントされた『クリアケース（透明）』として完成します。</p>
     </main>
@@ -157,31 +149,14 @@
       'use strict';
 
       var INSCAPE_HISTORY_KEY = 'inscape_history';
-      var GALLERY_KEY = 'inscape_gallery';
       var HISTORY_KEY = 'histories';
       var LIVE_KEY = 'inscape_splashes';
-      var CANVAS_BG = '#f7f4eb';
+      var GALLERY_KEY = 'inscape_gallery';
       var SRC_W = 270;
       var SRC_H = 480;
 
       var box = document.getElementById('caseContainer');
       var canvas = document.getElementById('caseCanvas');
-      var overlay = document.getElementById('caseOverlay');
-
-      /* splat は描画を一切ブロックしない（成功時のみテクスチャに差し替え） */
-      var splatImg = new Image();
-      var splatReady = false;
-      var stampCache = {};
-
-      splatImg.onload = function () {
-        if (splatImg.naturalWidth > 0) {
-          splatReady = true;
-          stampCache = {};
-          render();
-        }
-      };
-      splatImg.onerror = function () { splatReady = false; };
-      try { splatImg.src = 'splat.png'; } catch (e) { splatReady = false; }
 
       function loadJson(key) {
         try {
@@ -194,223 +169,119 @@
         }
       }
 
-      function parseDateKey(str) {
-        if (!str) return '';
-        var m = String(str).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
-        if (!m) return String(str).trim();
-        return m[1] + '.' + m[2].padStart(2, '0') + '.' + m[3].padStart(2, '0');
-      }
-
-      function pickGallerySplats() {
-        var p = new URLSearchParams(location.search);
-        var date = p.get('date') || '';
-        var idxRaw = p.get('idx');
-        var idx = idxRaw !== null && idxRaw !== '' ? parseInt(idxRaw, 10) : -1;
-        if (!date && idx < 0) return null;
-
-        var list = loadJson(GALLERY_KEY);
-        var key = parseDateKey(date);
-        var i, item;
-
-        if (idx >= 0 && idx < list.length) {
-          item = list[idx];
-          if (item && item.splats && item.splats.length) return item.splats;
-        }
-        if (key) {
-          for (i = list.length - 1; i >= 0; i--) {
-            item = list[i];
-            if (item && item.splats && item.splats.length && parseDateKey(item.date) === key) {
-              return item.splats;
-            }
-          }
-        }
-        return null;
-      }
-
-      /* inscape_history の points 配列を最優先で収集 */
-      function collectHistoryPoints() {
+      function getPoints() {
         var history = loadJson(INSCAPE_HISTORY_KEY);
         var points = [];
         var h, e, p;
+
         for (h = 0; h < history.length; h++) {
           e = history[h];
           if (!e) continue;
           if (e.points && Array.isArray(e.points)) {
-            for (p = 0; p < e.points.length; p++) {
-              if (e.points[p] && e.points[p].color) points.push(e.points[p]);
-            }
+            e.points.forEach(function (pt) {
+              if (pt && pt.color) points.push(pt);
+            });
           }
         }
-        return points;
-      }
-
-      function getDrawItems() {
-        var points = collectHistoryPoints();
         if (points.length) return points;
 
-        var gallerySplats = pickGallerySplats();
-        if (gallerySplats && gallerySplats.length) return gallerySplats;
+        var gallery = loadJson(GALLERY_KEY);
+        var params = new URLSearchParams(location.search);
+        var idx = params.get('idx');
+        if (idx !== null && idx !== '' && gallery[parseInt(idx, 10)]) {
+          var item = gallery[parseInt(idx, 10)];
+          if (item && item.splats && item.splats.length) return item.splats;
+        }
 
         var live = loadJson(LIVE_KEY);
         var out = [];
-        var i;
-        for (i = 0; i < live.length; i++) {
-          if (live[i] && live[i].color) out.push(live[i]);
-        }
+        live.forEach(function (s) {
+          if (s && s.color) out.push(s);
+        });
         if (out.length) return out;
 
         var recipes = loadJson(HISTORY_KEY);
-        out = [];
-        for (i = 0; i < recipes.length; i++) {
-          if (recipes[i] && recipes[i].color) out.push(recipes[i]);
-        }
+        recipes.forEach(function (s) {
+          if (s && s.color) out.push(s);
+        });
         return out;
       }
 
-      function createColorStamp(color) {
-        if (!splatReady || !splatImg.naturalWidth || !color) return null;
-        if (stampCache[color]) return stampCache[color];
-        var w = splatImg.naturalWidth;
-        var h = splatImg.naturalHeight;
-        var work = document.createElement('canvas');
-        work.width = w;
-        work.height = h;
-        var wctx = work.getContext('2d');
-        wctx.fillStyle = color;
-        wctx.fillRect(0, 0, w, h);
-        wctx.globalCompositeOperation = 'screen';
-        wctx.drawImage(splatImg, 0, 0);
-        wctx.globalCompositeOperation = 'source-over';
-        stampCache[color] = work;
-        return work;
+      function pointNx(point) {
+        if (typeof point.nx === 'number') return point.nx;
+        if (point.x != null) return point.x / 100;
+        return 0.5;
       }
 
-      function drawArcFallback(ctx, color, size, rotation, opacity) {
-        var r = size * 0.38;
+      function pointNy(point) {
+        if (typeof point.ny === 'number') return point.ny;
+        if (point.y != null) return point.y / 100;
+        return 0.5;
+      }
+
+      function pointSize(point, scale) {
+        var size = point.baseSize || point.size || 80;
+        if (size < 150) size = size * 2.5;
+        return size * (point.scaleFactor != null ? point.scaleFactor : 1) * scale;
+      }
+
+      function drawSplatter(ctx, point, cx, cy, radius, rotation, opacity) {
+        var color = point.color;
         var b, ang, dist, br;
         ctx.fillStyle = color;
-        ctx.globalCompositeOperation = 'source-over';
         ctx.globalAlpha = opacity;
         ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fill();
-        for (b = 0; b < 6; b++) {
-          ang = rotation + b * 1.05;
-          dist = r * (0.55 + b * 0.12);
-          br = r * (0.22 + b * 0.04);
+        for (b = 0; b < 5; b++) {
+          ang = rotation + b * 1.1;
+          dist = radius * (0.55 + b * 0.13);
+          br = radius * (0.28 + b * 0.05);
           ctx.beginPath();
-          ctx.arc(Math.cos(ang) * dist, Math.sin(ang) * dist, br, 0, Math.PI * 2);
+          ctx.arc(cx + Math.cos(ang) * dist, cy + Math.sin(ang) * dist, br, 0, Math.PI * 2);
           ctx.fill();
         }
-      }
-
-      function drawOne(ctx, point, w, h) {
-        var color = point.color;
-        if (!color) return;
-
-        var nx = typeof point.nx === 'number' ? point.nx
-          : (point.x != null ? point.x / 100 : 0.5);
-        var ny = typeof point.ny === 'number' ? point.ny
-          : (point.y != null ? point.y / 100 : 0.5);
-        var baseSize = point.baseSize || point.size || 80;
-        if (baseSize < 150) baseSize = baseSize * 2.5;
-        var size = baseSize * (point.scaleFactor != null ? point.scaleFactor : 1);
-        var rotation = point.rotation != null ? point.rotation : 0;
-        var opacity = point.opacity != null ? point.opacity : 0.8;
-        var cx = nx * w;
-        var cy = ny * h;
-        var stamp = createColorStamp(color);
-
-        ctx.save();
-        ctx.translate(cx, cy);
-        ctx.rotate(rotation);
-        ctx.globalAlpha = opacity;
-
-        if (stamp) {
-          ctx.globalCompositeOperation = 'multiply';
-          ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
-        } else {
-          drawArcFallback(ctx, color, size, rotation, opacity);
-        }
-
-        ctx.restore();
-        ctx.globalCompositeOperation = 'source-over';
       }
 
       function render() {
         if (!canvas || !box) return;
 
-        var rect = box.getBoundingClientRect();
-        var displayW = Math.round(rect.width) || 260;
-        var displayH = Math.round(rect.height) || 559;
-
+        var w = Math.round(box.clientWidth) || 315;
+        var h = Math.round(box.clientHeight) || 560;
         var dpr = Math.min(2, window.devicePixelRatio || 1);
-        canvas.width = Math.round(displayW * dpr);
-        canvas.height = Math.round(displayH * dpr);
-        canvas.style.width = displayW + 'px';
-        canvas.style.height = displayH + 'px';
+
+        canvas.width = Math.round(w * dpr);
+        canvas.height = Math.round(h * dpr);
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
 
         var ctx = canvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.fillStyle = CANVAS_BG;
-        ctx.fillRect(0, 0, displayW, displayH);
+        ctx.clearRect(0, 0, w, h);
 
-        var items = getDrawItems();
-        if (items.length > 0) {
-          var art = document.createElement('canvas');
-          art.width = SRC_W;
-          art.height = SRC_H;
-          var artCtx = art.getContext('2d');
-          artCtx.fillStyle = CANVAS_BG;
-          artCtx.fillRect(0, 0, SRC_W, SRC_H);
+        var points = getPoints();
+        if (!points.length) return;
 
-          var i;
-          for (i = 0; i < items.length; i++) {
-            drawOne(artCtx, items[i], SRC_W, SRC_H);
-          }
+        var fitScale = Math.min(w / SRC_W, h / SRC_H);
+        var offsetX = (w - SRC_W * fitScale) / 2;
+        var offsetY = (h - SRC_H * fitScale) / 2;
 
-          var scale = displayW / SRC_W;
-          var drawW = displayW;
-          var drawH = SRC_H * scale;
-          var offsetX = 0;
-          var offsetY = (displayH - drawH) / 2;
-          if (drawH > displayH) {
-            scale = displayH / SRC_H;
-            drawH = displayH;
-            drawW = SRC_W * scale;
-            offsetX = (displayW - drawW) / 2;
-            offsetY = 0;
-          }
-          ctx.drawImage(art, offsetX, offsetY, drawW, drawH);
-        }
-
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        var cameraW = canvas.width * 0.42;
-        var cameraH = canvas.height * 0.22;
-        ctx.clearRect(0, 0, cameraW, cameraH);
-        ctx.restore();
-      }
-
-      function fitContainer() {
-        if (!box) return;
-        var ow = overlay && overlay.naturalWidth ? overlay.naturalWidth : 360;
-        var oh = overlay && overlay.naturalHeight ? overlay.naturalHeight : 664;
-        box.style.aspectRatio = ow + ' / ' + oh;
-        box.style.width = 'min(46vw, 16.25rem)';
-        box.style.height = 'auto';
-      }
-
-      /* 即時描画（onload 待ちなし） */
-      fitContainer();
-      render();
-
-      if (overlay) {
-        overlay.addEventListener('load', function () {
-          fitContainer();
-          render();
+        points.forEach(function (point) {
+          if (!point || !point.color) return;
+          var nx = pointNx(point);
+          var ny = pointNy(point);
+          var cx = offsetX + nx * SRC_W * fitScale;
+          var cy = offsetY + ny * SRC_H * fitScale;
+          var radius = pointSize(point, fitScale) * 0.35;
+          var rotation = point.rotation != null ? point.rotation : 0;
+          var opacity = point.opacity != null ? point.opacity : 0.85;
+          drawSplatter(ctx, point, cx, cy, radius, rotation, opacity);
         });
+
+        ctx.globalAlpha = 1;
       }
+
+      render();
 
       if (box && typeof ResizeObserver !== 'undefined') {
         new ResizeObserver(render).observe(box);
