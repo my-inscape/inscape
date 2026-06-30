@@ -1124,7 +1124,9 @@
           galleryData = [];
         }
         if (!Array.isArray(galleryData)) galleryData = [];
-        return galleryData.filter(entry => entry && Array.isArray(entry.splats) && entry.splats.length > 0);
+        return galleryData
+          .map((entry, galleryIndex) => ({ ...entry, galleryIndex }))
+          .filter((entry) => entry && Array.isArray(entry.splats) && entry.splats.length > 0);
       }
 
       function getShareCaption() {
@@ -1353,16 +1355,43 @@
         return btn;
       }
 
-      function createCasePreviewLink() {
+      function createCasePreviewLink(galleryItem) {
         const link = document.createElement('a');
         link.className = 'case-preview-btn';
-        link.href = 'case.html';
+        const dateKey = getArtworkCaseDateKey(galleryItem);
+        let href = `case.html?date=${encodeURIComponent(dateKey)}`;
+        if (galleryItem && typeof galleryItem.galleryIndex === 'number' && galleryItem.galleryIndex >= 0) {
+          href += `&idx=${galleryItem.galleryIndex}`;
+        }
+        link.href = href;
         link.textContent = 'このデザインのスマホケースを見る';
         link.setAttribute('aria-label', 'このデザインのスマホケースを見る');
         link.addEventListener('click', (e) => {
           e.stopPropagation();
         });
         return link;
+      }
+
+      function getArtworkCaseDateKey(item) {
+        if (!item) return '';
+        const history = resolveArtworkHistory(item);
+        const dates = history
+          .map(parseHistoryEntryToDate)
+          .filter(Boolean)
+          .sort((a, b) => a.getTime() - b.getTime());
+        if (dates.length) return formatDotDate(dates[dates.length - 1]);
+        const fallback = parseHistoryEntryToDate({ date: item.date, timestamp: 0 });
+        return fallback ? formatDotDate(fallback) : normalizeGalleryDateKey(item.date);
+      }
+
+      function normalizeGalleryDateKey(str) {
+        if (!str) return '';
+        const matched = String(str).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+        if (!matched) return String(str).trim();
+        const y = matched[1];
+        const mo = String(matched[2]).padStart(2, '0');
+        const da = String(matched[3]).padStart(2, '0');
+        return `${y}.${mo}.${da}`;
       }
 
       function formatDotDate(d) {
@@ -1725,6 +1754,8 @@
         const listActions = modalBody.querySelector('.modal-art-actions');
         if (listActions) listActions.remove();
 
+        const galleryItem = item || artwork._galleryItem;
+
         const actionsWrap = document.createElement('div');
         actionsWrap.className = 'modal-art-actions';
 
@@ -1732,12 +1763,11 @@
         modalShareBtn.classList.add('modal-share');
         actionsWrap.appendChild(modalShareBtn);
         actionsWrap.appendChild(createSaveButton(() => modalBody));
-        actionsWrap.appendChild(createCasePreviewLink());
+        actionsWrap.appendChild(createCasePreviewLink(galleryItem));
         modalBody.appendChild(actionsWrap);
 
         hideMemoryPopover();
         modalView = 'overview';
-        const galleryItem = item || artwork._galleryItem;
 
         const periodCaption = modalBody.querySelector('.art-period-caption');
         if (periodCaption && galleryItem) {
@@ -1840,6 +1870,7 @@
         imageModal.addEventListener('click', (e) => {
           if (e.target.closest('.vault-orb') || e.target.closest('.memory-popover') ||
               e.target.closest('.share-art-btn') || e.target.closest('.save-art-btn') ||
+              e.target.closest('.case-preview-btn') ||
               e.target.closest('.modal-content') ||
               e.target.closest('#modalCloseHint')) {
             return;

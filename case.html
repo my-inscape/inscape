@@ -511,6 +511,7 @@
       'use strict';
 
       const INSCAPE_HISTORY_KEY = 'inscape_history';
+      const GALLERY_KEY = 'inscape_gallery';
       const RECIPE_STORAGE_KEY = 'histories';
       const MAX_CASE_DAYS = 7;
       const DEVICE_STORAGE_KEY = 'inscape_case_device';
@@ -518,6 +519,7 @@
       const SPLAT_IMAGE = 'splat.png';
       const CANVAS_BG = '#f7f4eb';
       const REF_CANVAS_W = 390;
+      const DEFAULT_CANVAS_H = 300;
       const SPLAT_WIDTH_MIN_FRAC = 0.25;
       const SPLAT_WIDTH_MID_FRAC = 0.50;
       const SPLAT_WIDTH_MAX_FRAC = 0.70;
@@ -558,6 +560,97 @@
       let splatReady = false;
       let splatLoadPromise = null;
       let renderQueued = false;
+      let activeGalleryItem = null;
+
+      function getUrlGalleryParams() {
+        const params = new URLSearchParams(window.location.search);
+        const idxRaw = params.get('idx');
+        return {
+          date: params.get('date') || '',
+          idx: idxRaw !== null && idxRaw !== '' ? Number.parseInt(idxRaw, 10) : -1
+        };
+      }
+
+      function normalizeDateKey(str) {
+        if (!str) return '';
+        const matched = String(str).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+        if (!matched) return String(str).trim();
+        const y = matched[1];
+        const mo = String(matched[2]).padStart(2, '0');
+        const da = String(matched[3]).padStart(2, '0');
+        return `${y}.${mo}.${da}`;
+      }
+
+      function collectArtworkDateKeys(item) {
+        const keys = new Set();
+        if (!item) return keys;
+        keys.add(normalizeDateKey(item.date));
+        if (Array.isArray(item.history)) {
+          item.history.forEach((entry) => keys.add(normalizeDateKey(entry.date)));
+        }
+        if (Array.isArray(item.splats)) {
+          item.splats.forEach((s) => {
+            if (s.timestamp) {
+              const d = new Date(s.timestamp);
+              if (!Number.isNaN(d.getTime())) {
+                const y = d.getFullYear();
+                const mo = String(d.getMonth() + 1).padStart(2, '0');
+                const da = String(d.getDate()).padStart(2, '0');
+                keys.add(`${y}.${mo}.${da}`);
+              }
+            }
+          });
+        }
+        keys.delete('');
+        return keys;
+      }
+
+      function artworkMatchesDate(item, targetKey) {
+        if (!item || !targetKey) return false;
+        return collectArtworkDateKeys(item).has(targetKey);
+      }
+
+      function loadRawGallery() {
+        try {
+          const raw = localStorage.getItem(GALLERY_KEY);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          return Array.isArray(data) ? data : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function loadGalleryItemByParams() {
+        const { date, idx } = getUrlGalleryParams();
+        if (!date && idx < 0) return null;
+
+        const gallery = loadRawGallery();
+        const targetKey = normalizeDateKey(date);
+
+        if (Number.isInteger(idx) && idx >= 0 && idx < gallery.length) {
+          const byIdx = gallery[idx];
+          if (byIdx && Array.isArray(byIdx.splats) && byIdx.splats.length) {
+            if (!targetKey || artworkMatchesDate(byIdx, targetKey)) return byIdx;
+          }
+        }
+
+        if (targetKey) {
+          for (let i = gallery.length - 1; i >= 0; i--) {
+            const candidate = gallery[i];
+            if (candidate && Array.isArray(candidate.splats) && candidate.splats.length &&
+                artworkMatchesDate(candidate, targetKey)) {
+              return candidate;
+            }
+          }
+        }
+
+        return null;
+      }
+
+      function initGalleryFromUrl() {
+        activeGalleryItem = loadGalleryItemByParams();
+      }
 
       function mulberry32(seed) {
         let t = seed >>> 0;
@@ -681,6 +774,11 @@
       }
 
       function getSevenCrystalColors() {
+        if (activeGalleryItem && Array.isArray(activeGalleryItem.splats)) {
+          return activeGalleryItem.splats
+            .map((s) => String(s.color || '').trim())
+            .filter(Boolean);
+        }
         return buildSevenCrystalStops(loadSevenDayColors());
       }
 
@@ -740,6 +838,20 @@
         const faint = 0.3 + rng() * 0.2;
         const bold = 0.9 + rng() * 0.1;
         return faint + normalized * (bold - faint);
+      }
+
+      function migrateGallerySplash(s) {
+        let baseSize = s.baseSize || 220;
+        if (baseSize < 150) baseSize *= 2.5;
+        return {
+          nx: s.nx,
+          ny: s.ny,
+          color: s.color,
+          baseSize,
+          rotation: s.rotation ?? 0,
+          scaleFactor: s.scaleFactor ?? 1,
+          opacity: s.opacity ?? 0.75
+        };
       }
 
       function migrateSplash(s) {
@@ -894,6 +1006,54 @@
         return work;
       }
 
+      function drawGallerySplatter(c, splash, w, h) {
+        const stamp = createColorStamp(splash.color);
+        if (!stamp) return;
+
+        const cx = splash.nx * w;
+        const cy = splash.ny * h;
+        const size = splash.baseSize * (splash.scaleFactor || 1);
+
+        c.save();
+        c.translate(cx, cy);
+        c.rotate(splash.rotation || 0);
+        c.globalAlpha = splash.opacity ?? 1;
+        c.globalCompositeOperation = 'multiply';
+        c.drawImage(stamp, -size / 2, -size / 2, size, size);
+        c.restore();
+        c.globalCompositeOperation = 'source-over';
+      }
+
+      function renderGalleryArtExact(ctx, item, destW, destH) {
+        const srcW = item.canvasW > 0 ? Math.round(item.canvasW) : REF_CANVAS_W;
+        const srcH = item.canvasH > 0 ? Math.round(item.canvasH) : DEFAULT_CANVAS_H;
+
+        const off = document.createElement('canvas');
+        off.width = srcW;
+        off.height = srcH;
+        const offCtx = off.getContext('2d');
+        offCtx.fillStyle = CANVAS_BG;
+        offCtx.fillRect(0, 0, srcW, srcH);
+
+        if (Array.isArray(item.splats)) {
+          item.splats.map(migrateGallerySplash).forEach((splash) => {
+            drawGallerySplatter(offCtx, splash, srcW, srcH);
+          });
+        }
+
+        const scale = Math.max(destW / srcW, destH / srcH);
+        const drawW = srcW * scale;
+        const drawH = srcH * scale;
+        const dx = (destW - drawW) / 2;
+        const dy = (destH - drawH) / 2;
+
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = CANVAS_BG;
+        ctx.fillRect(0, 0, destW, destH);
+        ctx.drawImage(off, dx, dy, drawW, drawH);
+      }
+
       function drawSplatter(c, splash, w, h) {
         const stamp = createColorStamp(splash.color);
         if (!stamp) return;
@@ -916,8 +1076,6 @@
       function renderCaseArt() {
         if (!caseArtCanvas || !caseArtCover) return;
 
-        applyCrystalGradient();
-
         const coverRect = caseArtCover.getBoundingClientRect();
         const cw = Math.round(coverRect.width);
         const ch = Math.round(coverRect.height);
@@ -931,6 +1089,14 @@
 
         const ctx = caseArtCanvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        if (activeGalleryItem && Array.isArray(activeGalleryItem.splats) && activeGalleryItem.splats.length) {
+          if (caseCrystalEl) caseCrystalEl.style.background = CANVAS_BG;
+          renderGalleryArtExact(ctx, activeGalleryItem, cw, ch);
+          return;
+        }
+
+        applyCrystalGradient();
         drawCrystalBase(ctx, cw, ch);
 
         const splashes = resolveSplashesForCase();
@@ -938,7 +1104,11 @@
       }
 
       function applyCaseDesign() {
-        applyCrystalGradient();
+        if (activeGalleryItem) {
+          if (caseCrystalEl) caseCrystalEl.style.background = CANVAS_BG;
+        } else {
+          applyCrystalGradient();
+        }
         scheduleRenderCaseArt();
       }
 
@@ -993,15 +1163,20 @@
       window.addEventListener('resize', scheduleRenderCaseArt);
 
       window.addEventListener('storage', (e) => {
-        if (e.key === INSCAPE_HISTORY_KEY || e.key === RECIPE_STORAGE_KEY) {
+        if (e.key === INSCAPE_HISTORY_KEY || e.key === RECIPE_STORAGE_KEY || e.key === GALLERY_KEY) {
+          initGalleryFromUrl();
           applyCaseDesign();
         }
       });
 
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') applyCaseDesign();
+        if (document.visibilityState === 'visible') {
+          initGalleryFromUrl();
+          applyCaseDesign();
+        }
       });
 
+      initGalleryFromUrl();
       applyCaseDesign();
     })();
   </script>
