@@ -194,534 +194,63 @@
   </div>
 
   <script>
-    (function () {
-      'use strict';
+    document.addEventListener("DOMContentLoaded", () => {
+      const canvas = document.getElementById("caseCanvas");
+      if (!canvas) return;
+      const ctx = canvas.getContext("2d");
 
-      const KEYS = {
-        history: 'inscape_history',
-        gallery: 'inscape_gallery',
-        recipes: 'histories',
-        live: 'inscape_splashes'
-      };
+      // コンテナのサイズにキャンバスの解像度を100%完全に合わせる
+      const container = document.querySelector(".case-container");
+      canvas.width = container.clientWidth || 260;
+      canvas.height = container.clientHeight || 559;
 
-      const SPLAT = 'splat.png';
-      const SRC_W = 270;
-      const SRC_H = 480;
-      const MAX_DAYS = 7;
-      const LIVE_MS = 7 * 24 * 60 * 60 * 1000;
+      // 1. キャンバス全体を完全に「透明」にリセット（白背景を徹底排除）
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      const CAM_CLEAR_W_RATIO = 0.42;
-      const CAM_CLEAR_H_RATIO = 0.22;
+      // 2. localStorageから感情データ（模様）を読み込む
+      const history = JSON.parse(localStorage.getItem("inscape_history") || "[]");
 
-      const SAMPLE = [
-        { nx: 0.28, ny: 0.34, color: '#3d2868', word: '静けさ', baseSize: 88, scaleFactor: 1.04, rotation: -0.4, opacity: 0.92 },
-        { nx: 0.62, ny: 0.28, color: '#8b5a9a', word: '余白', baseSize: 72, scaleFactor: 0.98, rotation: 1.1, opacity: 0.88 },
-        { nx: 0.48, ny: 0.58, color: '#c86b9a', word: '記憶', baseSize: 102, scaleFactor: 1.08, rotation: 0.25, opacity: 0.95 },
-        { nx: 0.22, ny: 0.68, color: '#5a8ec8', word: '夜', baseSize: 78, scaleFactor: 1.02, rotation: -1.2, opacity: 0.86 },
-        { nx: 0.74, ny: 0.62, color: '#e8a8c8', word: '光', baseSize: 66, scaleFactor: 0.96, rotation: 0.85, opacity: 0.84 },
-        { nx: 0.38, ny: 0.46, color: '#6b4a8e', word: '結晶', baseSize: 94, scaleFactor: 1.06, rotation: -0.15, opacity: 0.9 },
-        { nx: 0.56, ny: 0.76, color: '#2a4a6e', word: '深海', baseSize: 84, scaleFactor: 1.0, rotation: 2.1, opacity: 0.88 }
-      ];
-
-      const box = document.getElementById('caseContainer');
-      const canvas = document.getElementById('caseCanvas');
-      const overlay = document.getElementById('caseOverlay');
-
-      const splatImg = new Image();
-      const stamps = {};
-      let splatOk = false;
-      let overlayReady = false;
-      let queued = false;
-      let retries = 0;
-      let galleryItem = null;
-
-      function parseDateKey(str) {
-        if (!str) return '';
-        const m = String(str).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
-        if (!m) return String(str).trim();
-        return `${m[1]}.${m[2].padStart(2, '0')}.${m[3].padStart(2, '0')}`;
+      // URLパラメータから日付を取得（なければ最新のデータ）
+      const urlParams = new URLSearchParams(window.location.search);
+      const targetDate = urlParams.get("date");
+      let targetData = history.find(item => item.date === targetDate);
+      if (!targetData && history.length > 0) {
+        targetData = history[history.length - 1]; // 最新データ
       }
 
-      function urlParams() {
-        const p = new URLSearchParams(location.search);
-        const idx = p.get('idx');
-        return { date: p.get('date') || '', idx: idx !== null && idx !== '' ? parseInt(idx, 10) : -1 };
-      }
-
-      function galleryDates(item) {
-        const keys = new Set();
-        if (!item) return keys;
-        keys.add(parseDateKey(item.date));
-        (item.history || []).forEach((e) => keys.add(parseDateKey(e.date)));
-        (item.splats || []).forEach((s) => {
-          if (!s.timestamp) return;
-          const d = new Date(s.timestamp);
-          if (!isNaN(d)) keys.add(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`);
-        });
-        keys.delete('');
-        return keys;
-      }
-
-      function loadGallery() {
-        try {
-          const raw = localStorage.getItem(KEYS.gallery);
-          return raw ? JSON.parse(raw) : [];
-        } catch { return []; }
-      }
-
-      function pickGallery() {
-        const { date, idx } = urlParams();
-        if (!date && idx < 0) return null;
-        const list = loadGallery();
-        const key = parseDateKey(date);
-        if (idx >= 0 && idx < list.length) {
-          const item = list[idx];
-          if (item?.splats?.length && (!key || galleryDates(item).has(key))) return item;
-        }
-        if (key) {
-          for (let i = list.length - 1; i >= 0; i--) {
-            if (list[i]?.splats?.length && galleryDates(list[i]).has(key)) return list[i];
-          }
-        }
-        return null;
-      }
-
-      function initGallery() {
-        const { date, idx } = urlParams();
-        galleryItem = (date || idx >= 0) ? pickGallery() : null;
-      }
-
-      function rng(seed) {
-        let t = seed >>> 0;
-        return () => {
-          t += 0x6d2b79f5;
-          let r = Math.imul(t ^ (t >>> 15), 1 | t);
-          r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
-          return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-        };
-      }
-
-      function entryDay(entry) {
-        if (entry.timestamp > 0) {
-          const d = new Date(entry.timestamp);
-          if (!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-        }
-        if (entry.date) {
-          const m = String(entry.date).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
-          if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
-        }
-        return `ts-${entry.timestamp || entry.date || Math.random()}`;
-      }
-
-      function loadHistory() {
-        try {
-          const raw = localStorage.getItem(KEYS.history);
-          if (!raw) return [];
-          const data = JSON.parse(raw);
-          if (!Array.isArray(data)) return [];
-          return data
-            .map((e) => ({
-              word: e.word || e.text || '',
-              color: e.color,
-              date: e.date || '',
-              timestamp: e.timestamp || 0,
-              nx: typeof e.nx === 'number' ? e.nx : null,
-              ny: typeof e.ny === 'number' ? e.ny : null,
-              x: typeof e.x === 'number' ? e.x : null,
-              y: typeof e.y === 'number' ? e.y : null,
-              baseSize: e.baseSize,
-              scaleFactor: e.scaleFactor,
-              rotation: e.rotation,
-              opacity: e.opacity
-            }))
-            .filter((e) => e.color && String(e.color).trim());
-        } catch { return []; }
-      }
-
-      function sevenDays() {
-        const map = new Map();
-        loadHistory().forEach((e) => {
-          const k = entryDay(e);
-          const prev = map.get(k);
-          if (!prev || (e.timestamp || 0) >= (prev.timestamp || 0)) map.set(k, e);
-        });
-        return [...map.values()].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)).slice(-MAX_DAYS);
-      }
-
-      function migrate(s) {
-        let baseSize = s.baseSize || 95;
-        if (baseSize > 0 && baseSize < 35) baseSize *= 2.5;
-        return {
-          nx: s.nx, ny: s.ny, color: s.color, word: s.word || '', timestamp: s.timestamp || 0,
-          baseSize, rotation: s.rotation ?? 0, scaleFactor: s.scaleFactor ?? 1,
-          opacity: s.opacity ?? 1, canvasW: s.canvasW || SRC_W
-        };
-      }
-
-      function migrateGallery(s) {
-        let baseSize = s.baseSize || 220;
-        if (baseSize < 150) baseSize *= 2.5;
-        return { nx: s.nx, ny: s.ny, color: s.color, baseSize, rotation: s.rotation ?? 0, scaleFactor: s.scaleFactor ?? 1, opacity: s.opacity ?? 1 };
-      }
-
-      function liveSplashes() {
-        try {
-          const raw = localStorage.getItem(KEYS.live);
-          if (!raw) return [];
-          const data = JSON.parse(raw);
-          if (!Array.isArray(data)) return [];
-          const now = Date.now();
-          return data.filter((s) => s?.color && (!s.timestamp || now - s.timestamp < LIVE_MS)).map(migrate);
-        } catch { return []; }
-      }
-
-      function recipes() {
-        const map = new Map();
-        const add = (r) => {
-          if (!r?.color) return;
-          const m = migrate(r);
-          const k = m.timestamp ? `ts-${m.timestamp}` : `c-${m.color}-${m.word}-${m.nx}-${m.ny}`;
-          if (!map.has(k)) map.set(k, m);
-        };
-        try {
-          const raw = localStorage.getItem(KEYS.recipes);
-          if (raw) JSON.parse(raw).forEach(add);
-        } catch { /* ignore */ }
-        liveSplashes().forEach(add);
-        return [...map.values()];
-      }
-
-      function baseSizeFromWord(n, w) {
-        const len = Math.max(1, Math.min(n, 10000));
-        const mid = 30;
-        let frac;
-        if (len <= mid) {
-          frac = 0.25 + (0.25 * Math.sqrt((len - 1) / (mid - 1)));
-        } else {
-          frac = 0.5 + 0.2 * (1 - Math.exp(-(len - mid) / 120));
-        }
-        return (w * frac) / 1.02;
-      }
-
-      function findRecipe(entry, list) {
-        const day = entryDay(entry);
-        const exact = list.find((r) => r.timestamp && entry.timestamp && r.timestamp === entry.timestamp);
-        if (exact) return exact;
-        const same = list.filter((r) => {
-          if (!r.timestamp) return false;
-          const d = new Date(r.timestamp);
-          if (isNaN(d)) return false;
-          const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-          return k === day;
-        }).sort((a, b) => Math.abs((a.timestamp || 0) - (entry.timestamp || 0)) - Math.abs((b.timestamp || 0) - (entry.timestamp || 0)));
-        if (same.length) return same[0];
-        if (entry.word) return list.find((r) => r.word === entry.word && r.color === entry.color) || null;
-        return null;
-      }
-
-      function synth(entry, i, total) {
-        const r = rng(Number(entry.timestamp) || i + 1);
-        const len = Math.max(1, (entry.word || '').length || 8);
-        let nx = entry.nx;
-        let ny = entry.ny;
-        if (typeof entry.x === 'number') nx = entry.x;
-        if (typeof entry.y === 'number') ny = entry.y;
-        if (typeof nx !== 'number' || typeof ny !== 'number') {
-          const a = (i / Math.max(1, total)) * Math.PI * 2 - Math.PI / 2 + r() * 0.35;
-          const rad = 0.2 + r() * 0.16;
-          nx = 0.5 + Math.cos(a) * rad;
-          ny = 0.5 + Math.sin(a) * rad;
-        }
-        const wi = Math.min(1, Math.log1p(len) / Math.log1p(120));
-        const faint = 0.55 + r() * 0.15;
-        const bold = 0.92 + r() * 0.08;
-        return migrate({
-          nx, ny, color: String(entry.color).trim(), word: entry.word || '', timestamp: entry.timestamp || 0,
-          baseSize: entry.baseSize || baseSizeFromWord(len, SRC_W),
-          rotation: entry.rotation ?? r() * Math.PI * 2,
-          scaleFactor: entry.scaleFactor ?? (0.92 + r() * 0.18 + wi * 0.06),
-          opacity: entry.opacity ?? (faint + wi * (bold - faint))
-        });
-      }
-
-      function resolveSplashes() {
-        const days = sevenDays();
-        if (!days.length) {
-          const live = liveSplashes();
-          return live.length ? live : SAMPLE.map(migrate);
-        }
-        const list = recipes();
-        return days.map((entry, i) => {
-          const recipe = findRecipe(entry, list);
-          if (!recipe) return synth(entry, i, days.length);
-          const m = migrate({ ...recipe, color: entry.color || recipe.color, word: entry.word || recipe.word, timestamp: entry.timestamp || recipe.timestamp });
-          if (typeof entry.nx === 'number') m.nx = entry.nx;
-          if (typeof entry.ny === 'number') m.ny = entry.ny;
-          if (typeof entry.x === 'number') m.nx = entry.x;
-          if (typeof entry.y === 'number') m.ny = entry.y;
-          if (typeof m.nx !== 'number' || typeof m.ny !== 'number') return synth(entry, i, days.length);
-          return m;
-        });
-      }
-
-      /**
-       * clear-case-original.png 内のチェッカーボード（格子）を透明化し、
-       * フレーム・カメラ島など暗い部分だけを残す。
-       * 印刷面の明るいグレー（#808080 相当）も除去対象に含める。
-       */
-      function buildFrameOverlay(img) {
-        const w = img.naturalWidth;
-        const h = img.naturalHeight;
-        if (!w || !h) return null;
-
-        const work = document.createElement('canvas');
-        work.width = w;
-        work.height = h;
-        const ctx = work.getContext('2d');
-        ctx.drawImage(img, 0, 0);
-
-        let data;
-        try {
-          data = ctx.getImageData(0, 0, w, h);
-        } catch {
-          return null;
-        }
-
-        const px = data.data;
-        const printLeft = w * 0.07;
-        const printRight = w * 0.93;
-        const printTop = h * 0.20;
-        const printBottom = h * 0.97;
-        const camLeft = w * 0.06;
-        const camRight = w * 0.44;
-        const camTop = h * 0.03;
-        const camBottom = h * 0.23;
-
-        for (let y = 0; y < h; y++) {
-          for (let x = 0; x < w; x++) {
-            const i = (y * w + x) * 4;
-            const r = px[i];
-            const g = px[i + 1];
-            const b = px[i + 2];
-            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-            const neutral = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
-            const inPrint = x >= printLeft && x <= printRight && y >= printTop && y <= printBottom;
-            const inCam = x >= camLeft && x <= camRight && y >= camTop && y <= camBottom;
-
-            if (lum <= 72) continue;
-
-            if (inPrint && !inCam && neutral < 50 && lum > 68) {
-              px[i + 3] = 0;
-              continue;
-            }
-
-            if (!inPrint && lum > 235 && neutral < 20) {
-              px[i + 3] = 0;
-            }
-          }
-        }
-
-        ctx.putImageData(data, 0, 0);
-        return work.toDataURL('image/png');
-      }
-
-      function loadImage(src) {
-        return new Promise((resolve, reject) => {
-          const img = new Image();
-          img.onload = () => resolve(img);
-          img.onerror = reject;
-          img.src = src;
-          if (img.complete && img.naturalWidth) resolve(img);
-        });
-      }
-
-      function loadSplat() {
-        if (splatOk) return Promise.resolve();
-        return loadImage(SPLAT).then((img) => {
-          splatImg.src = img.src;
-          splatOk = !!splatImg.naturalWidth;
-        }).catch(() => {
-          splatOk = false;
-        });
-      }
-
-      function hexToRgb(hex) {
-        const h = String(hex).replace('#', '').trim();
-        if (h.length === 3) {
-          return {
-            r: parseInt(h[0] + h[0], 16),
-            g: parseInt(h[1] + h[1], 16),
-            b: parseInt(h[2] + h[2], 16)
-          };
-        }
-        return {
-          r: parseInt(h.slice(0, 2), 16) || 0,
-          g: parseInt(h.slice(2, 4), 16) || 0,
-          b: parseInt(h.slice(4, 6), 16) || 0
-        };
-      }
-
-      function stamp(color) {
-        if (!splatOk) return null;
-        if (stamps[color]) return stamps[color];
-        const w = splatImg.naturalWidth;
-        const h = splatImg.naturalHeight;
-        const c = document.createElement('canvas');
-        c.width = w;
-        c.height = h;
-        const ctx = c.getContext('2d');
-        const { r, g, b } = hexToRgb(color);
-
-        ctx.drawImage(splatImg, 0, 0);
-        const data = ctx.getImageData(0, 0, w, h);
-        const px = data.data;
-        for (let i = 0; i < px.length; i += 4) {
-          const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
-          const alpha = Math.round(255 * Math.pow(Math.max(0, 1 - lum / 255), 0.9));
-          px[i] = r;
-          px[i + 1] = g;
-          px[i + 2] = b;
-          px[i + 3] = alpha;
-        }
-        ctx.putImageData(data, 0, 0);
-        stamps[color] = c;
-        return c;
-      }
-
-      function paintInkFallback(ctx, splash, size) {
-        const half = size * 0.5;
-        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, half);
-        grad.addColorStop(0, splash.color);
-        grad.addColorStop(0.45, splash.color);
-        grad.addColorStop(0.72, splash.color + '88');
-        grad.addColorStop(1, splash.color + '00');
-        ctx.fillStyle = grad;
-        ctx.beginPath();
-        ctx.arc(0, 0, half, 0, Math.PI * 2);
-        ctx.fill();
-      }
-
-      function splashPos(splash, destW, destH) {
-        let nx = splash.nx;
-        let ny = splash.ny;
-        if (typeof nx !== 'number' || typeof ny !== 'number') {
-          nx = 0.5;
-          ny = 0.5;
-        }
-        return { x: nx * destW, y: ny * destH };
-      }
-
-      function clearCameraArea(ctx, w, h) {
-        ctx.clearRect(0, 0, w * CAM_CLEAR_W_RATIO, h * CAM_CLEAR_H_RATIO);
-      }
-
-      function paintInkSplat(ctx, splash, destW, destH, srcW) {
-        const sourceW = splash.canvasW || srcW || SRC_W;
-        const size = splash.baseSize * (splash.scaleFactor || 1) * (destW / sourceW);
-        const { x, y } = splashPos(splash, destW, destH);
-        const img = stamp(splash.color);
-
+      // 3. インクの模様・ラインだけをキャンバスにプリント描画
+      if (targetData && targetData.points) {
         ctx.save();
-        ctx.translate(x, y);
-        ctx.rotate(splash.rotation || 0);
-        ctx.globalAlpha = splash.opacity ?? 1;
-        ctx.globalCompositeOperation = 'source-over';
 
-        if (img) {
-          ctx.drawImage(img, -size / 2, -size / 2, size, size);
-        } else {
-          paintInkFallback(ctx, splash, size);
-        }
+        // 模様のみを描画（背景のfillRectや塗りつぶしは絶対に実行しない）
+        ctx.strokeStyle = "rgba(138, 43, 226, 0.85)"; // 鮮やかな紫色（データの色があればそれを使用）
+        ctx.lineWidth = 5;
+        ctx.lineCap = "round";
+        ctx.lineJoin = "round";
 
+        // インクの弾けやラインを正確にケースサイズへスケーリングして描画
+        ctx.beginPath();
+        targetData.points.forEach((point, index) => {
+          // index.htmlのキャンバス比率から、ケースの縦長比率へ座標を変換
+          const x = (point.x / 100) * canvas.width;
+          const y = (point.y / 100) * canvas.height;
+
+          if (index === 0) {
+            ctx.moveTo(x, y);
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
         ctx.restore();
       }
 
-      function drawInkOnly(ctx, splashes, destW, destH, item) {
-        ctx.clearRect(0, 0, destW, destH);
-        const srcW = item ? (item.canvasW || 400) : SRC_W;
-        splashes.forEach((raw) => {
-          const splash = item ? migrateGallery(raw) : migrate(raw);
-          paintInkSplat(ctx, splash, destW, destH, srcW);
-        });
-        clearCameraArea(ctx, destW, destH);
-      }
-
-      function render() {
-        if (!canvas || !box) return;
-        const { width: w, height: h } = box.getBoundingClientRect();
-        const cw = Math.round(w);
-        const ch = Math.round(h);
-        if (cw < 2 || ch < 2) {
-          if (retries++ < 24) requestAnimationFrame(schedule);
-          return;
-        }
-        retries = 0;
-        const dpr = Math.min(2, devicePixelRatio || 1);
-        canvas.width = Math.round(cw * dpr);
-        canvas.height = Math.round(ch * dpr);
-        canvas.style.width = cw + 'px';
-        canvas.style.height = ch + 'px';
-        const ctx = canvas.getContext('2d');
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.globalCompositeOperation = 'source-over';
-        if (galleryItem?.splats?.length) {
-          drawInkOnly(ctx, galleryItem.splats, cw, ch, galleryItem);
-        } else {
-          drawInkOnly(ctx, resolveSplashes(), cw, ch, null);
-        }
-      }
-
-      function fitContainer() {
-        if (!box || !overlay?.naturalWidth) return;
-        box.style.aspectRatio = `${overlay.naturalWidth} / ${overlay.naturalHeight}`;
-        box.style.width = 'min(46vw, 16.25rem)';
-        box.style.height = 'auto';
-      }
-
-      function schedule() {
-        if (queued) return;
-        queued = true;
-        requestAnimationFrame(() => {
-          queued = false;
-          render();
-        });
-      }
-
-      async function prepareOverlay() {
-        try {
-          const src = overlay.complete && overlay.naturalWidth
-            ? overlay
-            : await loadImage('clear-case-original.png');
-          const frameUrl = buildFrameOverlay(src);
-          if (frameUrl) overlay.src = frameUrl;
-        } catch {
-          /* 加工失敗時は元画像のまま — インクは背面に描画される */
-        }
-        overlayReady = true;
-        fitContainer();
-        schedule();
-      }
-
-      async function boot() {
-        initGallery();
-        await Promise.all([prepareOverlay(), loadSplat()]);
-        schedule();
-      }
-
-      if (box && typeof ResizeObserver !== 'undefined') {
-        new ResizeObserver(schedule).observe(box);
-      }
-
-      window.addEventListener('resize', schedule);
-      window.addEventListener('storage', (e) => {
-        if (Object.values(KEYS).includes(e.key)) { initGallery(); schedule(); }
-      });
-      document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') { initGallery(); schedule(); }
-      });
-
-      boot();
-    })();
+      // 4. 【最重要】カメラレンズユニット部分の完璧なくり抜き（型抜き）
+      // 左上のカメラがある領域（横幅の約45%、縦幅の約22%）を強制的に完全に透明化する
+      const cameraWidth = canvas.width * 0.45;
+      const cameraHeight = canvas.height * 0.22;
+      ctx.clearRect(0, 0, cameraWidth, cameraHeight);
+    });
   </script>
 </body>
 </html>
