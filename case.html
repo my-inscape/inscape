@@ -378,15 +378,8 @@
       position: absolute;
       inset: 0;
       z-index: 0;
-      background: linear-gradient(
-        168deg,
-        #1a1038 0%,
-        #4a2c6e 24%,
-        #c86b9a 52%,
-        #f0a8c8 76%,
-        #1a3058 100%
-      );
-      transition: background 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+      background: var(--canvas-bg);
+      transition: background 0.35s ease;
     }
 
     .phone-case__art-canvas {
@@ -807,9 +800,9 @@
         ctx.fillRect(0, 0, w, h);
       }
 
-      function applyCrystalGradient() {
+      function clearCrystalLayer() {
         if (!caseCrystalEl) return;
-        caseCrystalEl.style.background = buildCrystalGradient(getSevenCrystalColors());
+        caseCrystalEl.style.background = CANVAS_BG;
       }
 
       function loadLiveSplashes() {
@@ -1171,23 +1164,19 @@
         const ctx = caseArtCanvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+        clearCrystalLayer();
+
         if (activeGalleryItem && Array.isArray(activeGalleryItem.splats) && activeGalleryItem.splats.length) {
-          if (caseCrystalEl) caseCrystalEl.style.background = CANVAS_BG;
           renderGalleryArtExact(ctx, activeGalleryItem, cw, ch);
           return;
         }
 
-        applyCrystalGradient();
         const splashes = resolveSplashesForCase();
-        renderPortraitArtExact(ctx, splashes, REF_CANVAS_W, REF_CANVAS_H, cw, ch, true);
+        renderPortraitArtExact(ctx, splashes, REF_CANVAS_W, REF_CANVAS_H, cw, ch, false);
       }
 
       function applyCaseDesign() {
-        if (activeGalleryItem) {
-          if (caseCrystalEl) caseCrystalEl.style.background = CANVAS_BG;
-        } else {
-          applyCrystalGradient();
-        }
+        clearCrystalLayer();
         scheduleRenderCaseArt();
       }
 
