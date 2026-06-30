@@ -15,7 +15,6 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --page-bg: #0d0d11;
       --canvas-bg: #f7f4eb;
     }
 
@@ -87,6 +86,7 @@
       padding: 0.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
     }
 
+    /* ページ全体の縦縞スタジオ背景（ケース内の格子とは無関係） */
     .main::before {
       content: '';
       position: absolute;
@@ -140,7 +140,6 @@
     .case-overlay {
       z-index: 2;
       object-fit: fill;
-      opacity: 0.92;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
@@ -211,20 +210,19 @@
       const MAX_DAYS = 7;
       const LIVE_MS = 7 * 24 * 60 * 60 * 1000;
 
-      /* カメラ島くり抜き（260×559 基準 px → 比率でスケール） */
       const CAM_CLEAR_W = 110;
       const CAM_CLEAR_H = 110;
       const CASE_REF_W = 260;
       const CASE_REF_H = 559;
 
       const SAMPLE = [
-        { nx: 0.28, ny: 0.34, color: '#3d2868', word: '静けさ', baseSize: 88, scaleFactor: 1.04, rotation: -0.4, opacity: 0.82 },
-        { nx: 0.62, ny: 0.28, color: '#8b5a9a', word: '余白', baseSize: 72, scaleFactor: 0.98, rotation: 1.1, opacity: 0.76 },
-        { nx: 0.48, ny: 0.58, color: '#c86b9a', word: '記憶', baseSize: 102, scaleFactor: 1.08, rotation: 0.25, opacity: 0.88 },
-        { nx: 0.22, ny: 0.68, color: '#5a8ec8', word: '夜', baseSize: 78, scaleFactor: 1.02, rotation: -1.2, opacity: 0.74 },
-        { nx: 0.74, ny: 0.62, color: '#e8a8c8', word: '光', baseSize: 66, scaleFactor: 0.96, rotation: 0.85, opacity: 0.7 },
-        { nx: 0.38, ny: 0.46, color: '#6b4a8e', word: '結晶', baseSize: 94, scaleFactor: 1.06, rotation: -0.15, opacity: 0.84 },
-        { nx: 0.56, ny: 0.76, color: '#2a4a6e', word: '深海', baseSize: 84, scaleFactor: 1.0, rotation: 2.1, opacity: 0.78 }
+        { nx: 0.28, ny: 0.34, color: '#3d2868', word: '静けさ', baseSize: 88, scaleFactor: 1.04, rotation: -0.4, opacity: 0.92 },
+        { nx: 0.62, ny: 0.28, color: '#8b5a9a', word: '余白', baseSize: 72, scaleFactor: 0.98, rotation: 1.1, opacity: 0.88 },
+        { nx: 0.48, ny: 0.58, color: '#c86b9a', word: '記憶', baseSize: 102, scaleFactor: 1.08, rotation: 0.25, opacity: 0.95 },
+        { nx: 0.22, ny: 0.68, color: '#5a8ec8', word: '夜', baseSize: 78, scaleFactor: 1.02, rotation: -1.2, opacity: 0.86 },
+        { nx: 0.74, ny: 0.62, color: '#e8a8c8', word: '光', baseSize: 66, scaleFactor: 0.96, rotation: 0.85, opacity: 0.84 },
+        { nx: 0.38, ny: 0.46, color: '#6b4a8e', word: '結晶', baseSize: 94, scaleFactor: 1.06, rotation: -0.15, opacity: 0.9 },
+        { nx: 0.56, ny: 0.76, color: '#2a4a6e', word: '深海', baseSize: 84, scaleFactor: 1.0, rotation: 2.1, opacity: 0.88 }
       ];
 
       const box = document.getElementById('caseContainer');
@@ -234,7 +232,7 @@
       const splatImg = new Image();
       const stamps = {};
       let splatOk = false;
-      let splatPromise = null;
+      let overlayReady = false;
       let queued = false;
       let retries = 0;
       let galleryItem = null;
@@ -437,8 +435,8 @@
           ny = 0.5 + Math.sin(a) * rad;
         }
         const wi = Math.min(1, Math.log1p(len) / Math.log1p(120));
-        const faint = 0.3 + r() * 0.2;
-        const bold = 0.9 + r() * 0.1;
+        const faint = 0.55 + r() * 0.15;
+        const bold = 0.92 + r() * 0.08;
         return migrate({
           nx, ny, color: String(entry.color).trim(), word: entry.word || '', timestamp: entry.timestamp || 0,
           baseSize: entry.baseSize || baseSizeFromWord(len, SRC_W),
@@ -463,45 +461,90 @@
           if (typeof entry.ny === 'number') m.ny = entry.ny;
           if (typeof entry.x === 'number') m.nx = entry.x;
           if (typeof entry.y === 'number') m.ny = entry.y;
+          if (typeof m.nx !== 'number' || typeof m.ny !== 'number') return synth(entry, i, days.length);
           return m;
         });
       }
 
-      function processOverlayFrame(img) {
+      /**
+       * clear-case-original.png 内のチェッカーボード（格子）を透明化し、
+       * フレーム・カメラ島など暗い部分だけを残す。
+       * 印刷面の明るいグレー（#808080 相当）も除去対象に含める。
+       */
+      function buildFrameOverlay(img) {
         const w = img.naturalWidth;
         const h = img.naturalHeight;
         if (!w || !h) return null;
-        const c = document.createElement('canvas');
-        c.width = w;
-        c.height = h;
-        const ctx = c.getContext('2d');
+
+        const work = document.createElement('canvas');
+        work.width = w;
+        work.height = h;
+        const ctx = work.getContext('2d');
         ctx.drawImage(img, 0, 0);
-        const data = ctx.getImageData(0, 0, w, h);
+
+        let data;
+        try {
+          data = ctx.getImageData(0, 0, w, h);
+        } catch {
+          return null;
+        }
+
         const px = data.data;
-        for (let i = 0; i < px.length; i += 4) {
-          const r = px[i];
-          const g = px[i + 1];
-          const b = px[i + 2];
-          const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-          const neutral = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
-          if (lum >= 165 && neutral < 28) {
-            px[i + 3] = 0;
+        const printLeft = w * 0.07;
+        const printRight = w * 0.93;
+        const printTop = h * 0.20;
+        const printBottom = h * 0.97;
+        const camLeft = w * 0.06;
+        const camRight = w * 0.44;
+        const camTop = h * 0.03;
+        const camBottom = h * 0.23;
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const r = px[i];
+            const g = px[i + 1];
+            const b = px[i + 2];
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            const neutral = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
+            const inPrint = x >= printLeft && x <= printRight && y >= printTop && y <= printBottom;
+            const inCam = x >= camLeft && x <= camRight && y >= camTop && y <= camBottom;
+
+            if (lum <= 72) continue;
+
+            if (inPrint && !inCam && neutral < 50 && lum > 68) {
+              px[i + 3] = 0;
+              continue;
+            }
+
+            if (!inPrint && lum > 235 && neutral < 20) {
+              px[i + 3] = 0;
+            }
           }
         }
+
         ctx.putImageData(data, 0, 0);
-        return c.toDataURL('image/png');
+        return work.toDataURL('image/png');
+      }
+
+      function loadImage(src) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = src;
+          if (img.complete && img.naturalWidth) resolve(img);
+        });
       }
 
       function loadSplat() {
         if (splatOk) return Promise.resolve();
-        if (splatPromise) return splatPromise;
-        splatPromise = new Promise((resolve, reject) => {
-          splatImg.onload = () => { splatOk = !!splatImg.naturalWidth; splatOk ? resolve() : reject(); };
-          splatImg.onerror = reject;
-          splatImg.src = SPLAT;
-          if (splatImg.complete) splatImg.naturalWidth ? resolve() : reject();
-        }).catch(() => { splatPromise = null; });
-        return splatPromise;
+        return loadImage(SPLAT).then((img) => {
+          splatImg.src = img.src;
+          splatOk = !!splatImg.naturalWidth;
+        }).catch(() => {
+          splatOk = false;
+        });
       }
 
       function stamp(color) {
@@ -517,8 +560,32 @@
         ctx.fillRect(0, 0, w, h);
         ctx.globalCompositeOperation = 'screen';
         ctx.drawImage(splatImg, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
         stamps[color] = c;
         return c;
+      }
+
+      function paintInkFallback(ctx, splash, size) {
+        const half = size * 0.5;
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, half);
+        grad.addColorStop(0, splash.color);
+        grad.addColorStop(0.45, splash.color);
+        grad.addColorStop(0.72, splash.color + '88');
+        grad.addColorStop(1, splash.color + '00');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, half, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function splashPos(splash, destW, destH) {
+        let nx = splash.nx;
+        let ny = splash.ny;
+        if (typeof nx !== 'number' || typeof ny !== 'number') {
+          nx = 0.5;
+          ny = 0.5;
+        }
+        return { x: nx * destW, y: ny * destH };
       }
 
       function clearCameraArea(ctx, w, h) {
@@ -528,25 +595,28 @@
       }
 
       function paintInkSplat(ctx, splash, destW, destH, srcW) {
-        const img = stamp(splash.color);
-        if (!img) return;
         const sourceW = splash.canvasW || srcW || SRC_W;
         const size = splash.baseSize * (splash.scaleFactor || 1) * (destW / sourceW);
-        const x = splash.nx * destW;
-        const y = splash.ny * destH;
+        const { x, y } = splashPos(splash, destW, destH);
+        const img = stamp(splash.color);
+
         ctx.save();
         ctx.translate(x, y);
         ctx.rotate(splash.rotation || 0);
         ctx.globalAlpha = splash.opacity ?? 1;
         ctx.globalCompositeOperation = 'source-over';
-        ctx.drawImage(img, -size / 2, -size / 2, size, size);
+
+        if (img) {
+          ctx.drawImage(img, -size / 2, -size / 2, size, size);
+        } else {
+          paintInkFallback(ctx, splash, size);
+        }
+
         ctx.restore();
       }
 
       function drawInkOnly(ctx, splashes, destW, destH, item) {
         ctx.clearRect(0, 0, destW, destH);
-        ctx.fillStyle = '#f7f4eb';
-        ctx.fillRect(0, 0, destW, destH);
         const srcW = item ? (item.canvasW || 400) : SRC_W;
         splashes.forEach((raw) => {
           const splash = item ? migrateGallery(raw) : migrate(raw);
@@ -591,22 +661,33 @@
         queued = true;
         requestAnimationFrame(() => {
           queued = false;
-          loadSplat().then(render).catch(render);
+          render();
         });
+      }
+
+      async function prepareOverlay() {
+        try {
+          const src = overlay.complete && overlay.naturalWidth
+            ? overlay
+            : await loadImage('clear-case-original.png');
+          const frameUrl = buildFrameOverlay(src);
+          if (frameUrl) overlay.src = frameUrl;
+        } catch {
+          /* 加工失敗時は元画像のまま — インクは背面に描画される */
+        }
+        overlayReady = true;
+        fitContainer();
+        schedule();
+      }
+
+      async function boot() {
+        initGallery();
+        await Promise.all([prepareOverlay(), loadSplat()]);
+        schedule();
       }
 
       if (box && typeof ResizeObserver !== 'undefined') {
         new ResizeObserver(schedule).observe(box);
-      }
-
-      if (overlay) {
-        const ready = () => {
-          const stripped = processOverlayFrame(overlay);
-          if (stripped) overlay.src = stripped;
-          fitContainer();
-          schedule();
-        };
-        overlay.complete ? ready() : overlay.addEventListener('load', ready, { once: true });
       }
 
       window.addEventListener('resize', schedule);
@@ -617,8 +698,7 @@
         if (document.visibilityState === 'visible') { initGallery(); schedule(); }
       });
 
-      initGallery();
-      schedule();
+      boot();
     })();
   </script>
 </body>
