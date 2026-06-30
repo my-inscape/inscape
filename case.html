@@ -156,120 +156,118 @@
     (function () {
       'use strict';
 
-      /* ── gallery.html と同一 ── */
-      const GALLERY_KEY = 'inscape_gallery';
-      const INSCAPE_HISTORY_KEY = 'inscape_history';
-      const HISTORY_KEY = 'histories';
-      const LIVE_KEY = 'inscape_splashes';
-      const SPLAT_IMAGE = 'splat.png';
-      const CANVAS_BG = '#f7f4eb';
-      const DEFAULT_CANVAS_W = 270;
-      const DEFAULT_CANVAS_H = 480;
-      const LEGACY_CANVAS_W = 400;
-      const LEGACY_CANVAS_H = 300;
+      var GALLERY_KEY = 'inscape_gallery';
+      var HISTORY_KEY = 'histories';
+      var LIVE_KEY = 'inscape_splashes';
+      var SPLAT_IMAGE = 'splat.png';
+      var CANVAS_BG = '#f7f4eb';
+      var SRC_W = 270;
+      var SRC_H = 480;
 
-      const box = document.getElementById('caseContainer');
-      const canvas = document.getElementById('caseCanvas');
-      const overlay = document.getElementById('caseOverlay');
+      var box = document.getElementById('caseContainer');
+      var canvas = document.getElementById('caseCanvas');
+      var overlay = document.getElementById('caseOverlay');
 
-      const splatImg = new Image();
-      const stampCache = {};
-      let splatReady = false;
+      var splatImg = new Image();
+      var stampCache = {};
+      var splatReady = false;
 
       function loadJson(key) {
         try {
-          const raw = localStorage.getItem(key);
+          var raw = localStorage.getItem(key);
           if (!raw) return [];
-          const data = JSON.parse(raw);
+          var data = JSON.parse(raw);
           return Array.isArray(data) ? data : [];
-        } catch {
+        } catch (e) {
           return [];
         }
       }
 
       function parseDateKey(str) {
         if (!str) return '';
-        const m = String(str).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+        var m = String(str).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
         if (!m) return String(str).trim();
         return m[1] + '.' + m[2].padStart(2, '0') + '.' + m[3].padStart(2, '0');
       }
 
-      function urlParams() {
-        const p = new URLSearchParams(location.search);
-        const idx = p.get('idx');
-        return {
-          date: p.get('date') || '',
-          idx: idx !== null && idx !== '' ? parseInt(idx, 10) : -1
-        };
-      }
-
-      function galleryDates(item) {
-        const keys = new Set();
-        if (!item) return keys;
-        keys.add(parseDateKey(item.date));
-        (item.history || []).forEach(function (e) { keys.add(parseDateKey(e.date)); });
-        (item.splats || []).forEach(function (s) {
-          if (!s.timestamp) return;
-          const d = new Date(s.timestamp);
-          if (!isNaN(d)) keys.add(d.getFullYear() + '.' + String(d.getMonth() + 1).padStart(2, '0') + '.' + String(d.getDate()).padStart(2, '0'));
-        });
-        keys.delete('');
-        return keys;
-      }
-
       function pickGalleryItem() {
-        const params = urlParams();
-        if (!params.date && params.idx < 0) return null;
-        const list = loadJson(GALLERY_KEY);
-        const key = parseDateKey(params.date);
-        if (params.idx >= 0 && params.idx < list.length) {
-          const item = list[params.idx];
-          if (item && item.splats && item.splats.length && (!key || galleryDates(item).has(key))) return item;
+        var p = new URLSearchParams(location.search);
+        var date = p.get('date') || '';
+        var idxRaw = p.get('idx');
+        var idx = idxRaw !== null && idxRaw !== '' ? parseInt(idxRaw, 10) : -1;
+        if (!date && idx < 0) return null;
+
+        var list = loadJson(GALLERY_KEY);
+        var key = parseDateKey(date);
+
+        if (idx >= 0 && idx < list.length) {
+          var direct = list[idx];
+          if (direct && direct.splats && direct.splats.length) return direct;
         }
         if (key) {
-          for (let i = list.length - 1; i >= 0; i--) {
-            if (list[i] && list[i].splats && list[i].splats.length && galleryDates(list[i]).has(key)) return list[i];
+          for (var i = list.length - 1; i >= 0; i--) {
+            var item = list[i];
+            if (!item || !item.splats || !item.splats.length) continue;
+            if (parseDateKey(item.date) === key) return item;
           }
         }
         return null;
       }
 
-      function migrateSplash(s) {
-        let baseSize = s.baseSize || 220;
-        if (baseSize < 150) baseSize *= 2.5;
-        return {
-          nx: s.nx,
-          ny: s.ny,
-          color: s.color,
-          baseSize: baseSize,
-          rotation: s.rotation != null ? s.rotation : 0,
-          scaleFactor: s.scaleFactor != null ? s.scaleFactor : 1,
-          opacity: s.opacity != null ? s.opacity : 0.75
-        };
+      function getSplats() {
+        var galleryItem = pickGalleryItem();
+        if (galleryItem && galleryItem.splats && galleryItem.splats.length) {
+          return galleryItem.splats;
+        }
+        var live = loadJson(LIVE_KEY);
+        var filtered = [];
+        for (var i = 0; i < live.length; i++) {
+          if (live[i] && live[i].color && typeof live[i].nx === 'number') {
+            filtered.push(live[i]);
+          }
+        }
+        if (filtered.length) return filtered;
+
+        var recipes = loadJson(HISTORY_KEY);
+        filtered = [];
+        for (var j = 0; j < recipes.length; j++) {
+          if (recipes[j] && recipes[j].color && typeof recipes[j].nx === 'number') {
+            filtered.push(recipes[j]);
+          }
+        }
+        return filtered;
       }
 
       function loadSplatImage() {
         if (splatReady) return Promise.resolve();
         return new Promise(function (resolve, reject) {
           splatImg.onload = function () {
-            if (splatImg.naturalWidth > 0) { splatReady = true; resolve(); }
-            else reject(new Error('splat invalid'));
+            if (splatImg.naturalWidth > 0) {
+              splatReady = true;
+              resolve();
+            } else {
+              reject(new Error('splat invalid'));
+            }
           };
           splatImg.onerror = function () { reject(new Error('splat failed')); };
           splatImg.src = SPLAT_IMAGE;
-          if (splatImg.complete && splatImg.naturalWidth > 0) { splatReady = true; resolve(); }
+          if (splatImg.complete && splatImg.naturalWidth > 0) {
+            splatReady = true;
+            resolve();
+          }
         });
       }
 
+      /* gallery.html と同一のスタンプ生成・描画 */
       function createColorStamp(color) {
         if (!splatReady || !splatImg.naturalWidth || !color) return null;
         if (stampCache[color]) return stampCache[color];
-        const w = splatImg.naturalWidth;
-        const h = splatImg.naturalHeight;
-        const work = document.createElement('canvas');
+        var w = splatImg.naturalWidth;
+        var h = splatImg.naturalHeight;
+        var work = document.createElement('canvas');
         work.width = w;
         work.height = h;
-        const wctx = work.getContext('2d');
+        var wctx = work.getContext('2d');
         wctx.fillStyle = color;
         wctx.fillRect(0, 0, w, h);
         wctx.globalCompositeOperation = 'screen';
@@ -279,140 +277,91 @@
         return work;
       }
 
-      function drawSplatter(c, splash, w, h) {
-        const stamp = createColorStamp(splash.color);
+      function drawSplatter(ctx, splash, w, h) {
+        var color = splash.color;
+        if (!color) return;
+        var stamp = createColorStamp(color);
         if (!stamp) return;
-        const cx = splash.nx * w;
-        const cy = splash.ny * h;
-        const size = splash.baseSize * (splash.scaleFactor || 1);
-        c.save();
-        c.translate(cx, cy);
-        c.rotate(splash.rotation || 0);
-        c.globalAlpha = splash.opacity != null ? splash.opacity : 1;
-        c.globalCompositeOperation = 'multiply';
-        c.drawImage(stamp, -size / 2, -size / 2, size, size);
-        c.restore();
-        c.globalCompositeOperation = 'source-over';
-      }
 
-      function getLegacyArtDimensions(item) {
-        let legacyW = item && item.canvasW > 0 ? Math.round(item.canvasW) : 0;
-        let legacyH = item && item.canvasH > 0 ? Math.round(item.canvasH) : 0;
-        if (!legacyW || !legacyH) {
-          legacyW = LEGACY_CANVAS_W;
-          legacyH = LEGACY_CANVAS_H;
-        }
-        return { legacyW: legacyW, legacyH: legacyH };
-      }
+        var nx = typeof splash.nx === 'number' ? splash.nx : (splash.x != null ? splash.x / 100 : 0.5);
+        var ny = typeof splash.ny === 'number' ? splash.ny : (splash.y != null ? splash.y / 100 : 0.5);
+        var baseSize = splash.baseSize || splash.size || 220;
+        if (baseSize < 150) baseSize = baseSize * 2.5;
+        var size = baseSize * (splash.scaleFactor != null ? splash.scaleFactor : 1);
+        var rotation = splash.rotation != null ? splash.rotation : 0;
+        var opacity = splash.opacity != null ? splash.opacity : 0.75;
 
-      function isPortrait916(w, h) {
-        if (!w || !h) return false;
-        return Math.abs((w / h) - (DEFAULT_CANVAS_W / DEFAULT_CANVAS_H)) < 0.04;
-      }
+        var cx = nx * w;
+        var cy = ny * h;
 
-      /* 元キャンバス比率を保ったままケース画面へ均等スケール */
-      function drawArtUniform(c, artCanvas, displayW, displayH, srcW, srcH) {
-        const scale = Math.min(displayW / srcW, displayH / srcH);
-        const drawW = srcW * scale;
-        const drawH = srcH * scale;
-        const offsetX = (displayW - drawW) / 2;
-        const offsetY = (displayH - drawH) / 2;
-        c.drawImage(artCanvas, offsetX, offsetY, drawW, drawH);
-      }
-
-      function punchCameraCutout(c, canvasEl) {
-        const cameraUnitWidth = canvasEl.width * 0.42;
-        const cameraUnitHeight = canvasEl.height * 0.22;
-        c.save();
-        c.setTransform(1, 0, 0, 1, 0, 0);
-        c.clearRect(0, 0, cameraUnitWidth, cameraUnitHeight);
-        c.restore();
-      }
-
-      /* gallery.html renderRecipeToCanvas + 均等スケール + カメラ型抜き */
-      function renderRecipeToCanvas(canvasEl, splats, item, displayW, displayH) {
-        const legacy = getLegacyArtDimensions(item);
-        const legacyW = legacy.legacyW;
-        const legacyH = legacy.legacyH;
-        const targetW = DEFAULT_CANVAS_W;
-        const targetH = DEFAULT_CANVAS_H;
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
-
-        canvasEl.width = Math.round(displayW * dpr);
-        canvasEl.height = Math.round(displayH * dpr);
-        canvasEl.style.width = displayW + 'px';
-        canvasEl.style.height = displayH + 'px';
-
-        const c = canvasEl.getContext('2d');
-        c.setTransform(dpr, 0, 0, dpr, 0, 0);
-        c.fillStyle = CANVAS_BG;
-        c.fillRect(0, 0, displayW, displayH);
-
-        if (Array.isArray(splats) && splats.length) {
-          const needsRemap = !isPortrait916(legacyW, legacyH) || legacyW !== targetW || legacyH !== targetH;
-
-          if (!needsRemap) {
-            const art = document.createElement('canvas');
-            art.width = targetW;
-            art.height = targetH;
-            const artCtx = art.getContext('2d');
-            artCtx.fillStyle = CANVAS_BG;
-            artCtx.fillRect(0, 0, targetW, targetH);
-            splats.map(migrateSplash).forEach(function (splash) {
-              drawSplatter(artCtx, splash, targetW, targetH);
-            });
-            drawArtUniform(c, art, displayW, displayH, targetW, targetH);
-          } else {
-            const off = document.createElement('canvas');
-            off.width = legacyW;
-            off.height = legacyH;
-            const offCtx = off.getContext('2d');
-            offCtx.fillStyle = CANVAS_BG;
-            offCtx.fillRect(0, 0, legacyW, legacyH);
-            splats.map(migrateSplash).forEach(function (splash) {
-              drawSplatter(offCtx, splash, legacyW, legacyH);
-            });
-            drawArtUniform(c, off, displayW, displayH, legacyW, legacyH);
-          }
-        }
-
-        punchCameraCutout(c, canvasEl);
-      }
-
-      function getSplatsAndItem() {
-        const galleryItem = pickGalleryItem();
-        if (galleryItem && galleryItem.splats && galleryItem.splats.length) {
-          return { splats: galleryItem.splats, item: galleryItem };
-        }
-
-        const live = loadJson(LIVE_KEY).filter(function (s) {
-          return s && s.color && typeof s.nx === 'number';
-        });
-        if (live.length) {
-          return { splats: live, item: { canvasW: DEFAULT_CANVAS_W, canvasH: DEFAULT_CANVAS_H } };
-        }
-
-        const recipes = loadJson(HISTORY_KEY).filter(function (s) {
-          return s && s.color && typeof s.nx === 'number';
-        });
-        if (recipes.length) {
-          return { splats: recipes, item: { canvasW: DEFAULT_CANVAS_W, canvasH: DEFAULT_CANVAS_H } };
-        }
-
-        return { splats: [], item: { canvasW: DEFAULT_CANVAS_W, canvasH: DEFAULT_CANVAS_H } };
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(rotation);
+        ctx.globalAlpha = opacity;
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
+        ctx.restore();
+        ctx.globalCompositeOperation = 'source-over';
       }
 
       function render() {
         if (!canvas || !box) return;
-        const rect = box.getBoundingClientRect();
-        const w = Math.round(rect.width);
-        const h = Math.round(rect.height);
-        if (w < 2 || h < 2) {
+
+        var rect = box.getBoundingClientRect();
+        var displayW = Math.round(rect.width);
+        var displayH = Math.round(rect.height);
+        if (displayW < 2 || displayH < 2) {
           requestAnimationFrame(render);
           return;
         }
-        const payload = getSplatsAndItem();
-        renderRecipeToCanvas(canvas, payload.splats, payload.item, w, h);
+
+        var dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.width = Math.round(displayW * dpr);
+        canvas.height = Math.round(displayH * dpr);
+        canvas.style.width = displayW + 'px';
+        canvas.style.height = displayH + 'px';
+
+        var ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.fillStyle = CANVAS_BG;
+        ctx.fillRect(0, 0, displayW, displayH);
+
+        var splats = getSplats();
+        if (splats.length > 0) {
+          var art = document.createElement('canvas');
+          art.width = SRC_W;
+          art.height = SRC_H;
+          var artCtx = art.getContext('2d');
+          artCtx.fillStyle = CANVAS_BG;
+          artCtx.fillRect(0, 0, SRC_W, SRC_H);
+
+          for (var i = 0; i < splats.length; i++) {
+            drawSplatter(artCtx, splats[i], SRC_W, SRC_H);
+          }
+
+          /* 横幅を基準に均等スケール（引き伸ばし防止） */
+          var scale = displayW / SRC_W;
+          var drawW = displayW;
+          var drawH = SRC_H * scale;
+          var offsetX = 0;
+          var offsetY = (displayH - drawH) / 2;
+          if (drawH > displayH) {
+            scale = displayH / SRC_H;
+            drawH = displayH;
+            drawW = SRC_W * scale;
+            offsetX = (displayW - drawW) / 2;
+            offsetY = 0;
+          }
+          ctx.drawImage(art, offsetX, offsetY, drawW, drawH);
+        }
+
+        /* 左上カメラユニットのみピンポイント型抜き */
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        var cameraW = canvas.width * 0.42;
+        var cameraH = canvas.height * 0.22;
+        ctx.clearRect(0, 0, cameraW, cameraH);
+        ctx.restore();
       }
 
       function fitContainer() {
@@ -427,7 +376,10 @@
           .catch(function () {})
           .then(function () {
             if (overlay && !overlay.complete) {
-              overlay.addEventListener('load', function () { fitContainer(); render(); }, { once: true });
+              overlay.addEventListener('load', function () {
+                fitContainer();
+                render();
+              }, { once: true });
             }
             fitContainer();
             render();
