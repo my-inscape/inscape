@@ -310,7 +310,26 @@
         return Math.abs((w / h) - (DEFAULT_CANVAS_W / DEFAULT_CANVAS_H)) < 0.04;
       }
 
-      /* gallery.html renderRecipeToCanvas と同一 */
+      /* 元キャンバス比率を保ったままケース画面へ均等スケール */
+      function drawArtUniform(c, artCanvas, displayW, displayH, srcW, srcH) {
+        const scale = Math.min(displayW / srcW, displayH / srcH);
+        const drawW = srcW * scale;
+        const drawH = srcH * scale;
+        const offsetX = (displayW - drawW) / 2;
+        const offsetY = (displayH - drawH) / 2;
+        c.drawImage(artCanvas, offsetX, offsetY, drawW, drawH);
+      }
+
+      function punchCameraCutout(c, canvasEl) {
+        const cameraUnitWidth = canvasEl.width * 0.42;
+        const cameraUnitHeight = canvasEl.height * 0.22;
+        c.save();
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.clearRect(0, 0, cameraUnitWidth, cameraUnitHeight);
+        c.restore();
+      }
+
+      /* gallery.html renderRecipeToCanvas + 均等スケール + カメラ型抜き */
       function renderRecipeToCanvas(canvasEl, splats, item, displayW, displayH) {
         const legacy = getLegacyArtDimensions(item);
         const legacyW = legacy.legacyW;
@@ -329,34 +348,35 @@
         c.fillStyle = CANVAS_BG;
         c.fillRect(0, 0, displayW, displayH);
 
-        if (!Array.isArray(splats) || !splats.length) return;
+        if (Array.isArray(splats) && splats.length) {
+          const needsRemap = !isPortrait916(legacyW, legacyH) || legacyW !== targetW || legacyH !== targetH;
 
-        const needsRemap = !isPortrait916(legacyW, legacyH) || legacyW !== targetW || legacyH !== targetH;
-
-        if (!needsRemap) {
-          const art = document.createElement('canvas');
-          art.width = targetW;
-          art.height = targetH;
-          const artCtx = art.getContext('2d');
-          artCtx.fillStyle = CANVAS_BG;
-          artCtx.fillRect(0, 0, targetW, targetH);
-          splats.map(migrateSplash).forEach(function (splash) {
-            drawSplatter(artCtx, splash, targetW, targetH);
-          });
-          c.drawImage(art, 0, 0, displayW, displayH);
-          return;
+          if (!needsRemap) {
+            const art = document.createElement('canvas');
+            art.width = targetW;
+            art.height = targetH;
+            const artCtx = art.getContext('2d');
+            artCtx.fillStyle = CANVAS_BG;
+            artCtx.fillRect(0, 0, targetW, targetH);
+            splats.map(migrateSplash).forEach(function (splash) {
+              drawSplatter(artCtx, splash, targetW, targetH);
+            });
+            drawArtUniform(c, art, displayW, displayH, targetW, targetH);
+          } else {
+            const off = document.createElement('canvas');
+            off.width = legacyW;
+            off.height = legacyH;
+            const offCtx = off.getContext('2d');
+            offCtx.fillStyle = CANVAS_BG;
+            offCtx.fillRect(0, 0, legacyW, legacyH);
+            splats.map(migrateSplash).forEach(function (splash) {
+              drawSplatter(offCtx, splash, legacyW, legacyH);
+            });
+            drawArtUniform(c, off, displayW, displayH, legacyW, legacyH);
+          }
         }
 
-        const off = document.createElement('canvas');
-        off.width = legacyW;
-        off.height = legacyH;
-        const offCtx = off.getContext('2d');
-        offCtx.fillStyle = CANVAS_BG;
-        offCtx.fillRect(0, 0, legacyW, legacyH);
-        splats.map(migrateSplash).forEach(function (splash) {
-          drawSplatter(offCtx, splash, legacyW, legacyH);
-        });
-        c.drawImage(off, 0, 0, displayW, displayH);
+        punchCameraCutout(c, canvasEl);
       }
 
       function getSplatsAndItem() {
