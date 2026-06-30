@@ -174,7 +174,10 @@
 
       const SPLAT = 'splat.png';
       const CANVAS_BG = '#ffffff';
-      const SRC_W = 270;
+      const REF_W = 270;
+      const REF_H = 480;
+      const LEGACY_W = 400;
+      const LEGACY_H = 300;
       const MAX_DAYS = 7;
       const LIVE_MS = 7 * 24 * 60 * 60 * 1000;
 
@@ -186,6 +189,7 @@
       const stampCache = {};
       let splatReady = false;
       let galleryItem = null;
+      let renderRetries = 0;
 
       function loadJson(key) {
         try {
@@ -260,20 +264,47 @@
         galleryItem = (date || idx >= 0) ? pickGallery() : null;
       }
 
-      function loadHistory() {
+      function toNorm(v) {
+        if (typeof v !== 'number' || isNaN(v)) return null;
+        if (v > 1) return v / 100;
+        return v;
+      }
+
+      function normalizeSplash(raw, isGallery) {
+        let nx = toNorm(raw.nx);
+        let ny = toNorm(raw.ny);
+        if (nx === null) nx = toNorm(raw.x);
+        if (ny === null) ny = toNorm(raw.y);
+
+        let baseSize = raw.baseSize || (isGallery ? 220 : 95);
+        if (baseSize > 0 && baseSize < 35) baseSize *= 2.5;
+        if (isGallery && baseSize < 150) baseSize *= 2.5;
+
+        return {
+          nx,
+          ny,
+          color: String(raw.color || '').trim(),
+          baseSize,
+          rotation: raw.rotation ?? 0,
+          scaleFactor: raw.scaleFactor ?? 1,
+          opacity: typeof raw.opacity === 'number' ? raw.opacity : 1
+        };
+      }
+
+      function loadHistoryColors() {
         return loadJson(KEYS.history)
-          .filter((e) => e && e.color && String(e.color).trim())
+          .filter((e) => e && e.color)
           .map((e) => ({
-            word: e.word || e.text || '',
             color: String(e.color).trim(),
             date: e.date || '',
-            timestamp: e.timestamp || 0
+            timestamp: e.timestamp || 0,
+            word: e.word || e.text || ''
           }));
       }
 
       function sevenDays() {
         const map = new Map();
-        loadHistory().forEach((e) => {
+        loadHistoryColors().forEach((e) => {
           const k = entryDay(e);
           if (!k) return;
           const prev = map.get(k);
@@ -282,55 +313,15 @@
         return [...map.values()].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)).slice(-MAX_DAYS);
       }
 
-      function migrateSplash(s) {
-        let baseSize = s.baseSize || 95;
-        if (baseSize > 0 && baseSize < 35) baseSize *= 2.5;
-        return {
-          nx: s.nx,
-          ny: s.ny,
-          color: String(s.color).trim(),
-          baseSize,
-          rotation: s.rotation ?? 0,
-          scaleFactor: s.scaleFactor ?? 1,
-          opacity: typeof s.opacity === 'number' ? s.opacity : 1,
-          timestamp: s.timestamp || 0,
-          canvasW: s.canvasW || SRC_W
-        };
-      }
-
-      function migrateGallerySplash(s) {
-        let baseSize = s.baseSize || 220;
-        if (baseSize < 150) baseSize *= 2.5;
-        return {
-          nx: s.nx,
-          ny: s.ny,
-          color: String(s.color).trim(),
-          baseSize,
-          rotation: s.rotation ?? 0,
-          scaleFactor: s.scaleFactor ?? 1,
-          opacity: typeof s.opacity === 'number' ? s.opacity : 1,
-          canvasW: s.canvasW || 400
-        };
+      function loadRecipes() {
+        return loadJson(KEYS.recipes).filter((s) => s && s.color);
       }
 
       function liveSplashes() {
         const now = Date.now();
         return loadJson(KEYS.live)
           .filter((s) => s?.color && (!s.timestamp || now - s.timestamp < LIVE_MS))
-          .map(migrateSplash);
-      }
-
-      function recipes() {
-        const map = new Map();
-        const add = (r) => {
-          if (!r?.color) return;
-          const m = migrateSplash(r);
-          const k = m.timestamp ? `ts-${m.timestamp}` : `c-${m.color}-${m.nx}-${m.ny}`;
-          if (!map.has(k)) map.set(k, m);
-        };
-        loadJson(KEYS.recipes).forEach(add);
-        liveSplashes().forEach(add);
-        return [...map.values()];
+          .map((s) => normalizeSplash(s, false));
       }
 
       function rng(seed) {
@@ -347,16 +338,15 @@
         const r = rng(Number(entry.timestamp) || i + 1);
         const a = (i / Math.max(1, total)) * Math.PI * 2 - Math.PI / 2 + r() * 0.35;
         const rad = 0.2 + r() * 0.16;
-        return migrateSplash({
+        return {
           nx: 0.5 + Math.cos(a) * rad,
           ny: 0.5 + Math.sin(a) * rad,
           color: entry.color,
-          timestamp: entry.timestamp || 0,
           baseSize: 88 + r() * 24,
           rotation: r() * Math.PI * 2,
           scaleFactor: 0.92 + r() * 0.18,
           opacity: 0.75 + r() * 0.2
-        });
+        };
       }
 
       function findRecipe(entry, list) {
@@ -373,38 +363,49 @@
         return same[0] || null;
       }
 
-      function resolveSplashes() {
+      function resolveFromHistory() {
+        const recipes = loadRecipes();
+        const validRecipes = recipes
+          .map((r) => normalizeSplash(r, false))
+          .filter((s) => s.color && typeof s.nx === 'number' && typeof s.ny === 'number');
+        if (validRecipes.length) return validRecipes;
+
         const days = sevenDays();
-        if (!days.length) {
-          const live = liveSplashes();
-          return live.length ? live : recipes();
-        }
-        const list = recipes();
+        if (!days.length) return liveSplashes();
+
         return days.map((entry, i) => {
-          const recipe = findRecipe(entry, list);
+          const recipe = findRecipe(entry, recipes);
           if (!recipe) return synthSplash(entry, i, days.length);
-          const m = migrateSplash({
-            ...recipe,
-            color: entry.color || recipe.color,
-            timestamp: entry.timestamp || recipe.timestamp
-          });
-          if (typeof recipe.nx === 'number') m.nx = recipe.nx;
-          if (typeof recipe.ny === 'number') m.ny = recipe.ny;
+          const m = normalizeSplash(recipe, false);
+          m.color = entry.color || m.color;
           return m;
-        });
+        }).filter((s) => s.color && typeof s.nx === 'number' && typeof s.ny === 'number');
+      }
+
+      function getDrawPayload() {
+        if (galleryItem?.splats?.length) {
+          const splashes = galleryItem.splats
+            .map((s) => normalizeSplash(s, true))
+            .filter((s) => s.color && typeof s.nx === 'number' && typeof s.ny === 'number');
+          return { splashes, item: galleryItem };
+        }
+        return { splashes: resolveFromHistory(), item: null };
       }
 
       function loadSplat() {
         if (splatReady) return Promise.resolve();
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
           splatImg.onload = () => {
-            splatReady = !!splatImg.naturalWidth;
-            splatReady ? resolve() : reject();
+            splatReady = splatImg.naturalWidth > 0;
+            resolve();
           };
-          splatImg.onerror = reject;
+          splatImg.onerror = () => resolve();
           splatImg.src = SPLAT;
-          if (splatImg.complete) splatImg.naturalWidth ? resolve() : reject();
-        }).catch(() => {});
+          if (splatImg.complete && splatImg.naturalWidth > 0) {
+            splatReady = true;
+            resolve();
+          }
+        });
       }
 
       function createColorStamp(color) {
@@ -428,58 +429,111 @@
         return work;
       }
 
-      function drawSplatter(ctx, splash, w, h, srcW) {
+      function drawSplatter(ctx, splash, artW, artH) {
         if (!splash.color || typeof splash.nx !== 'number' || typeof splash.ny !== 'number') return;
 
         const stamp = createColorStamp(splash.color);
-        if (!stamp) return;
-
-        const sourceW = splash.canvasW || srcW || SRC_W;
-        const size = splash.baseSize * (splash.scaleFactor || 1) * (w / sourceW);
-        const cx = splash.nx * w;
-        const cy = splash.ny * h;
+        const cx = splash.nx * artW;
+        const cy = splash.ny * artH;
+        const size = splash.baseSize * (splash.scaleFactor || 1);
 
         ctx.save();
         ctx.translate(cx, cy);
         ctx.rotate(splash.rotation || 0);
         ctx.globalAlpha = splash.opacity ?? 1;
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
+
+        if (stamp) {
+          ctx.globalCompositeOperation = 'multiply';
+          ctx.drawImage(stamp, -size / 2, -size / 2, size, size);
+        } else {
+          const half = size / 2;
+          const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, half);
+          grad.addColorStop(0, splash.color);
+          grad.addColorStop(0.5, splash.color);
+          grad.addColorStop(1, 'rgba(255,255,255,0)');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(0, 0, half, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
         ctx.restore();
         ctx.globalCompositeOperation = 'source-over';
       }
 
-      function redraw(ctx, splashes, w, h, item) {
+      function isPortrait916(w, h) {
+        if (!w || !h) return false;
+        return Math.abs((w / h) - (REF_W / REF_H)) < 0.04;
+      }
+
+      function getLegacySize(item) {
+        let legacyW = item?.canvasW > 0 ? Math.round(item.canvasW) : REF_W;
+        let legacyH = item?.canvasH > 0 ? Math.round(item.canvasH) : REF_H;
+        if (!legacyW || !legacyH) {
+          legacyW = LEGACY_W;
+          legacyH = LEGACY_H;
+        }
+        return { legacyW, legacyH };
+      }
+
+      function paintSplashes(ctx, splashes, destW, destH, item) {
         ctx.fillStyle = CANVAS_BG;
-        ctx.fillRect(0, 0, w, h);
-        const srcW = item ? (item.canvasW || 400) : SRC_W;
-        splashes.forEach((raw) => {
-          const splash = item ? migrateGallerySplash(raw) : migrateSplash(raw);
-          drawSplatter(ctx, splash, w, h, srcW);
-        });
+        ctx.fillRect(0, 0, destW, destH);
+        if (!splashes.length) return;
+
+        const { legacyW, legacyH } = getLegacySize(item);
+        const needsRemap = item && (
+          !isPortrait916(legacyW, legacyH) ||
+          legacyW !== REF_W ||
+          legacyH !== REF_H
+        );
+
+        if (!needsRemap) {
+          const scale = destW / REF_W;
+          splashes.forEach((splash) => {
+            const scaled = {
+              ...splash,
+              baseSize: splash.baseSize * scale
+            };
+            drawSplatter(ctx, scaled, destW, destH);
+          });
+          return;
+        }
+
+        const off = document.createElement('canvas');
+        off.width = legacyW;
+        off.height = legacyH;
+        const offCtx = off.getContext('2d');
+        offCtx.fillStyle = CANVAS_BG;
+        offCtx.fillRect(0, 0, legacyW, legacyH);
+        splashes.forEach((splash) => drawSplatter(offCtx, splash, legacyW, legacyH));
+        ctx.drawImage(off, 0, 0, destW, destH);
       }
 
       function render() {
         if (!canvas || !box) return;
+
         const rect = box.getBoundingClientRect();
-        const w = Math.round(rect.width);
-        const h = Math.round(rect.height);
-        if (w < 2 || h < 2) return;
+        const destW = Math.round(rect.width);
+        const destH = Math.round(rect.height);
+
+        if (destW < 2 || destH < 2) {
+          if (renderRetries++ < 30) requestAnimationFrame(render);
+          return;
+        }
+        renderRetries = 0;
 
         const dpr = Math.min(2, window.devicePixelRatio || 1);
-        canvas.width = Math.round(w * dpr);
-        canvas.height = Math.round(h * dpr);
-        canvas.style.width = w + 'px';
-        canvas.style.height = h + 'px';
+        canvas.width = Math.round(destW * dpr);
+        canvas.height = Math.round(destH * dpr);
+        canvas.style.width = destW + 'px';
+        canvas.style.height = destH + 'px';
 
         const ctx = canvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
-        if (galleryItem?.splats?.length) {
-          redraw(ctx, galleryItem.splats, w, h, galleryItem);
-        } else {
-          redraw(ctx, resolveSplashes(), w, h, null);
-        }
+        const { splashes, item } = getDrawPayload();
+        paintSplashes(ctx, splashes, destW, destH, item);
       }
 
       function fitContainer() {
@@ -489,15 +543,21 @@
         box.style.height = 'auto';
       }
 
-      function boot() {
-        initGallery();
-        loadSplat().finally(() => {
-          fitContainer();
-          render();
+      function waitOverlay() {
+        if (!overlay) return Promise.resolve();
+        if (overlay.complete && overlay.naturalWidth) return Promise.resolve();
+        return new Promise((resolve) => {
+          overlay.addEventListener('load', resolve, { once: true });
+          overlay.addEventListener('error', resolve, { once: true });
         });
-        if (overlay && !overlay.complete) {
-          overlay.addEventListener('load', () => { fitContainer(); render(); }, { once: true });
-        }
+      }
+
+      async function boot() {
+        initGallery();
+        await Promise.all([loadSplat(), waitOverlay()]);
+        fitContainer();
+        render();
+        requestAnimationFrame(render);
       }
 
       if (box && typeof ResizeObserver !== 'undefined') {
