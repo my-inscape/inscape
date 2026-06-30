@@ -359,9 +359,10 @@
 
     .phone-case__camera {
       position: absolute;
-      z-index: 5;
+      z-index: 10;
       pointer-events: none;
       overflow: hidden;
+      box-sizing: border-box;
       background:
         linear-gradient(152deg, rgba(255, 255, 255, 0.06) 0%, transparent 35%),
         linear-gradient(168deg, #1c1c22 0%, #0a0a0e 58%, #020204 100%);
@@ -382,6 +383,7 @@
     .phone-case__camera-plate {
       position: absolute;
       inset: 0;
+      box-sizing: border-box;
     }
 
     .phone-case__camera-plate--android {
@@ -401,6 +403,7 @@
       display: block;
       flex-shrink: 0;
       border-radius: 50%;
+      aspect-ratio: 1;
       background:
         radial-gradient(circle at 32% 28%, rgba(90, 120, 180, 0.35) 0%, transparent 38%),
         radial-gradient(circle at 68% 76%, rgba(0, 0, 0, 0.95) 0%, transparent 46%),
@@ -414,7 +417,7 @@
     .phone-case__lens::before {
       content: '';
       position: absolute;
-      inset: -1.5px;
+      inset: -6%;
       border-radius: 50%;
       border: 1px solid rgba(195, 200, 215, 0.55);
       box-shadow:
@@ -440,6 +443,7 @@
       display: block;
       flex-shrink: 0;
       border-radius: 50%;
+      aspect-ratio: 1;
       box-shadow:
         inset 0 1px 2px rgba(255, 255, 255, 0.25),
         inset 0 -1px 3px rgba(0, 0, 0, 0.75);
@@ -451,119 +455,103 @@
       border: 0.5px solid rgba(255, 255, 255, 0.35);
     }
 
-    .phone-case__sensor--lidar,
-    .phone-case__sensor--mic {
+    .phone-case__sensor--lidar {
       background:
         radial-gradient(circle at 34% 28%, rgba(48, 50, 58, 0.9) 0%, #08080c 72%);
       border: 0.5px solid rgba(70, 72, 82, 0.55);
     }
 
-    /* iPhone — triple camera island (rounded square bump) */
+    /*
+     * iPhone — square camera island (ref: ~29% case width, top-left 4%)
+     * 3-lens Pro triangle + flash + LiDAR
+     */
     .phone-case.is-iphone .phone-case__camera {
-      top: 0.48rem;
-      left: 0.72rem;
-      width: 2.72rem;
-      height: 2.72rem;
-      border-radius: 0.82rem;
+      top: 4%;
+      left: 4.2%;
+      width: 28.5%;
+      height: auto;
+      aspect-ratio: 1;
+      border-radius: 22%;
     }
 
     .phone-case__camera-plate--iphone {
       display: grid;
-      grid-template-columns: 1fr 0.46fr;
-      grid-template-rows: repeat(3, 1fr);
-      gap: 0.1rem 0.12rem;
-      padding: 0.38rem 0.34rem;
+      grid-template-columns: 1fr 1fr 0.4fr;
+      grid-template-rows: 1fr 1fr;
+      gap: 7.5% 8%;
+      padding: 11%;
       align-items: center;
       justify-items: center;
     }
 
     .phone-case__camera-plate--iphone .phone-case__lens--pro {
-      width: 0.68rem;
-      height: 0.68rem;
-      grid-column: 1;
+      width: 100%;
+      max-width: 100%;
     }
 
-    .phone-case__camera-plate--iphone .phone-case__lens--pro:nth-child(1) { grid-row: 1; }
-    .phone-case__camera-plate--iphone .phone-case__lens--pro:nth-child(2) { grid-row: 2; }
-    .phone-case__camera-plate--iphone .phone-case__lens--pro:nth-child(3) { grid-row: 3; }
+    .phone-case__camera-plate--iphone .phone-case__lens--pro:nth-child(1) {
+      grid-column: 1;
+      grid-row: 1;
+      justify-self: center;
+      align-self: end;
+    }
+
+    .phone-case__camera-plate--iphone .phone-case__lens--pro:nth-child(2) {
+      grid-column: 1;
+      grid-row: 2;
+      justify-self: center;
+      align-self: start;
+    }
+
+    .phone-case__camera-plate--iphone .phone-case__lens--pro:nth-child(3) {
+      grid-column: 2;
+      grid-row: 2;
+      justify-self: start;
+      align-self: start;
+    }
 
     .phone-case__camera-plate--iphone .phone-case__sensor--flash {
-      grid-column: 2;
+      grid-column: 3;
       grid-row: 1;
-      width: 0.36rem;
-      height: 0.36rem;
-      align-self: end;
-      margin-bottom: 0.04rem;
+      width: 72%;
+      align-self: center;
+      justify-self: center;
     }
 
     .phone-case__camera-plate--iphone .phone-case__sensor--lidar {
-      grid-column: 2;
+      grid-column: 3;
       grid-row: 2;
-      width: 0.3rem;
-      height: 0.3rem;
+      width: 62%;
       align-self: center;
+      justify-self: center;
     }
 
-    /* Android — vertical lens column + side sensors */
+    /*
+     * Android — vertical pill (ref: ~11.5% width, ~17% height, top-left 5%)
+     * 2 lenses + centered flash
+     */
     .phone-case.is-android .phone-case__camera {
-      top: 0.92rem;
-      left: 0.42rem;
-      width: 1.38rem;
-      height: 3.45rem;
-      border-radius: 0.68rem;
+      top: 5%;
+      left: 5%;
+      width: 11.5%;
+      height: 17%;
+      border-radius: 999px;
+      aspect-ratio: auto;
     }
 
     .phone-case__camera-plate--android {
-      flex-direction: row;
-      align-items: center;
-      justify-content: center;
-      gap: 0.14rem;
-      padding: 0.38rem 0.2rem;
-    }
-
-    .phone-case__android-lens-col {
-      display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
-      gap: 0.2rem;
-      flex: 1 1 auto;
+      justify-content: space-evenly;
+      padding: 9% 7%;
     }
 
-    .phone-case__android-sensor-col {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 0.22rem;
-      flex: 0 0 auto;
-      padding-top: 0.12rem;
-    }
-
-    .phone-case__camera-plate--android .phone-case__lens--wide {
-      width: 0.62rem;
-      height: 0.62rem;
-    }
-
-    .phone-case__camera-plate--android .phone-case__lens:not(.phone-case__lens--wide):not(.phone-case__lens--compact) {
-      width: 0.56rem;
-      height: 0.56rem;
-    }
-
-    .phone-case__camera-plate--android .phone-case__lens--compact {
-      width: 0.48rem;
-      height: 0.48rem;
-      opacity: 0.92;
-    }
-
-    .phone-case__camera-plate--android .phone-case__sensor--mic {
-      width: 0.22rem;
-      height: 0.22rem;
+    .phone-case__camera-plate--android .phone-case__lens--android {
+      width: 74%;
     }
 
     .phone-case__camera-plate--android .phone-case__sensor--flash {
-      width: 0.3rem;
-      height: 0.3rem;
+      width: 30%;
     }
 
     .phone-case__screen {
@@ -715,27 +703,21 @@
               <span class="phone-case__side-btn phone-case__side-btn--vol-dn"></span>
               <span class="phone-case__side-btn phone-case__side-btn--power"></span>
             </div>
-            <div class="phone-case__camera" aria-hidden="true">
-              <div class="phone-case__camera-plate phone-case__camera-plate--iphone">
-                <span class="phone-case__lens phone-case__lens--pro" aria-hidden="true"></span>
-                <span class="phone-case__lens phone-case__lens--pro" aria-hidden="true"></span>
-                <span class="phone-case__lens phone-case__lens--pro" aria-hidden="true"></span>
-                <span class="phone-case__sensor phone-case__sensor--flash" aria-hidden="true"></span>
-                <span class="phone-case__sensor phone-case__sensor--lidar" aria-hidden="true"></span>
-              </div>
-              <div class="phone-case__camera-plate phone-case__camera-plate--android">
-                <div class="phone-case__android-lens-col">
-                  <span class="phone-case__lens phone-case__lens--wide" aria-hidden="true"></span>
-                  <span class="phone-case__lens" aria-hidden="true"></span>
-                  <span class="phone-case__lens phone-case__lens--compact" aria-hidden="true"></span>
-                </div>
-                <div class="phone-case__android-sensor-col">
-                  <span class="phone-case__sensor phone-case__sensor--mic" aria-hidden="true"></span>
-                  <span class="phone-case__sensor phone-case__sensor--flash" aria-hidden="true"></span>
-                </div>
-              </div>
-            </div>
             <div class="phone-case__screen">
+              <div class="phone-case__camera" aria-hidden="true">
+                <div class="phone-case__camera-plate phone-case__camera-plate--iphone">
+                  <span class="phone-case__lens phone-case__lens--pro" aria-hidden="true"></span>
+                  <span class="phone-case__lens phone-case__lens--pro" aria-hidden="true"></span>
+                  <span class="phone-case__lens phone-case__lens--pro" aria-hidden="true"></span>
+                  <span class="phone-case__sensor phone-case__sensor--flash" aria-hidden="true"></span>
+                  <span class="phone-case__sensor phone-case__sensor--lidar" aria-hidden="true"></span>
+                </div>
+                <div class="phone-case__camera-plate phone-case__camera-plate--android">
+                  <span class="phone-case__lens phone-case__lens--android" aria-hidden="true"></span>
+                  <span class="phone-case__sensor phone-case__sensor--flash" aria-hidden="true"></span>
+                  <span class="phone-case__lens phone-case__lens--android" aria-hidden="true"></span>
+                </div>
+              </div>
               <div class="phone-case__art-surface" id="caseArtSurface">
                 <div class="phone-case__art-cover" id="caseArtCover">
                   <div class="phone-case__crystal" id="caseCrystal" aria-hidden="true"></div>
