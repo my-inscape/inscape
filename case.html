@@ -134,8 +134,8 @@
       max-width: 16rem;
     }
 
-    /* ── Clear case preview (photo frame + art back-layer) ── */
-    .phone-case {
+    /* ── Clear case preview: art (back) + photo frame (front) ── */
+    .case-preview {
       position: relative;
       width: min(44vw, 15.2rem);
       aspect-ratio: 360 / 664;
@@ -145,17 +145,9 @@
         drop-shadow(0 2px 4px rgba(0, 0, 0, 0.55))
         drop-shadow(0 14px 28px rgba(0, 0, 0, 0.48))
         drop-shadow(0 28px 52px rgba(0, 0, 0, 0.42));
-      transition: filter 0.4s ease;
       opacity: 0;
       transform: scale(0.94) translateY(0.35rem);
       animation: caseSpotlightReveal 1.35s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-    }
-
-    .phone-case__stack {
-      position: relative;
-      width: 100%;
-      height: 100%;
-      isolation: isolate;
     }
 
     @keyframes caseSpotlightReveal {
@@ -200,8 +192,8 @@
       100% { opacity: 0.55; }
     }
 
-    /* Back layer — user ink art (full bleed behind transparent print window) */
-    .phone-case__art-back {
+    /* Back layer — user ink art (synced 1:1 with frame print window) */
+    .case-preview__art {
       position: absolute;
       inset: 0;
       z-index: 1;
@@ -211,11 +203,12 @@
       font-size: 0;
     }
 
-    /* Front layer — clear case photo (print window is alpha-transparent) */
-    .phone-case__frame {
+    /* Front layer — photographed clear-case mask frame */
+    .case-frame {
       position: absolute;
       inset: 0;
       z-index: 2;
+      display: block;
       width: 100%;
       height: 100%;
       object-fit: fill;
@@ -224,7 +217,7 @@
       -webkit-user-drag: none;
     }
 
-    .phone-case__crystal {
+    .case-preview__crystal {
       position: absolute;
       inset: 0;
       z-index: 0;
@@ -232,7 +225,7 @@
       transition: background 0.35s ease;
     }
 
-    .phone-case__art-canvas {
+    .case-preview__art-canvas {
       position: absolute;
       inset: 0;
       z-index: 1;
@@ -249,7 +242,7 @@
       background-size: auto, auto, cover;
     }
 
-    .phone-case__fabric-overlay {
+    .case-preview__fabric-overlay {
       position: absolute;
       inset: 0;
       pointer-events: none;
@@ -292,23 +285,22 @@
 
     <main class="case-main" aria-label="プロダクトプレビュー">
       <div class="case-stage">
-        <div class="phone-case" id="phoneCase">
-          <div class="phone-case__stack">
-            <div class="phone-case__art-back" id="caseArtCover">
-              <div class="phone-case__crystal" id="caseCrystal" aria-hidden="true"></div>
-              <canvas class="phone-case__art-canvas" id="caseArtCanvas" aria-hidden="true"></canvas>
-              <div class="phone-case__fabric-overlay" aria-hidden="true"></div>
-            </div>
-            <img
-              class="phone-case__frame"
-              src="images/clear-case.png"
-              width="360"
-              height="664"
-              alt=""
-              draggable="false"
-              decoding="async"
-            >
+        <div class="case-preview" id="phoneCase">
+          <div class="case-preview__art" id="caseArtCover">
+            <div class="case-preview__crystal" id="caseCrystal" aria-hidden="true"></div>
+            <canvas class="case-preview__art-canvas" id="caseArtCanvas" aria-hidden="true"></canvas>
+            <div class="case-preview__fabric-overlay" aria-hidden="true"></div>
           </div>
+          <img
+            class="case-frame"
+            id="caseFrame"
+            src="clear-case.png"
+            width="360"
+            height="664"
+            alt=""
+            draggable="false"
+            decoding="async"
+          >
         </div>
 
         <p class="case-note">※7日間アプリを続けると、あなただけの本当の色に変わります</p>
@@ -366,7 +358,7 @@
       const caseArtCanvas = document.getElementById('caseArtCanvas');
       const caseArtCover = document.getElementById('caseArtCover');
       const caseCrystalEl = document.getElementById('caseCrystal');
-      const caseFrameEl = document.querySelector('.phone-case__frame');
+      const caseFrameEl = document.getElementById('caseFrame');
 
       const splatImg = new Image();
       const stampCache = {};
@@ -1000,6 +992,11 @@
         scheduleRenderCaseArt();
       }
 
+      function syncCaseFrameRatio() {
+        if (!phoneCaseEl || !caseFrameEl || !caseFrameEl.naturalWidth) return;
+        phoneCaseEl.style.aspectRatio = `${caseFrameEl.naturalWidth} / ${caseFrameEl.naturalHeight}`;
+      }
+
       function scheduleRenderCaseArt() {
         if (renderQueued) return;
         renderQueued = true;
@@ -1017,8 +1014,12 @@
         if (caseArtCover) ro.observe(caseArtCover);
       }
 
-      if (caseFrameEl && !caseFrameEl.complete) {
-        caseFrameEl.addEventListener('load', scheduleRenderCaseArt, { once: true });
+      if (caseFrameEl) {
+        if (caseFrameEl.complete) syncCaseFrameRatio();
+        else caseFrameEl.addEventListener('load', () => {
+          syncCaseFrameRatio();
+          scheduleRenderCaseArt();
+        }, { once: true });
       }
 
       window.addEventListener('resize', scheduleRenderCaseArt);
