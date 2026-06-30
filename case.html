@@ -18,6 +18,8 @@
 
     :root {
       --case-deep: #0d0d11;
+      --canvas-fabric-url: url('canvas-fabric.png');
+      --canvas-bg: #f7f4eb;
     }
 
     html, body {
@@ -292,7 +294,7 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #08080c;
+      background: var(--canvas-bg);
       border: 0.5px solid rgba(255, 255, 255, 0.06);
       box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.5);
       transition: border-radius 0.45s cubic-bezier(0.22, 1, 0.36, 1);
@@ -306,19 +308,55 @@
       border-radius: 0.95rem;
     }
 
-    .phone-case__gradient {
+    .phone-case__art-surface {
       position: absolute;
       inset: 0;
       z-index: 1;
-      background: linear-gradient(
-        165deg,
-        #1a1038 0%,
-        #4a2c6e 24%,
-        #c86b9a 52%,
-        #f0a8c8 76%,
-        #1a3058 100%
-      );
-      transition: background 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      background: var(--canvas-bg);
+    }
+
+    .phone-case__canvas-square {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      max-height: 100%;
+      flex-shrink: 0;
+      line-height: 0;
+      font-size: 0;
+      box-shadow:
+        inset 4px 4px 12px rgba(0, 0, 0, 0.28),
+        inset -2px -2px 8px rgba(255, 255, 255, 0.45);
+    }
+
+    .phone-case__art-canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      vertical-align: top;
+      background-color: var(--canvas-bg);
+      background-image:
+        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
+        var(--canvas-fabric-url);
+      background-blend-mode: multiply;
+      background-size: auto, auto, cover;
+    }
+
+    .phone-case__fabric-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 2;
+      background-color: transparent;
+      background-image: var(--canvas-fabric-url);
+      background-size: cover;
+      background-blend-mode: multiply;
+      mix-blend-mode: multiply;
+      opacity: 0.35;
     }
 
     .phone-case__glass {
@@ -386,7 +424,12 @@
               </div>
             </div>
             <div class="phone-case__screen">
-              <div class="phone-case__gradient" id="caseGradient" aria-hidden="true"></div>
+              <div class="phone-case__art-surface" id="caseArtSurface">
+                <div class="phone-case__canvas-square" id="caseCanvasSquare">
+                  <canvas class="phone-case__art-canvas" id="caseArtCanvas" aria-hidden="true"></canvas>
+                  <div class="phone-case__fabric-overlay" aria-hidden="true"></div>
+                </div>
+              </div>
               <div class="phone-case__glass" aria-hidden="true"></div>
               <div class="phone-case__artist-frame" id="caseArtistFrame" aria-hidden="true"></div>
             </div>
@@ -403,22 +446,53 @@
       'use strict';
 
       const INSCAPE_HISTORY_KEY = 'inscape_history';
+      const SPLASH_STORAGE_KEY = 'inscape_splashes';
+      const RECIPE_STORAGE_KEY = 'histories';
       const MAX_CASE_DAYS = 7;
       const DEVICE_STORAGE_KEY = 'inscape_case_device';
 
-      const SAMPLE_CRYSTAL_COLORS = [
-        '#1a1038',
-        '#3d2868',
-        '#6b4a8e',
-        '#9a6aaa',
-        '#c86b9a',
-        '#e8a8c8',
-        '#2a4a6e'
+      const SPLAT_IMAGE = 'splat.png';
+      const CANVAS_BG = '#f7f4eb';
+      const REF_CANVAS_W = 390;
+      const SPLAT_WIDTH_MIN_FRAC = 0.25;
+      const SPLAT_WIDTH_MID_FRAC = 0.50;
+      const SPLAT_WIDTH_MAX_FRAC = 0.70;
+      const SPLAT_MID_CHAR_COUNT = 30;
+      const SPLAT_TAIL_DECAY_CHARS = 120;
+      const SPLAT_EXPECTED_SCALE = 1.02;
+      const OPACITY_FULL_LEN = 120;
+      const WORD_MAX_LEN = 10000;
+
+      const SAMPLE_SPLASHES = [
+        { nx: 0.28, ny: 0.34, color: '#3d2868', word: '静けさ', baseSize: 88, scaleFactor: 1.04, rotation: -0.4, opacity: 0.82 },
+        { nx: 0.62, ny: 0.28, color: '#8b5a9a', word: '余白', baseSize: 72, scaleFactor: 0.98, rotation: 1.1, opacity: 0.76 },
+        { nx: 0.48, ny: 0.58, color: '#c86b9a', word: '記憶', baseSize: 102, scaleFactor: 1.08, rotation: 0.25, opacity: 0.88 },
+        { nx: 0.22, ny: 0.68, color: '#5a8ec8', word: '夜', baseSize: 78, scaleFactor: 1.02, rotation: -1.2, opacity: 0.74 },
+        { nx: 0.74, ny: 0.62, color: '#e8a8c8', word: '光', baseSize: 66, scaleFactor: 0.96, rotation: 0.85, opacity: 0.7 },
+        { nx: 0.38, ny: 0.46, color: '#6b4a8e', word: '結晶', baseSize: 94, scaleFactor: 1.06, rotation: -0.15, opacity: 0.84 },
+        { nx: 0.56, ny: 0.76, color: '#2a4a6e', word: '深海', baseSize: 84, scaleFactor: 1.0, rotation: 2.1, opacity: 0.78 }
       ];
 
       const phoneCaseEl = document.getElementById('phoneCase');
-      const caseGradientEl = document.getElementById('caseGradient');
+      const caseArtCanvas = document.getElementById('caseArtCanvas');
+      const caseCanvasSquare = document.getElementById('caseCanvasSquare');
       const deviceBtns = document.querySelectorAll('.device-switch__btn');
+
+      const splatImg = new Image();
+      const stampCache = {};
+      let splatReady = false;
+      let splatLoadPromise = null;
+      let renderQueued = false;
+
+      function mulberry32(seed) {
+        let t = seed >>> 0;
+        return function next() {
+          t += 0x6d2b79f5;
+          let r = Math.imul(t ^ (t >>> 15), 1 | t);
+          r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+          return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+        };
+      }
 
       function parseEntryDate(entry) {
         if (!entry) return null;
@@ -448,6 +522,16 @@
         return `${y}-${mo}-${da}`;
       }
 
+      function dayKeyFromTimestamp(ts) {
+        if (!ts) return '';
+        const d = new Date(ts);
+        if (Number.isNaN(d.getTime())) return '';
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        return `${y}-${mo}-${da}`;
+      }
+
       function loadHistoryEntries() {
         try {
           const raw = localStorage.getItem(INSCAPE_HISTORY_KEY);
@@ -459,7 +543,15 @@
               word: entry.word || entry.text || '',
               color: entry.color,
               date: entry.date || '',
-              timestamp: entry.timestamp || 0
+              timestamp: entry.timestamp || 0,
+              nx: typeof entry.nx === 'number' ? entry.nx : null,
+              ny: typeof entry.ny === 'number' ? entry.ny : null,
+              x: typeof entry.x === 'number' ? entry.x : null,
+              y: typeof entry.y === 'number' ? entry.y : null,
+              baseSize: entry.baseSize,
+              scaleFactor: entry.scaleFactor,
+              rotation: entry.rotation,
+              opacity: entry.opacity
             }))
             .filter((e) => e.color && String(e.color).trim());
         } catch {
@@ -467,8 +559,7 @@
         }
       }
 
-      /** One color per diary day, up to 7 days — oldest → newest */
-      function loadSevenDayColors() {
+      function loadSevenDayEntries() {
         const byDay = new Map();
         loadHistoryEntries().forEach((entry) => {
           const key = dayKeyFromEntry(entry);
@@ -477,52 +568,252 @@
             byDay.set(key, entry);
           }
         });
-
         return Array.from(byDay.values())
           .sort((a, b) => Number(a.timestamp || 0) - Number(b.timestamp || 0))
-          .slice(-MAX_CASE_DAYS)
-          .map((entry) => String(entry.color).trim());
+          .slice(-MAX_CASE_DAYS);
       }
 
-      /** Blend sparse user colors with sample palette to fill 7 crystal stops */
-      function buildSevenCrystalStops(userColors) {
-        if (!userColors.length) return SAMPLE_CRYSTAL_COLORS.slice();
-
-        if (userColors.length >= MAX_CASE_DAYS) {
-          return userColors.slice(-MAX_CASE_DAYS);
-        }
-
-        const stops = new Array(MAX_CASE_DAYS);
-        const n = userColors.length;
-
-        for (let i = 0; i < n; i++) {
-          const slot = n === 1 ? 3 : Math.round((i / (n - 1)) * (MAX_CASE_DAYS - 1));
-          stops[slot] = userColors[i];
-        }
-
-        for (let i = 0; i < MAX_CASE_DAYS; i++) {
-          if (!stops[i]) {
-            stops[i] = SAMPLE_CRYSTAL_COLORS[i];
-          }
-        }
-
-        return stops;
-      }
-
-      function buildCrystalGradient(colors) {
-        const stops = colors.map((color, i) => {
-          const pct = (i / Math.max(1, colors.length - 1)) * 92;
-          return `${color} ${pct.toFixed(1)}%`;
+      function loadSplashRecipes() {
+        const byKey = new Map();
+        [SPLASH_STORAGE_KEY, RECIPE_STORAGE_KEY].forEach((key) => {
+          try {
+            const raw = localStorage.getItem(key);
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            if (!Array.isArray(data)) return;
+            data.forEach((s) => {
+              if (!s || !s.color) return;
+              const recipeKey = s.id || `${s.timestamp || 0}-${s.nx}-${s.ny}-${s.color}`;
+              if (!byKey.has(recipeKey)) byKey.set(recipeKey, s);
+            });
+          } catch { /* ignore */ }
         });
-        stops.push('rgba(8, 8, 14, 0.96) 100%');
-        return `linear-gradient(168deg, ${stops.join(', ')})`;
+        return Array.from(byKey.values());
       }
 
-      function applyCaseGradient() {
-        if (!caseGradientEl) return;
-        const userColors = loadSevenDayColors();
-        const crystal = buildSevenCrystalStops(userColors);
-        caseGradientEl.style.background = buildCrystalGradient(crystal);
+      function wordIntensity(len) {
+        return Math.min(1, Math.log1p(len) / Math.log1p(OPACITY_FULL_LEN));
+      }
+
+      function splatWidthFractionFromWordLength(len) {
+        const n = Math.max(1, Math.min(len, WORD_MAX_LEN));
+        if (n <= SPLAT_MID_CHAR_COUNT) {
+          const t = Math.sqrt((n - 1) / (SPLAT_MID_CHAR_COUNT - 1));
+          return SPLAT_WIDTH_MIN_FRAC + (SPLAT_WIDTH_MID_FRAC - SPLAT_WIDTH_MIN_FRAC) * t;
+        }
+        const excess = n - SPLAT_MID_CHAR_COUNT;
+        const tail = 1 - Math.exp(-excess / SPLAT_TAIL_DECAY_CHARS);
+        return SPLAT_WIDTH_MID_FRAC + (SPLAT_WIDTH_MAX_FRAC - SPLAT_WIDTH_MID_FRAC) * tail;
+      }
+
+      function baseSizeFromWordLength(len, canvasW) {
+        const w = canvasW || REF_CANVAS_W;
+        const frac = splatWidthFractionFromWordLength(len);
+        return (w * frac) / SPLAT_EXPECTED_SCALE;
+      }
+
+      function opacityFromWordLength(len, rng) {
+        const normalized = wordIntensity(len);
+        const faint = 0.3 + rng() * 0.2;
+        const bold = 0.9 + rng() * 0.1;
+        return faint + normalized * (bold - faint);
+      }
+
+      function migrateSplash(s) {
+        let baseSize = s.baseSize || 95;
+        if (baseSize >= 200) {
+          /* legacy large sizes */
+        } else if (baseSize > 0 && baseSize < 35) {
+          baseSize *= 2.5;
+        }
+        return {
+          nx: s.nx,
+          ny: s.ny,
+          color: s.color,
+          word: s.word || '',
+          timestamp: s.timestamp || 0,
+          baseSize,
+          rotation: s.rotation ?? 0,
+          scaleFactor: s.scaleFactor ?? 1,
+          opacity: s.opacity ?? 0.75,
+          canvasW: s.canvasW || REF_CANVAS_W
+        };
+      }
+
+      function findRecipeForEntry(entry, recipes) {
+        if (!recipes.length) return null;
+        const dayKey = dayKeyFromEntry(entry);
+
+        const exact = recipes.find((r) => r.timestamp && entry.timestamp && r.timestamp === entry.timestamp);
+        if (exact) return exact;
+
+        const sameDay = recipes
+          .filter((r) => dayKeyFromTimestamp(r.timestamp) === dayKey)
+          .sort((a, b) => Math.abs((a.timestamp || 0) - (entry.timestamp || 0)) - Math.abs((b.timestamp || 0) - (entry.timestamp || 0)));
+        if (sameDay.length) return sameDay[0];
+
+        if (entry.word) {
+          const byWord = recipes.find((r) => (r.word || '') === entry.word && r.color === entry.color);
+          if (byWord) return byWord;
+        }
+
+        return null;
+      }
+
+      function synthesizeSplashFromEntry(entry) {
+        const seed = Number(entry.timestamp) || 1;
+        const rng = mulberry32(seed);
+        const wordLen = Math.max(1, (entry.word || '').length || 8);
+
+        let nx = entry.nx;
+        let ny = entry.ny;
+        if (typeof entry.x === 'number' && typeof entry.y === 'number') {
+          nx = entry.x;
+          ny = entry.y;
+        }
+        if (typeof nx !== 'number' || typeof ny !== 'number') {
+          nx = 0.16 + rng() * 0.68;
+          ny = 0.16 + rng() * 0.68;
+        }
+
+        const baseSize = entry.baseSize || baseSizeFromWordLength(wordLen, REF_CANVAS_W);
+        return {
+          nx,
+          ny,
+          color: String(entry.color).trim(),
+          word: entry.word || '',
+          timestamp: entry.timestamp || 0,
+          baseSize,
+          rotation: entry.rotation ?? (rng() * Math.PI * 2),
+          scaleFactor: entry.scaleFactor ?? (0.92 + rng() * 0.18 + wordIntensity(wordLen) * 0.06),
+          opacity: entry.opacity ?? opacityFromWordLength(wordLen, rng),
+          canvasW: REF_CANVAS_W
+        };
+      }
+
+      function resolveSplashesForCase() {
+        const entries = loadSevenDayEntries();
+        if (!entries.length) return SAMPLE_SPLASHES.map(migrateSplash);
+
+        const recipes = loadSplashRecipes().map(migrateSplash);
+        return entries.map((entry) => {
+          const recipe = findRecipeForEntry(entry, recipes);
+          if (recipe) {
+            const merged = migrateSplash({ ...recipe, color: entry.color || recipe.color, word: entry.word || recipe.word });
+            if (typeof entry.nx === 'number') merged.nx = entry.nx;
+            if (typeof entry.ny === 'number') merged.ny = entry.ny;
+            if (typeof entry.x === 'number') merged.nx = entry.x;
+            if (typeof entry.y === 'number') merged.ny = entry.y;
+            return merged;
+          }
+          return migrateSplash(synthesizeSplashFromEntry(entry));
+        });
+      }
+
+      function loadSplatImage() {
+        if (splatReady && splatImg.naturalWidth > 0) return Promise.resolve();
+        if (splatLoadPromise) return splatLoadPromise;
+
+        splatLoadPromise = new Promise((resolve, reject) => {
+          const onReady = () => {
+            if (!splatImg.naturalWidth || !splatImg.naturalHeight) {
+              splatLoadPromise = null;
+              reject(new Error('splat invalid'));
+              return;
+            }
+            splatReady = true;
+            resolve();
+          };
+          const onFail = () => {
+            splatLoadPromise = null;
+            reject(new Error('splat load failed'));
+          };
+          splatImg.onload = onReady;
+          splatImg.onerror = onFail;
+          splatImg.src = SPLAT_IMAGE;
+          if (splatImg.complete) {
+            if (splatImg.naturalWidth > 0) onReady();
+            else onFail();
+          }
+        });
+
+        return splatLoadPromise;
+      }
+
+      function createColorStamp(color) {
+        if (!splatReady || !splatImg.naturalWidth) return null;
+        if (stampCache[color]) return stampCache[color];
+
+        const w = splatImg.naturalWidth;
+        const h = splatImg.naturalHeight;
+        const work = document.createElement('canvas');
+        work.width = w;
+        work.height = h;
+        const wctx = work.getContext('2d');
+
+        wctx.fillStyle = color;
+        wctx.fillRect(0, 0, w, h);
+        wctx.globalCompositeOperation = 'screen';
+        wctx.drawImage(splatImg, 0, 0);
+        wctx.globalCompositeOperation = 'source-over';
+
+        stampCache[color] = work;
+        return work;
+      }
+
+      function drawSplatter(c, splash, w, h) {
+        const stamp = createColorStamp(splash.color);
+        if (!stamp) return;
+
+        const cx = splash.nx * w;
+        const cy = splash.ny * h;
+        const sourceW = splash.canvasW || REF_CANVAS_W;
+        const size = splash.baseSize * (splash.scaleFactor || 1) * (w / sourceW);
+
+        c.save();
+        c.translate(cx, cy);
+        c.rotate(splash.rotation || 0);
+        c.globalAlpha = splash.opacity ?? 1;
+        c.globalCompositeOperation = 'multiply';
+        c.drawImage(stamp, -size / 2, -size / 2, size, size);
+        c.restore();
+        c.globalCompositeOperation = 'source-over';
+      }
+
+      function renderCaseArt() {
+        if (!caseArtCanvas || !caseCanvasSquare) return;
+
+        const squareRect = caseCanvasSquare.getBoundingClientRect();
+        const cw = Math.round(squareRect.width);
+        const ch = Math.round(squareRect.height);
+        if (cw < 2 || ch < 2) return;
+
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        caseArtCanvas.width = Math.round(cw * dpr);
+        caseArtCanvas.height = Math.round(ch * dpr);
+        caseArtCanvas.style.width = `${cw}px`;
+        caseArtCanvas.style.height = `${ch}px`;
+
+        const ctx = caseArtCanvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = CANVAS_BG;
+        ctx.fillRect(0, 0, cw, ch);
+
+        const splashes = resolveSplashesForCase();
+        splashes.forEach((splash) => drawSplatter(ctx, splash, cw, ch));
+      }
+
+      function scheduleRenderCaseArt() {
+        if (renderQueued) return;
+        renderQueued = true;
+        requestAnimationFrame(() => {
+          renderQueued = false;
+          loadSplatImage()
+            .then(() => renderCaseArt())
+            .catch(() => renderCaseArt());
+        });
       }
 
       function setDeviceModel(device) {
@@ -539,6 +830,7 @@
         try {
           sessionStorage.setItem(DEVICE_STORAGE_KEY, model);
         } catch { /* ignore */ }
+        scheduleRenderCaseArt();
       }
 
       deviceBtns.forEach((btn) => {
@@ -554,15 +846,24 @@
         }
       } catch { /* ignore */ }
 
-      applyCaseGradient();
+      if (caseCanvasSquare && typeof ResizeObserver !== 'undefined') {
+        const ro = new ResizeObserver(() => scheduleRenderCaseArt());
+        ro.observe(caseCanvasSquare);
+      }
+
+      window.addEventListener('resize', scheduleRenderCaseArt);
 
       window.addEventListener('storage', (e) => {
-        if (e.key === INSCAPE_HISTORY_KEY) applyCaseGradient();
+        if (e.key === INSCAPE_HISTORY_KEY || e.key === SPLASH_STORAGE_KEY || e.key === RECIPE_STORAGE_KEY) {
+          scheduleRenderCaseArt();
+        }
       });
 
       document.addEventListener('visibilitychange', () => {
-        if (document.visibilityState === 'visible') applyCaseGradient();
+        if (document.visibilityState === 'visible') scheduleRenderCaseArt();
       });
+
+      scheduleRenderCaseArt();
     })();
   </script>
 </body>
