@@ -16,6 +16,7 @@
       overflow: hidden;
       font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", serif;
       color: #e8e6e2;
+      -webkit-text-size-adjust: 100%;
     }
 
     body {
@@ -94,8 +95,8 @@
       flex-grow: 0;
       box-sizing: border-box;
       background-color: #f8f9fa;
-      border-radius: 38px !important;
-      overflow: hidden;
+      border-radius: 36px !important;
+      overflow: hidden !important;
       border: 1px solid rgba(0, 0, 0, 0.05);
       box-shadow:
         0 4px 14px rgba(0, 0, 0, 0.12),
@@ -265,7 +266,6 @@
         return out;
       }
 
-      /* 0〜1 / 0〜100 / ピクセル座標 いずれも安全に正規化 */
       function normalizeCoord(val, srcMax) {
         if (val == null || val === '') return 0.5;
         var n = Number(val);
@@ -328,7 +328,6 @@
         }
       }
 
-      /* index.html migrateSplash と同一 */
       function migrateSplash(s) {
         var baseSize = s.baseSize || s.size || 95;
         if (baseSize >= 200) {
@@ -359,7 +358,6 @@
         };
       }
 
-      /* gallery.html / index.html と100%同一 */
       function createColorStamp(color) {
         if (!splatReady || !splatImg.naturalWidth || !color) return null;
         if (stampCache[color]) return stampCache[color];
@@ -397,27 +395,24 @@
       function render() {
         if (!canvas || !box) return;
 
-        var w = CASE_W;
-        var h = CASE_H;
-        var dpr = Math.min(2, window.devicePixelRatio || 1);
-
-        canvas.width = Math.round(w * dpr);
-        canvas.height = Math.round(h * dpr);
-        canvas.style.width = w + 'px';
-        canvas.style.height = h + 'px';
+        /* DPR を使わず内部解像度＝表示サイズを 240×440 に完全一致 */
+        canvas.width = CASE_W;
+        canvas.height = CASE_H;
+        canvas.style.width = CASE_W + 'px';
+        canvas.style.height = CASE_H + 'px';
 
         var ctx = canvas.getContext('2d');
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
 
         ctx.fillStyle = CANVAS_BG;
-        ctx.fillRect(0, 0, w, h);
+        ctx.fillRect(0, 0, CASE_W, CASE_H);
 
         var points = getPoints();
         if (!points.length) return;
 
-        var fitScale = Math.min(w / SRC_W, h / SRC_H);
-        var offsetX = (w - SRC_W * fitScale) / 2;
-        var offsetY = (h - SRC_H * fitScale) / 2;
+        var fitScale = Math.min(CASE_W / SRC_W, CASE_H / SRC_H);
+        var offsetX = (CASE_W - SRC_W * fitScale) / 2;
+        var offsetY = (CASE_H - SRC_H * fitScale) / 2;
 
         ctx.save();
         ctx.translate(offsetX, offsetY);
