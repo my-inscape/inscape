@@ -363,14 +363,9 @@
 
     .phone-case__art-cover {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      min-width: 100%;
-      min-height: 100%;
-      aspect-ratio: 1 / 1;
-      width: auto;
-      height: auto;
+      inset: 0;
+      width: 100%;
+      height: 100%;
       line-height: 0;
       font-size: 0;
     }
@@ -518,7 +513,8 @@
 
       const SPLAT_IMAGE = 'splat.png';
       const CANVAS_BG = '#f7f4eb';
-      const REF_CANVAS_W = 390;
+      const REF_CANVAS_W = 270;
+      const DEFAULT_CANVAS_H = 480;
       const DEFAULT_CANVAS_H = 300;
       const SPLAT_WIDTH_MIN_FRAC = 0.25;
       const SPLAT_WIDTH_MID_FRAC = 0.50;
@@ -1041,17 +1037,51 @@
           });
         }
 
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = 1;
+        ctx.fillStyle = CANVAS_BG;
+        ctx.fillRect(0, 0, destW, destH);
+
+        const srcAspect = srcW / srcH;
+        const destAspect = destW / destH;
+        if (Math.abs(srcAspect - destAspect) < 0.02) {
+          ctx.drawImage(off, 0, 0, destW, destH);
+          return;
+        }
+
         const scale = Math.max(destW / srcW, destH / srcH);
         const drawW = srcW * scale;
         const drawH = srcH * scale;
         const dx = (destW - drawW) / 2;
         const dy = (destH - drawH) / 2;
+        ctx.drawImage(off, dx, dy, drawW, drawH);
+      }
 
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = 1;
+      function renderPortraitArtExact(ctx, splashes, srcW, srcH, destW, destH, withCrystal) {
+        const off = document.createElement('canvas');
+        off.width = srcW;
+        off.height = srcH;
+        const offCtx = off.getContext('2d');
+        if (withCrystal) {
+          drawCrystalBase(offCtx, srcW, srcH);
+        } else {
+          offCtx.fillStyle = CANVAS_BG;
+          offCtx.fillRect(0, 0, srcW, srcH);
+        }
+        splashes.forEach((splash) => drawSplatter(offCtx, splash, srcW, srcH));
+
         ctx.fillStyle = CANVAS_BG;
         ctx.fillRect(0, 0, destW, destH);
-        ctx.drawImage(off, dx, dy, drawW, drawH);
+        const srcAspect = srcW / srcH;
+        const destAspect = destW / destH;
+        if (Math.abs(srcAspect - destAspect) < 0.02) {
+          ctx.drawImage(off, 0, 0, destW, destH);
+        } else {
+          const scale = Math.max(destW / srcW, destH / srcH);
+          const drawW = srcW * scale;
+          const drawH = srcH * scale;
+          ctx.drawImage(off, (destW - drawW) / 2, (destH - drawH) / 2, drawW, drawH);
+        }
       }
 
       function drawSplatter(c, splash, w, h) {
@@ -1097,10 +1127,8 @@
         }
 
         applyCrystalGradient();
-        drawCrystalBase(ctx, cw, ch);
-
         const splashes = resolveSplashesForCase();
-        splashes.forEach((splash) => drawSplatter(ctx, splash, cw, ch));
+        renderPortraitArtExact(ctx, splashes, REF_CANVAS_W, DEFAULT_CANVAS_H, cw, ch, true);
       }
 
       function applyCaseDesign() {
