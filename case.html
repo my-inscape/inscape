@@ -461,32 +461,45 @@
       border: 0.5px solid rgba(70, 72, 82, 0.55);
     }
 
+    .phone-case__lens--pro::before {
+      inset: -5%;
+      border: 1.5px solid rgba(205, 210, 222, 0.82);
+      box-shadow:
+        0 0 0 0.5px rgba(130, 135, 148, 0.55),
+        inset 0 1px 2px rgba(255, 255, 255, 0.45),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.35);
+    }
+
     /*
-     * iPhone — square camera island (ref: ~29% case width, top-left 4%)
-     * 3-lens Pro triangle + flash + LiDAR
+     * iPhone Pro — camera island ~43% screen width, dense 3-lens triangle
      */
     .phone-case.is-iphone .phone-case__camera {
-      top: 4%;
-      left: 4.2%;
-      width: 28.5%;
+      top: 5.5%;
+      left: 5.5%;
+      width: 43%;
       height: auto;
       aspect-ratio: 1;
-      border-radius: 22%;
+      border-radius: 27%;
+      box-shadow:
+        inset 0 1px 5px rgba(255, 255, 255, 0.12),
+        inset 0 -4px 10px rgba(0, 0, 0, 0.88),
+        0 5px 14px rgba(0, 0, 0, 0.68),
+        0 1px 0 rgba(255, 255, 255, 0.06);
     }
 
     .phone-case__camera-plate--iphone {
       display: grid;
-      grid-template-columns: 1fr 1fr 0.4fr;
+      grid-template-columns: 1fr 1fr 0.34fr;
       grid-template-rows: 1fr 1fr;
-      gap: 7.5% 8%;
-      padding: 11%;
+      gap: 3.2% 3.5%;
+      padding: 7%;
       align-items: center;
       justify-items: center;
     }
 
     .phone-case__camera-plate--iphone .phone-case__lens--pro {
-      width: 100%;
-      max-width: 100%;
+      width: 96%;
+      max-width: 96%;
     }
 
     .phone-case__camera-plate--iphone .phone-case__lens--pro:nth-child(1) {
@@ -505,25 +518,28 @@
 
     .phone-case__camera-plate--iphone .phone-case__lens--pro:nth-child(3) {
       grid-column: 2;
-      grid-row: 2;
-      justify-self: start;
-      align-self: start;
+      grid-row: 1 / 3;
+      width: 94%;
+      justify-self: center;
+      align-self: center;
     }
 
     .phone-case__camera-plate--iphone .phone-case__sensor--flash {
       grid-column: 3;
       grid-row: 1;
-      width: 72%;
-      align-self: center;
+      width: 78%;
+      align-self: start;
       justify-self: center;
+      margin-top: 6%;
     }
 
     .phone-case__camera-plate--iphone .phone-case__sensor--lidar {
       grid-column: 3;
       grid-row: 2;
-      width: 62%;
-      align-self: center;
+      width: 68%;
+      align-self: end;
       justify-self: center;
+      margin-bottom: 8%;
     }
 
     /*
