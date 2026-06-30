@@ -52,24 +52,28 @@
       height: 100dvh;
       margin: 0 auto;
       position: relative;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
       background: var(--bg);
     }
 
     .app {
       display: flex;
       flex-direction: column;
-      height: 100%;
-      min-height: 0;
+      min-height: 100%;
+      height: auto;
       padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+      padding-bottom: calc(0.75rem + env(safe-area-inset-bottom, 0px));
     }
 
     .top-area {
-      flex: 1 1 0;
-      min-height: 0;
+      flex: 0 0 auto;
       display: flex;
       flex-direction: column;
-      padding: 0.5rem 0 0;
+      align-items: center;
+      width: 100%;
+      padding: 0.65rem 0 0.5rem;
       position: relative;
     }
 
@@ -86,12 +90,16 @@
     }
 
     .mid-panel {
-      flex-shrink: 0;
-      padding: 0.45rem 1.15rem 0.35rem;
+      flex: 0 0 auto;
+      width: 100%;
+      padding: 0.85rem 1.15rem 0.65rem;
+      scroll-margin-top: 0.5rem;
+      scroll-margin-bottom: 1.5rem;
     }
 
     .controls {
-      flex-shrink: 0;
+      flex: 0 0 auto;
+      width: 100%;
       padding: 0.35rem 1.15rem calc(0.65rem + env(safe-area-inset-bottom, 0px));
       min-height: 3.5rem;
     }
@@ -110,7 +118,9 @@
       width: 100%;
       min-height: 4.5rem;
       max-height: 8.5rem;
-      padding: 0.7rem 0.5rem;
+      padding: 0.85rem 0.65rem;
+      scroll-margin-top: 1rem;
+      scroll-margin-bottom: 30vh;
       border: 0.5px solid rgba(255, 255, 255, 0.08);
       border-radius: 1px;
       background: rgba(255, 255, 255, 0.02);
@@ -204,12 +214,13 @@
     }
 
     .color-atelier {
-      flex-shrink: 0;
+      flex: 0 0 auto;
+      width: 100%;
       display: flex;
       flex-direction: column;
       align-items: center;
       gap: 0.42rem;
-      padding: 0.28rem 1.15rem 0.32rem;
+      padding: 0.5rem 1.15rem 0.75rem;
     }
 
     .color-atelier.locked-hidden {
@@ -636,10 +647,9 @@
     }
 
     .canvas-wrap {
-      flex: 1 1 auto;
+      flex: 0 0 auto;
       position: relative;
       z-index: 2;
-      min-height: 0;
       margin: 0 auto;
       padding: 0;
       background: transparent;
@@ -656,10 +666,20 @@
     }
 
     .canvas-wrap:not(.is-framed):not(.framing-active) {
-      width: min(var(--canvas-portrait-w), 100%);
+      width: clamp(270px, 92vw, 300px);
+      min-width: 270px;
+      max-width: 300px;
       aspect-ratio: var(--canvas-portrait-ratio);
+      min-height: 480px;
       height: auto;
       flex: 0 0 auto;
+    }
+
+    .canvas-wrap.is-framed,
+    .canvas-wrap.framing-active {
+      flex: 1 1 auto;
+      min-height: 0;
+      max-height: min(72dvh, 560px);
     }
 
     .canvas-wrap:not(.is-framed):not(.framing-active) .museum-frame {
@@ -861,7 +881,7 @@
     }
 
     .phone-shell.zen-mode .top-area {
-      flex: 1 1 auto;
+      flex: 0 0 auto;
       max-height: none;
     }
 
@@ -1310,13 +1330,7 @@
     }
 
     .app.daily-locked .top-area {
-      max-height: 78vh;
-    }
-
-    @media (min-height: 700px) {
-      .app.daily-locked .top-area {
-        max-height: 82vh;
-      }
+      max-height: none;
     }
 
     .phone-shell.daily-locked .header-actions,
@@ -4218,6 +4232,12 @@
       wordInput.addEventListener('input', () => {
         onUserActivity();
         updateUIState();
+      });
+
+      wordInput.addEventListener('focus', () => {
+        setTimeout(() => {
+          wordInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }, 320);
       });
 
       if (releaseShareBtn) {
