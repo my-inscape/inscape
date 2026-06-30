@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#0D0D11">
+  <meta name="theme-color" content="#030303">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
   <meta name="apple-mobile-web-app-title" content="INSCAPE">
@@ -14,29 +14,26 @@
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
-    :root {
-      --canvas-bg: #f7f4eb;
-    }
-
     html, body {
       height: 100%;
       overflow: hidden;
       font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", serif;
+      background: #030303;
       color: #e8e6e2;
+      -webkit-tap-highlight-color: transparent;
     }
 
     body {
       background:
-        radial-gradient(ellipse 70% 45% at 50% 32%, rgba(255, 245, 228, 0.14) 0%, transparent 58%),
-        radial-gradient(ellipse 90% 35% at 50% 100%, rgba(0, 0, 0, 0.5) 0%, transparent 55%),
-        linear-gradient(168deg, #2c2620 0%, #1c1916 42%, #0f0e0c 100%);
+        radial-gradient(ellipse 90% 55% at 50% -8%, rgba(201, 169, 98, 0.07) 0%, transparent 50%),
+        radial-gradient(ellipse 70% 40% at 50% 105%, rgba(255, 255, 255, 0.02) 0%, transparent 45%),
+        #030303;
     }
 
     .page {
       height: 100dvh;
       display: flex;
       flex-direction: column;
-      position: relative;
     }
 
     .header {
@@ -82,31 +79,11 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      position: relative;
       padding: 0.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
-    }
-
-    /* ページ全体の縦縞スタジオ背景（ケース内の格子とは無関係） */
-    .main::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      background:
-        repeating-linear-gradient(
-          93deg,
-          transparent 0,
-          transparent 32px,
-          rgba(255, 248, 235, 0.018) 32px,
-          rgba(255, 248, 235, 0.018) 33px
-        ),
-        radial-gradient(ellipse 55% 28% at 50% 62%, rgba(160, 130, 95, 0.12) 0%, transparent 70%);
-      opacity: 0.85;
     }
 
     .case-container {
       position: relative;
-      z-index: 1;
       width: 260px;
       height: 559px;
       max-width: min(46vw, 16.25rem);
@@ -114,7 +91,6 @@
       aspect-ratio: 260 / 559;
       overflow: hidden;
       border-radius: 42px;
-      background: var(--canvas-bg);
       box-shadow:
         0 1px 0 rgba(255, 255, 255, 0.08),
         0 8px 24px rgba(0, 0, 0, 0.35),
@@ -134,20 +110,18 @@
 
     #caseCanvas {
       z-index: 1;
-      background: transparent;
     }
 
     .case-overlay {
       z-index: 2;
       object-fit: fill;
+      opacity: 1;
       pointer-events: none;
       user-select: none;
       -webkit-user-drag: none;
     }
 
     .note {
-      position: relative;
-      z-index: 1;
       margin-top: 1.65rem;
       max-width: 16.5rem;
       text-align: center;
@@ -194,63 +168,480 @@
   </div>
 
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const canvas = document.getElementById("caseCanvas");
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
+    (function () {
+      'use strict';
 
-      // コンテナのサイズにキャンバスの解像度を100%完全に合わせる
-      const container = document.querySelector(".case-container");
-      canvas.width = container.clientWidth || 260;
-      canvas.height = container.clientHeight || 559;
+      const KEYS = {
+        history: 'inscape_history',
+        gallery: 'inscape_gallery',
+        recipes: 'histories',
+        live: 'inscape_splashes'
+      };
 
-      // 1. キャンバス全体を完全に「透明」にリセット（白背景を徹底排除）
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const SPLAT = 'splat.png';
+      const SRC_W = 270;
+      const MAX_DAYS = 7;
+      const LIVE_MS = 7 * 24 * 60 * 60 * 1000;
+      const CAM_W_RATIO = 0.45;
+      const CAM_H_RATIO = 0.22;
 
-      // 2. localStorageから感情データ（模様）を読み込む
-      const history = JSON.parse(localStorage.getItem("inscape_history") || "[]");
+      const box = document.getElementById('caseContainer');
+      const canvas = document.getElementById('caseCanvas');
+      const overlay = document.getElementById('caseOverlay');
 
-      // URLパラメータから日付を取得（なければ最新のデータ）
-      const urlParams = new URLSearchParams(window.location.search);
-      const targetDate = urlParams.get("date");
-      let targetData = history.find(item => item.date === targetDate);
-      if (!targetData && history.length > 0) {
-        targetData = history[history.length - 1]; // 最新データ
+      const splatImg = new Image();
+      const stamps = {};
+      let splatOk = false;
+      let galleryItem = null;
+
+      function parseDateKey(str) {
+        if (!str) return '';
+        const m = String(str).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+        if (!m) return String(str).trim();
+        return `${m[1]}.${m[2].padStart(2, '0')}.${m[3].padStart(2, '0')}`;
       }
 
-      // 3. インクの模様・ラインだけをキャンバスにプリント描画
-      if (targetData && targetData.points) {
-        ctx.save();
+      function entryDay(entry) {
+        if (entry.timestamp > 0) {
+          const d = new Date(entry.timestamp);
+          if (!isNaN(d)) return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        }
+        if (entry.date) {
+          const m = String(entry.date).match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
+          if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+        }
+        return '';
+      }
 
-        // 模様のみを描画（背景のfillRectや塗りつぶしは絶対に実行しない）
-        ctx.strokeStyle = "rgba(138, 43, 226, 0.85)"; // 鮮やかな紫色（データの色があればそれを使用）
-        ctx.lineWidth = 5;
-        ctx.lineCap = "round";
-        ctx.lineJoin = "round";
+      function urlParams() {
+        const p = new URLSearchParams(location.search);
+        const idx = p.get('idx');
+        return {
+          date: p.get('date') || '',
+          idx: idx !== null && idx !== '' ? parseInt(idx, 10) : -1
+        };
+      }
 
-        // インクの弾けやラインを正確にケースサイズへスケーリングして描画
-        ctx.beginPath();
-        targetData.points.forEach((point, index) => {
-          // index.htmlのキャンバス比率から、ケースの縦長比率へ座標を変換
-          const x = (point.x / 100) * canvas.width;
-          const y = (point.y / 100) * canvas.height;
+      function loadJson(key) {
+        try {
+          const raw = localStorage.getItem(key);
+          return raw ? JSON.parse(raw) : [];
+        } catch {
+          return [];
+        }
+      }
 
-          if (index === 0) {
-            ctx.moveTo(x, y);
-          } else {
-            ctx.lineTo(x, y);
-          }
+      function galleryDates(item) {
+        const keys = new Set();
+        if (!item) return keys;
+        keys.add(parseDateKey(item.date));
+        (item.history || []).forEach((e) => keys.add(parseDateKey(e.date)));
+        (item.splats || []).forEach((s) => {
+          if (!s.timestamp) return;
+          const d = new Date(s.timestamp);
+          if (!isNaN(d)) keys.add(`${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`);
         });
-        ctx.stroke();
+        keys.delete('');
+        return keys;
+      }
+
+      function pickGallery() {
+        const { date, idx } = urlParams();
+        if (!date && idx < 0) return null;
+        const list = loadJson(KEYS.gallery);
+        const key = parseDateKey(date);
+        if (idx >= 0 && idx < list.length) {
+          const item = list[idx];
+          if (item?.splats?.length && (!key || galleryDates(item).has(key))) return item;
+        }
+        if (key) {
+          for (let i = list.length - 1; i >= 0; i--) {
+            if (list[i]?.splats?.length && galleryDates(list[i]).has(key)) return list[i];
+          }
+        }
+        return null;
+      }
+
+      function initGallery() {
+        const { date, idx } = urlParams();
+        galleryItem = (date || idx >= 0) ? pickGallery() : null;
+      }
+
+      function loadHistory() {
+        return loadJson(KEYS.history)
+          .filter((e) => e && e.color && String(e.color).trim())
+          .map((e) => ({
+            word: e.word || e.text || '',
+            color: String(e.color).trim(),
+            date: e.date || '',
+            timestamp: e.timestamp || 0,
+            nx: typeof e.nx === 'number' ? e.nx : null,
+            ny: typeof e.ny === 'number' ? e.ny : null
+          }));
+      }
+
+      function sevenDays() {
+        const map = new Map();
+        loadHistory().forEach((e) => {
+          const k = entryDay(e);
+          if (!k) return;
+          const prev = map.get(k);
+          if (!prev || (e.timestamp || 0) >= (prev.timestamp || 0)) map.set(k, e);
+        });
+        return [...map.values()].sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0)).slice(-MAX_DAYS);
+      }
+
+      function migrate(s) {
+        let baseSize = s.baseSize || 95;
+        if (baseSize > 0 && baseSize < 35) baseSize *= 2.5;
+        return {
+          nx: s.nx,
+          ny: s.ny,
+          color: String(s.color).trim(),
+          baseSize,
+          rotation: s.rotation ?? 0,
+          scaleFactor: s.scaleFactor ?? 1,
+          opacity: s.opacity ?? 1,
+          timestamp: s.timestamp || 0,
+          canvasW: s.canvasW || SRC_W
+        };
+      }
+
+      function migrateGallery(s) {
+        let baseSize = s.baseSize || 220;
+        if (baseSize < 150) baseSize *= 2.5;
+        return {
+          nx: s.nx,
+          ny: s.ny,
+          color: String(s.color).trim(),
+          baseSize,
+          rotation: s.rotation ?? 0,
+          scaleFactor: s.scaleFactor ?? 1,
+          opacity: s.opacity ?? 1,
+          canvasW: s.canvasW || 400
+        };
+      }
+
+      function liveSplashes() {
+        const now = Date.now();
+        return loadJson(KEYS.live)
+          .filter((s) => s?.color && (!s.timestamp || now - s.timestamp < LIVE_MS))
+          .map(migrate);
+      }
+
+      function recipes() {
+        const map = new Map();
+        const add = (r) => {
+          if (!r?.color) return;
+          const m = migrate(r);
+          const k = m.timestamp ? `ts-${m.timestamp}` : `c-${m.color}-${m.nx}-${m.ny}`;
+          if (!map.has(k)) map.set(k, m);
+        };
+        loadJson(KEYS.recipes).forEach(add);
+        liveSplashes().forEach(add);
+        return [...map.values()];
+      }
+
+      function rng(seed) {
+        let t = seed >>> 0;
+        return () => {
+          t += 0x6d2b79f5;
+          let r = Math.imul(t ^ (t >>> 15), 1 | t);
+          r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+          return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function synth(entry, i, total) {
+        const r = rng(Number(entry.timestamp) || i + 1);
+        const a = (i / Math.max(1, total)) * Math.PI * 2 - Math.PI / 2 + r() * 0.35;
+        const rad = 0.2 + r() * 0.16;
+        return migrate({
+          nx: 0.5 + Math.cos(a) * rad,
+          ny: 0.5 + Math.sin(a) * rad,
+          color: entry.color,
+          timestamp: entry.timestamp || 0,
+          baseSize: 88 + r() * 24,
+          rotation: r() * Math.PI * 2,
+          scaleFactor: 0.92 + r() * 0.18,
+          opacity: 0.75 + r() * 0.2
+        });
+      }
+
+      function findRecipe(entry, list) {
+        const day = entryDay(entry);
+        const exact = list.find((r) => r.timestamp && entry.timestamp && r.timestamp === entry.timestamp);
+        if (exact) return exact;
+        const same = list.filter((r) => {
+          if (!r.timestamp) return false;
+          const d = new Date(r.timestamp);
+          if (isNaN(d)) return false;
+          const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          return k === day;
+        }).sort((a, b) => Math.abs((a.timestamp || 0) - (entry.timestamp || 0)) - Math.abs((b.timestamp || 0) - (entry.timestamp || 0)));
+        if (same.length) return same[0];
+        return null;
+      }
+
+      function resolveSplashes() {
+        const days = sevenDays();
+        if (!days.length) {
+          const live = liveSplashes();
+          if (live.length) return live;
+          return [];
+        }
+        const list = recipes();
+        return days.map((entry, i) => {
+          const recipe = findRecipe(entry, list);
+          if (!recipe) return synth(entry, i, days.length);
+          const m = migrate({
+            ...recipe,
+            color: entry.color || recipe.color,
+            timestamp: entry.timestamp || recipe.timestamp
+          });
+          if (typeof recipe.nx === 'number') m.nx = recipe.nx;
+          if (typeof recipe.ny === 'number') m.ny = recipe.ny;
+          return m;
+        });
+      }
+
+      function buildFrameOverlay(img) {
+        const w = img.naturalWidth;
+        const h = img.naturalHeight;
+        if (!w || !h) return null;
+
+        const work = document.createElement('canvas');
+        work.width = w;
+        work.height = h;
+        const ctx = work.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        let data;
+        try {
+          data = ctx.getImageData(0, 0, w, h);
+        } catch {
+          return null;
+        }
+
+        const px = data.data;
+        const printLeft = w * 0.07;
+        const printRight = w * 0.93;
+        const printTop = h * 0.20;
+        const printBottom = h * 0.97;
+        const camLeft = w * 0.06;
+        const camRight = w * 0.44;
+        const camTop = h * 0.03;
+        const camBottom = h * 0.23;
+
+        for (let y = 0; y < h; y++) {
+          for (let x = 0; x < w; x++) {
+            const i = (y * w + x) * 4;
+            const r = px[i];
+            const g = px[i + 1];
+            const b = px[i + 2];
+            const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+            const neutral = Math.max(Math.abs(r - g), Math.abs(g - b), Math.abs(r - b));
+            const inPrint = x >= printLeft && x <= printRight && y >= printTop && y <= printBottom;
+            const inCam = x >= camLeft && x <= camRight && y >= camTop && y <= camBottom;
+
+            if (lum <= 72) continue;
+
+            if (inPrint && !inCam && neutral < 50 && lum > 68) {
+              px[i + 3] = 0;
+              continue;
+            }
+
+            if (!inPrint && lum > 235 && neutral < 20) {
+              px[i + 3] = 0;
+            }
+          }
+        }
+
+        ctx.putImageData(data, 0, 0);
+        return work.toDataURL('image/png');
+      }
+
+      function loadImage(src) {
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = reject;
+          img.src = src;
+          if (img.complete && img.naturalWidth) resolve(img);
+        });
+      }
+
+      function loadSplat() {
+        if (splatOk) return Promise.resolve();
+        return loadImage(SPLAT).then((img) => {
+          splatImg.src = img.src;
+          splatOk = !!splatImg.naturalWidth;
+        }).catch(() => {
+          splatOk = false;
+        });
+      }
+
+      function hexToRgb(hex) {
+        const h = String(hex).replace('#', '').trim();
+        if (h.length === 3) {
+          return {
+            r: parseInt(h[0] + h[0], 16),
+            g: parseInt(h[1] + h[1], 16),
+            b: parseInt(h[2] + h[2], 16)
+          };
+        }
+        return {
+          r: parseInt(h.slice(0, 2), 16) || 0,
+          g: parseInt(h.slice(2, 4), 16) || 0,
+          b: parseInt(h.slice(4, 6), 16) || 0
+        };
+      }
+
+      function stamp(color) {
+        if (!splatOk || !color) return null;
+        if (stamps[color]) return stamps[color];
+
+        const w = splatImg.naturalWidth;
+        const h = splatImg.naturalHeight;
+        const c = document.createElement('canvas');
+        c.width = w;
+        c.height = h;
+        const ctx = c.getContext('2d');
+        const { r, g, b } = hexToRgb(color);
+
+        ctx.drawImage(splatImg, 0, 0);
+        const data = ctx.getImageData(0, 0, w, h);
+        const px = data.data;
+        for (let i = 0; i < px.length; i += 4) {
+          const lum = 0.299 * px[i] + 0.587 * px[i + 1] + 0.114 * px[i + 2];
+          const alpha = Math.round(255 * Math.pow(Math.max(0, 1 - lum / 255), 0.9));
+          px[i] = r;
+          px[i + 1] = g;
+          px[i + 2] = b;
+          px[i + 3] = alpha;
+        }
+        ctx.putImageData(data, 0, 0);
+        stamps[color] = c;
+        return c;
+      }
+
+      function paintInkFallback(ctx, splash, size) {
+        const half = size * 0.5;
+        const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, half);
+        grad.addColorStop(0, splash.color);
+        grad.addColorStop(0.5, splash.color);
+        grad.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = grad;
+        ctx.beginPath();
+        ctx.arc(0, 0, half, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function paintSplash(ctx, splash, destW, destH, srcW) {
+        if (!splash.color || typeof splash.nx !== 'number' || typeof splash.ny !== 'number') return;
+
+        const sourceW = splash.canvasW || srcW || SRC_W;
+        const size = splash.baseSize * (splash.scaleFactor || 1) * (destW / sourceW);
+        const x = splash.nx * destW;
+        const y = splash.ny * destH;
+        const img = stamp(splash.color);
+
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(splash.rotation || 0);
+        ctx.globalAlpha = splash.opacity ?? 1;
+        ctx.globalCompositeOperation = 'source-over';
+
+        if (img) {
+          ctx.drawImage(img, -size / 2, -size / 2, size, size);
+        } else {
+          paintInkFallback(ctx, splash, size);
+        }
+
         ctx.restore();
       }
 
-      // 4. 【最重要】カメラレンズユニット部分の完璧なくり抜き（型抜き）
-      // 左上のカメラがある領域（横幅の約45%、縦幅の約22%）を強制的に完全に透明化する
-      const cameraWidth = canvas.width * 0.45;
-      const cameraHeight = canvas.height * 0.22;
-      ctx.clearRect(0, 0, cameraWidth, cameraHeight);
-    });
+      function drawInk(ctx, splashes, destW, destH, item) {
+        ctx.clearRect(0, 0, destW, destH);
+        const srcW = item ? (item.canvasW || 400) : SRC_W;
+        splashes.forEach((raw) => {
+          const splash = item ? migrateGallery(raw) : migrate(raw);
+          paintSplash(ctx, splash, destW, destH, srcW);
+        });
+        ctx.clearRect(0, 0, destW * CAM_W_RATIO, destH * CAM_H_RATIO);
+      }
+
+      function render() {
+        if (!canvas || !box) return;
+        const rect = box.getBoundingClientRect();
+        const cw = Math.round(rect.width);
+        const ch = Math.round(rect.height);
+        if (cw < 2 || ch < 2) return;
+
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        canvas.width = Math.round(cw * dpr);
+        canvas.height = Math.round(ch * dpr);
+        canvas.style.width = cw + 'px';
+        canvas.style.height = ch + 'px';
+
+        const ctx = canvas.getContext('2d');
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        if (galleryItem?.splats?.length) {
+          drawInk(ctx, galleryItem.splats, cw, ch, galleryItem);
+        } else {
+          drawInk(ctx, resolveSplashes(), cw, ch, null);
+        }
+      }
+
+      function fitContainer() {
+        if (!box || !overlay?.naturalWidth) return;
+        box.style.aspectRatio = `${overlay.naturalWidth} / ${overlay.naturalHeight}`;
+        box.style.width = 'min(46vw, 16.25rem)';
+        box.style.height = 'auto';
+      }
+
+      async function prepareOverlay() {
+        try {
+          const src = overlay.complete && overlay.naturalWidth
+            ? overlay
+            : await loadImage('clear-case-original.png');
+          const frameUrl = buildFrameOverlay(src);
+          if (frameUrl) overlay.src = frameUrl;
+        } catch {
+          /* 加工失敗時は元画像のまま */
+        }
+        fitContainer();
+        render();
+      }
+
+      async function boot() {
+        initGallery();
+        await loadSplat();
+        await prepareOverlay();
+        render();
+      }
+
+      if (box && typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(render).observe(box);
+      }
+
+      window.addEventListener('resize', render);
+      window.addEventListener('storage', (e) => {
+        if (Object.values(KEYS).includes(e.key)) {
+          initGallery();
+          render();
+        }
+      });
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          initGallery();
+          render();
+        }
+      });
+
+      boot();
+    })();
   </script>
 </body>
 </html>
