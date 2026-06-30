@@ -79,16 +79,22 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      padding: 0.5rem 1.25rem calc(1.25rem + env(safe-area-inset-bottom));
+      padding: 8px 8px calc(12px + env(safe-area-inset-bottom));
     }
 
     .case-container {
       position: relative;
-      width: 240px;
-      height: 440px;
+      width: 240px !important;
+      height: 440px !important;
+      min-width: 240px !important;
+      max-width: 240px !important;
+      min-height: 440px !important;
+      max-height: 440px !important;
       flex-shrink: 0;
+      flex-grow: 0;
+      box-sizing: border-box;
       background-color: #f8f9fa;
-      border-radius: 36px;
+      border-radius: 38px !important;
       overflow: hidden;
       border: 1px solid rgba(0, 0, 0, 0.05);
       box-shadow:
@@ -131,8 +137,12 @@
       position: absolute;
       top: 0;
       left: 0;
-      width: 240px;
-      height: 440px;
+      width: 240px !important;
+      height: 440px !important;
+      min-width: 240px !important;
+      max-width: 240px !important;
+      min-height: 440px !important;
+      max-height: 440px !important;
       display: block;
       background: transparent;
       z-index: 1;
@@ -168,7 +178,7 @@
     <main class="main">
       <div class="case-container" id="caseContainer">
         <div class="camera-hole" aria-hidden="true"></div>
-        <canvas id="caseCanvas"></canvas>
+        <canvas id="caseCanvas" width="240" height="440"></canvas>
       </div>
       <p class="note">※実際の製品は、あなただけの本当の色がプリントされた『クリアケース（透明）』として完成します。</p>
     </main>
@@ -398,40 +408,33 @@
 
         var ctx = canvas.getContext('2d');
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        ctx.clearRect(0, 0, w, h);
+
+        ctx.fillStyle = CANVAS_BG;
+        ctx.fillRect(0, 0, w, h);
 
         var points = getPoints();
         if (!points.length) return;
 
-        var art = document.createElement('canvas');
-        art.width = SRC_W;
-        art.height = SRC_H;
-        var artCtx = art.getContext('2d');
-        artCtx.fillStyle = CANVAS_BG;
-        artCtx.fillRect(0, 0, SRC_W, SRC_H);
+        var fitScale = Math.min(w / SRC_W, h / SRC_H);
+        var offsetX = (w - SRC_W * fitScale) / 2;
+        var offsetY = (h - SRC_H * fitScale) / 2;
+
+        ctx.save();
+        ctx.translate(offsetX, offsetY);
+        ctx.scale(fitScale, fitScale);
 
         var i, splash;
         for (i = 0; i < points.length; i++) {
           if (!points[i] || !points[i].color) continue;
           splash = migrateSplash(points[i]);
           if (!splash.color) continue;
-          drawSplatter(artCtx, splash, SRC_W, SRC_H);
+          drawSplatter(ctx, splash, SRC_W, SRC_H);
         }
 
-        var fitScale = Math.min(w / SRC_W, h / SRC_H);
-        var drawW = SRC_W * fitScale;
-        var drawH = SRC_H * fitScale;
-        var offsetX = (w - drawW) / 2;
-        var offsetY = (h - drawH) / 2;
-        ctx.drawImage(art, offsetX, offsetY, drawW, drawH);
+        ctx.restore();
       }
 
       safeRender();
-
-      if (box && typeof ResizeObserver !== 'undefined') {
-        new ResizeObserver(safeRender).observe(box);
-      }
-      window.addEventListener('resize', safeRender);
       window.addEventListener('storage', safeRender);
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') safeRender();
