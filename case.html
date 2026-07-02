@@ -47,15 +47,18 @@
 
     .nav {
       display: flex;
-      gap: 0.12rem;
-      overflow-x: auto;
+      gap: 0.22rem;
+      overflow-x: visible;
       scrollbar-width: none;
+      justify-content: center;
+      flex-wrap: wrap;
     }
 
-    .nav::-webkit-scrollbar { display: none; }
-
     .nav a {
-      flex: 0 0 auto;
+      flex: 1 1 0;
+      min-width: 3.4rem;
+      max-width: 5.2rem;
+      text-align: center;
       font-size: 0.28rem;
       letter-spacing: 0.03em;
       color: rgba(232, 230, 226, 0.36);
@@ -167,11 +170,8 @@
     <header class="header">
       <nav class="nav" aria-label="ナビゲーション">
         <a href="index.html">キャンバス</a>
-        <a href="midspace.html">言葉の浮遊層</a>
         <a href="gallery.html">感情の回廊</a>
         <a href="mycolors.html">今日の私の色</a>
-        <a href="ocean.html">感情の夜海</a>
-        <a href="room.html">合言葉の部屋</a>
         <a class="is-current" href="case.html" aria-current="page">プロダクトプレビュー</a>
       </nav>
     </header>
@@ -193,19 +193,19 @@
       var HISTORY_KEY = 'histories';
       var LIVE_KEY = 'inscape_splashes';
       var GALLERY_KEY = 'inscape_gallery';
+      var SELECTED_ARTWORK_KEY = 'inscape_selected_artwork';
+      var CASE_SESSION_KEY = 'inscape_case_session';
       var SPLAT_IMAGE = 'splat.png';
-      var CANVAS_BG = '#f7f4eb';
       var SRC_W = 270;
       var SRC_H = 480;
       var CASE_W = 240;
       var CASE_H = 440;
 
-      var box = document.getElementById('caseContainer');
       var canvas = document.getElementById('caseCanvas');
-
       var splatImg = new Image();
       var stampCache = {};
       var splatReady = false;
+      var renderToken = 0;
 
       function safeRender() {
         try {
@@ -216,26 +216,15 @@
       }
 
       splatImg.onload = function () {
-        try {
-          if (splatImg.naturalWidth > 0) {
-            splatReady = true;
-            stampCache = {};
-            safeRender();
-          }
-        } catch (e) { /* noop */ }
+        if (splatImg.naturalWidth > 0) {
+          splatReady = true;
+          stampCache = {};
+          safeRender();
+        }
       };
       splatImg.onerror = function () { splatReady = false; };
-      try { splatImg.src = SPLAT_IMAGE; } catch (e) { splatReady = false; }
+      splatImg.src = SPLAT_IMAGE;
       if (splatImg.complete && splatImg.naturalWidth > 0) splatReady = true;
-
-      setTimeout(function () {
-        try {
-          if (!splatReady && splatImg.complete && splatImg.naturalWidth > 0) {
-            splatReady = true;
-            safeRender();
-          }
-        } catch (e) { /* noop */ }
-      }, 400);
 
       function loadJson(key) {
         try {
@@ -248,6 +237,82 @@
         }
       }
 
+      function readJsonStorage(key) {
+        try {
+          var raw = localStorage.getItem(key);
+          if (!raw) return null;
+          return JSON.parse(raw);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function readSessionPayload() {
+        try {
+          var raw = sessionStorage.getItem(CASE_SESSION_KEY);
+          if (!raw) return null;
+          return JSON.parse(raw);
+        } catch (e) {
+          return null;
+        }
+      }
+
+      function clearSelectionState() {
+        try {
+          localStorage.removeItem(SELECTED_ARTWORK_KEY);
+          sessionStorage.removeItem(CASE_SESSION_KEY);
+        } catch (e) { /* noop */ }
+      }
+
+      function hasGallerySelectionIntent(params) {
+        return params.has('idx') || params.has('id') || params.has('wh') || params.has('wordsHash');
+      }
+
+      function paramsMatchPayload(params, payload) {
+        if (!payload) return false;
+        var idxStr = params.get('idx');
+        if (idxStr === null || idxStr === '') idxStr = params.get('id');
+        if (idxStr !== null && idxStr !== '' && String(payload.idx) === idxStr) return true;
+        var wh = params.get('wh') || params.get('wordsHash');
+        if (wh && payload.wordsHash === wh) return true;
+        return false;
+      }
+
+      function resolveGalleryItem(params) {
+        var gallery = loadJson(GALLERY_KEY);
+        var idxStr = params.get('idx');
+        if (idxStr === null || idxStr === '') idxStr = params.get('id');
+        if (idxStr !== null && idxStr !== '') {
+          var idx = parseInt(idxStr, 10);
+          if (!isNaN(idx) && gallery[idx]) return gallery[idx];
+        }
+
+        var wordsHash = params.get('wh') || params.get('wordsHash');
+        if (wordsHash) {
+          for (var g = 0; g < gallery.length; g++) {
+            if (gallery[g] && gallery[g].wordsHash === wordsHash) return gallery[g];
+          }
+        }
+
+        var session = readSessionPayload();
+        if (session && paramsMatchPayload(params, session)) {
+          if (typeof session.idx === 'number' && !isNaN(session.idx) && gallery[session.idx]) {
+            return gallery[session.idx];
+          }
+          if (session.splats && session.splats.length) return session;
+        }
+
+        var stored = readJsonStorage(SELECTED_ARTWORK_KEY);
+        if (stored && paramsMatchPayload(params, stored)) {
+          if (typeof stored.idx === 'number' && !isNaN(stored.idx) && gallery[stored.idx]) {
+            return gallery[stored.idx];
+          }
+          if (stored.splats && stored.splats.length) return stored;
+        }
+
+        return null;
+      }
+
       function isRecipe(item) {
         if (!item || !item.color) return false;
         if (typeof item.nx === 'number' && !isNaN(item.nx)) return true;
@@ -258,9 +323,8 @@
 
       function collectRecipes(list) {
         var out = [];
-        var i;
         if (!Array.isArray(list)) return out;
-        for (i = 0; i < list.length; i++) {
+        for (var i = 0; i < list.length; i++) {
           if (isRecipe(list[i])) out.push(list[i]);
         }
         return out;
@@ -280,52 +344,31 @@
       function collectLegacyPoints() {
         var history = loadJson(INSCAPE_HISTORY_KEY);
         var points = [];
-        var h, e, p, pt;
-
-        for (h = 0; h < history.length; h++) {
-          e = history[h];
+        for (var h = 0; h < history.length; h++) {
+          var e = history[h];
           if (!e) continue;
-
           if (e.points && Array.isArray(e.points)) {
-            for (p = 0; p < e.points.length; p++) {
-              pt = e.points[p];
-              if (pt && pt.color) points.push(pt);
+            for (var p = 0; p < e.points.length; p++) {
+              if (e.points[p] && e.points[p].color) points.push(e.points[p]);
             }
           }
-
           if (isRecipe(e) && e.color) points.push(e);
         }
-
         return points;
       }
 
-      function getPoints() {
-        try {
-          var params = new URLSearchParams(location.search);
-          var idx = params.get('idx');
-          var gallery = loadJson(GALLERY_KEY);
-          var item;
+      function getLivePoints() {
+        var live = collectRecipes(loadJson(LIVE_KEY));
+        if (live.length) return live;
+        var recipes = collectRecipes(loadJson(HISTORY_KEY));
+        if (recipes.length) return recipes;
+        return collectLegacyPoints();
+      }
 
-          if (idx !== null && idx !== '') {
-            item = gallery[parseInt(idx, 10)];
-            if (item && item.splats && item.splats.length) {
-              return collectRecipes(item.splats);
-            }
-          }
-
-          var live = collectRecipes(loadJson(LIVE_KEY));
-          if (live.length) return live;
-
-          var recipes = collectRecipes(loadJson(HISTORY_KEY));
-          if (recipes.length) return recipes;
-
-          var legacy = collectLegacyPoints();
-          if (legacy.length) return legacy;
-
-          return [];
-        } catch (e) {
-          return [];
-        }
+      function resolveSplashDrawSize(s) {
+        if (typeof s.drawSizePx === 'number' && s.drawSizePx > 0) return s.drawSizePx;
+        var baseSize = s.baseSize || s.size || 95;
+        return baseSize * (s.scaleFactor != null ? s.scaleFactor : 1);
       }
 
       function migrateSplash(s) {
@@ -338,20 +381,17 @@
 
         var nx = typeof s.nx === 'number' ? s.nx : null;
         var ny = typeof s.ny === 'number' ? s.ny : null;
-
         if (nx == null || isNaN(nx)) nx = normalizeCoord(s.x, SRC_W);
         else nx = normalizeCoord(nx, SRC_W);
         if (ny == null || isNaN(ny)) ny = normalizeCoord(s.y, SRC_H);
         else ny = normalizeCoord(ny, SRC_H);
 
-        nx = Math.min(1, Math.max(0, nx));
-        ny = Math.min(1, Math.max(0, ny));
-
         return {
-          nx: nx,
-          ny: ny,
-          color: s.color,
+          nx: Math.min(1, Math.max(0, nx)),
+          ny: Math.min(1, Math.max(0, ny)),
+          color: s.color || s.color1,
           baseSize: baseSize,
+          drawSizePx: resolveSplashDrawSize(s),
           rotation: s.rotation != null ? s.rotation : 0,
           scaleFactor: s.scaleFactor != null ? s.scaleFactor : 1,
           opacity: s.opacity != null ? s.opacity : 0.75
@@ -381,7 +421,7 @@
         if (!stamp) return;
         var cx = splash.nx * w;
         var cy = splash.ny * h;
-        var size = splash.baseSize * (splash.scaleFactor || 1);
+        var size = splash.drawSizePx || (splash.baseSize * (splash.scaleFactor || 1));
         c.save();
         c.translate(cx, cy);
         c.rotate(splash.rotation || 0);
@@ -392,41 +432,69 @@
         c.globalCompositeOperation = 'source-over';
       }
 
-      function render() {
-        if (!canvas || !box) return;
-
-        /* DPR を使わず内部解像度＝表示サイズを 240×440 に完全一致 */
+      function prepareCaseCanvas() {
         canvas.width = CASE_W;
         canvas.height = CASE_H;
         canvas.style.width = CASE_W + 'px';
         canvas.style.height = CASE_H + 'px';
-
         var ctx = canvas.getContext('2d');
         ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, CASE_W, CASE_H);
+        return ctx;
+      }
 
-        ctx.fillStyle = CANVAS_BG;
-        ctx.fillRect(0, 0, CASE_W, CASE_H);
-
-        var points = getPoints();
-        if (!points.length) return;
-
-        var fitScale = Math.min(CASE_W / SRC_W, CASE_H / SRC_H);
-        var offsetX = (CASE_W - SRC_W * fitScale) / 2;
-        var offsetY = (CASE_H - SRC_H * fitScale) / 2;
-
+      function drawScaledInk(ctx, srcW, srcH, points) {
+        var fitScale = Math.min(CASE_W / srcW, CASE_H / srcH);
+        var offsetX = (CASE_W - srcW * fitScale) / 2;
+        var offsetY = (CASE_H - srcH * fitScale) / 2;
         ctx.save();
         ctx.translate(offsetX, offsetY);
         ctx.scale(fitScale, fitScale);
-
-        var i, splash;
-        for (i = 0; i < points.length; i++) {
+        for (var i = 0; i < points.length; i++) {
           if (!points[i] || !points[i].color) continue;
-          splash = migrateSplash(points[i]);
-          if (!splash.color) continue;
-          drawSplatter(ctx, splash, SRC_W, SRC_H);
+          drawSplatter(ctx, migrateSplash(points[i]), srcW, srcH);
+        }
+        ctx.restore();
+      }
+
+      function extractInkPointsFromItem(item) {
+        if (!item) return { points: [], srcW: SRC_W, srcH: SRC_H };
+        var points = item.splats && item.splats.length ? collectRecipes(item.splats) : [];
+        var srcW = item.canvasW > 0 ? item.canvasW : SRC_W;
+        var srcH = item.canvasH > 0 ? item.canvasH : SRC_H;
+        return { points: points, srcW: srcW, srcH: srcH };
+      }
+
+      function renderInkOnly(points, srcW, srcH) {
+        var ctx = prepareCaseCanvas();
+        if (!points.length) return;
+        drawScaledInk(ctx, srcW, srcH, points);
+      }
+
+      function render() {
+        if (!canvas) return;
+
+        var params = new URLSearchParams(location.search);
+        var hasIntent = hasGallerySelectionIntent(params);
+        var token = ++renderToken;
+        renderToken = token;
+
+        if (!hasIntent) {
+          clearSelectionState();
+          renderInkOnly(getLivePoints(), SRC_W, SRC_H);
+          return;
         }
 
-        ctx.restore();
+        var galleryItem = resolveGalleryItem(params);
+        if (!galleryItem) {
+          clearSelectionState();
+          renderInkOnly(getLivePoints(), SRC_W, SRC_H);
+          return;
+        }
+
+        var ink = extractInkPointsFromItem(galleryItem);
+        renderInkOnly(ink.points, ink.srcW, ink.srcH);
+        clearSelectionState();
       }
 
       safeRender();
@@ -434,6 +502,7 @@
       document.addEventListener('visibilitychange', function () {
         if (document.visibilityState === 'visible') safeRender();
       });
+      window.addEventListener('pageshow', safeRender);
     })();
   </script>
 </body>

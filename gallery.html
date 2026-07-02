@@ -60,25 +60,17 @@
     .site-nav {
       display: flex;
       align-items: stretch;
-      justify-content: flex-start;
-      gap: 0.14rem;
-      overflow-x: auto;
-      overflow-y: hidden;
-      flex-wrap: nowrap;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
+      justify-content: center;
+      gap: 0.22rem;
+      flex-wrap: wrap;
       margin-bottom: 1.25rem;
-    }
-
-    .site-nav::-webkit-scrollbar {
-      display: none;
-      height: 0;
     }
 
     .site-nav-link,
     .back-link {
-      flex: 0 0 auto;
-      min-width: max-content;
+      flex: 1 1 0;
+      min-width: 3.4rem;
+      max-width: 5.2rem;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -248,7 +240,7 @@
       height: auto;
       margin: 0 auto;
       padding: 28px 22px 32px;
-      background: #fbf9f5;
+      background: #ffffff;
       border: 20px solid #1c110a;
       border-top-color: #f3e5ab;
       border-left-color: #d4af37;
@@ -257,8 +249,8 @@
       outline: 3px solid #aa7c11;
       outline-offset: -20px;
       box-shadow:
-        inset 0 5px 0 rgba(255, 255, 255, 0.2),
-        inset 0 -3px 10px rgba(0, 0, 0, 0.65),
+        inset 0 4px 0 rgba(255, 255, 255, 0.35),
+        inset 0 -2px 6px rgba(0, 0, 0, 0.06),
         0 4px 14px rgba(0, 0, 0, 0.42),
         0 20px 40px rgba(0, 0, 0, 0.8),
         0 36px 72px rgba(0, 0, 0, 0.52);
@@ -270,8 +262,8 @@
       inset: 0;
       pointer-events: none;
       border: 20px solid transparent;
-      border-image: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%, rgba(0, 0, 0, 0.35) 100%) 1;
-      opacity: 0.85;
+      border-image: linear-gradient(145deg, rgba(255, 255, 255, 0.12) 0%, transparent 42%, rgba(0, 0, 0, 0.12) 100%) 1;
+      opacity: 0.55;
     }
 
     .art-surface {
@@ -282,10 +274,34 @@
       aspect-ratio: 9 / 16;
       margin: 0 auto;
       overflow: hidden;
-      z-index: 1;
+      z-index: 2;
       line-height: 0;
       font-size: 0;
       padding: 0;
+      background-color: #ffffff;
+      background-image: none;
+      opacity: 1;
+      isolation: isolate;
+    }
+
+    .art-surface--snapshot {
+      background-color: #ffffff;
+      background-image: none;
+    }
+
+    .gallery-art-image {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      object-position: center;
+      vertical-align: top;
+      position: relative;
+      z-index: 1;
+      background: #ffffff;
+      box-shadow: none;
+      opacity: 1;
+      transition: filter 0.85s ease;
     }
 
     .gallery-art-canvas {
@@ -293,41 +309,26 @@
       width: 100%;
       height: 100%;
       vertical-align: top;
-      background-color: #f7f4eb;
-      background-image:
-        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
-        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
-        var(--canvas-fabric-url);
-      background-blend-mode: multiply;
-      background-size: auto, auto, cover;
-      box-shadow:
-        inset 5px 5px 15px rgba(0, 0, 0, 0.4),
-        inset -3px -3px 10px rgba(255, 255, 255, 0.6);
-    }
-
-    .paper-texture-overlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 2;
-      background-color: transparent;
-      background-image: var(--canvas-fabric-url);
-      background-size: cover;
-      background-blend-mode: multiply;
-      mix-blend-mode: multiply;
-      opacity: 0.35;
+      position: relative;
+      z-index: 1;
+      background: #ffffff !important;
+      background-image: none !important;
+      box-shadow: none;
+      opacity: 1;
+      transition: filter 0.85s ease;
     }
 
     .art-period-caption {
       margin-top: 1.1rem;
       padding: 0 0.35rem;
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Georgia", "Times New Roman", serif;
-      font-size: 0.85rem;
+      font-family: "Yu Mincho", "Hiragino Mincho ProN", "Georgia", "Times New Roman", serif;
+      font-size: 12px;
       font-weight: 300;
-      letter-spacing: 0.16em;
-      text-indent: 0.16em;
-      color: rgba(136, 136, 136, 0.92);
-      line-height: 1.65;
+      letter-spacing: 0.14em;
+      text-indent: 0.14em;
+      color: rgba(136, 136, 136, 0.88);
+      line-height: 1.6;
+      text-align: center;
     }
 
     .art-period-caption:empty {
@@ -380,49 +381,6 @@
         radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0) 70%),
         radial-gradient(ellipse 88% 52% at 50% -6%, rgba(255, 252, 240, 0.09) 0%, transparent 55%),
         #0a0a0a !important;
-    }
-
-    .share-art-btn {
-      display: inline-block;
-      margin-top: 1.15rem;
-      padding: 0.65rem 1.1rem;
-      border: 0.5px solid rgba(201, 169, 98, 0.28);
-      border-radius: 1px;
-      background: rgba(255, 255, 255, 0.03);
-      color: rgba(232, 230, 226, 0.62);
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
-      font-size: 0.52rem;
-      font-weight: 400;
-      letter-spacing: 0.28em;
-      text-indent: 0.28em;
-      cursor: pointer;
-      transition:
-        color 0.3s ease,
-        border-color 0.3s ease,
-        background 0.3s ease,
-        box-shadow 0.3s ease;
-    }
-
-    .share-art-btn:hover {
-      color: rgba(232, 230, 226, 0.88);
-      border-color: rgba(201, 169, 98, 0.45);
-      background: rgba(201, 169, 98, 0.08);
-      box-shadow: 0 0 20px rgba(201, 169, 98, 0.12);
-    }
-
-    .share-art-btn:active {
-      transform: scale(0.98);
-    }
-
-    .share-art-btn.modal-share {
-      margin-top: 1.35rem;
-      letter-spacing: 0.22em;
-      text-indent: 0.22em;
-    }
-
-    .modal-content .share-art-btn {
-      color: rgba(232, 230, 226, 0.72);
-      background: rgba(255, 255, 255, 0.05);
     }
 
     .no-data {
@@ -603,10 +561,13 @@
 
     .modal-content .art-period-caption {
       margin-top: 1.15rem;
-      font-size: 0.82rem;
-      color: rgba(204, 204, 204, 0.68);
-      letter-spacing: 0.18em;
-      text-indent: 0.18em;
+      font-family: "Yu Mincho", "Hiragino Mincho ProN", "Georgia", "Times New Roman", serif;
+      font-size: 12px;
+      font-weight: 300;
+      color: rgba(136, 136, 136, 0.88);
+      letter-spacing: 0.14em;
+      text-indent: 0.14em;
+      text-align: center;
     }
 
     .memory-popover {
@@ -785,8 +746,7 @@
       color: rgba(232, 230, 226, 0.68);
     }
 
-    .save-art-btn:disabled,
-    .share-art-btn:disabled {
+    .save-art-btn:disabled {
       opacity: 0.45;
       cursor: wait;
       pointer-events: none;
@@ -795,117 +755,6 @@
     .modal-content .save-art-btn {
       color: rgba(232, 230, 226, 0.82);
     }
-
-    .modal-content .modal-art-actions .share-art-btn.modal-share {
-      margin-top: 0;
-    }
-
-    .museum-brand-logo {
-      display: none;
-      margin-top: 1.75rem;
-      font-family: "Times New Roman", "Georgia", "Hiragino Mincho ProN", serif;
-      font-size: 0.72rem;
-      font-weight: 300;
-      letter-spacing: 0.55em;
-      text-indent: 0.55em;
-      color: rgba(204, 204, 204, 0.42);
-    }
-
-    .modal-content .museum-brand-logo {
-      display: block;
-    }
-
-    .save-preview-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 10050;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding:
-        calc(0.85rem + env(safe-area-inset-top))
-        calc(0.85rem + env(safe-area-inset-right))
-        calc(0.85rem + env(safe-area-inset-bottom))
-        calc(0.85rem + env(safe-area-inset-left));
-      background:
-        radial-gradient(ellipse 70% 55% at 50% 45%, rgba(20, 18, 16, 0.97) 0%, rgba(3, 3, 4, 0.98) 100%);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity 0.45s ease, visibility 0.45s ease;
-    }
-
-    .save-preview-overlay.active {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-
-    .save-preview-panel {
-      position: relative;
-      width: min(92vw, 400px);
-      max-height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transform: translateY(18px) scale(0.96);
-      opacity: 0;
-      transition:
-        transform 0.55s cubic-bezier(0.34, 1.15, 0.64, 1),
-        opacity 0.45s ease;
-    }
-
-    .save-preview-overlay.active .save-preview-panel {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-
-    .save-preview-close {
-      align-self: flex-end;
-      margin-bottom: 0.85rem;
-      font-size: 0.48rem;
-      letter-spacing: 0.18em;
-      color: rgba(232, 230, 226, 0.32);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.45rem 0.5rem;
-    }
-
-    .save-preview-hint {
-      width: 100%;
-      margin-bottom: 1rem;
-      text-align: center;
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
-      font-size: 0.58rem;
-      font-weight: 300;
-      line-height: 2;
-      letter-spacing: 0.12em;
-      color: rgba(201, 169, 98, 0.62);
-    }
-
-    .save-preview-image-wrap {
-      width: 100%;
-      aspect-ratio: 9 / 16;
-      max-height: min(72vh, calc(92vw * 16 / 9));
-      border-radius: 2px;
-      overflow: hidden;
-      box-shadow:
-        0 24px 64px rgba(0, 0, 0, 0.85),
-        0 0 48px rgba(201, 169, 98, 0.06);
-      background: #0a0a0a;
-    }
-
-    .save-preview-image-wrap img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      -webkit-touch-callout: default;
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-user-select: none;
-    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -913,13 +762,10 @@
   <div class="corridor-top">
     <nav class="site-nav" aria-label="ナビゲーション">
       <a class="site-nav-link" href="index.html">キャンバス</a>
-      <a class="site-nav-link" href="midspace.html">言葉の浮遊層</a>
       <a class="site-nav-link is-current" href="gallery.html" aria-current="page">感情の回廊</a>
       <a class="site-nav-link" href="mycolors.html">今日の私の色</a>
-      <a class="site-nav-link" href="ocean.html">感情の夜海</a>
-        <a class="site-nav-link" href="room.html">合言葉の部屋</a>
-        <a class="site-nav-link" href="case.html">プロダクトプレビュー</a>
-      </nav>
+      <a class="site-nav-link" href="case.html">プロダクトプレビュー</a>
+    </nav>
 
     <header class="museum-header">
       <h1 class="museum-title">感情の回廊</h1>
@@ -936,21 +782,230 @@
       const GALLERY_KEY = 'inscape_gallery';
       const INSCAPE_HISTORY_KEY = 'inscape_history';
       const HISTORY_KEY = 'histories';
+      const SPLASHES_KEY = 'inscape_splashes';
       const SPLAT_IMAGE = 'splat.png';
+      const FABRIC_IMAGE = 'canvas-fabric.png';
       const CANVAS_BG = '#f7f4eb';
       const DEFAULT_CANVAS_W = 270;
       const DEFAULT_CANVAS_H = 480;
       const LEGACY_CANVAS_W = 400;
       const LEGACY_CANVAS_H = 300;
-      const SHARE_APP_URL = 'https://my-inscape.github.io/inscape/';
-      const SHARE_HASHTAG = '#INSCAPE';
       const EXPORT_W = 1080;
       const EXPORT_H = 1920;
+      const MAX_WORD_ENTRIES = 7;
 
       const splatImg = new Image();
+      const fabricImg = new Image();
       const stampCache = {};
       let splatReady = false;
+      let fabricReady = false;
+      let fabricLoadPromise = null;
       let savePreviewObjectUrl = null;
+
+      function formatHistoryDate(ts, fallback) {
+        if (!ts) return fallback || '';
+        const d = new Date(ts);
+        if (Number.isNaN(d.getTime())) return fallback || '';
+        const y = d.getFullYear();
+        const mo = String(d.getMonth() + 1).padStart(2, '0');
+        const da = String(d.getDate()).padStart(2, '0');
+        const hr = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        return `${y}/${mo}/${da} ${hr}:${mi}`;
+      }
+
+      function normalizeCoord(value, fallback) {
+        if (typeof value !== 'number' || Number.isNaN(value)) return fallback;
+        if (value > 1 && value <= 100) return value / 100;
+        return value;
+      }
+
+      function mapHistoryEntry(entry, fallbackDate) {
+        return {
+          word: entry.word || entry.text || '',
+          color: entry.color,
+          date: entry.date || formatHistoryDate(entry.timestamp, fallbackDate || ''),
+          timestamp: entry.timestamp || 0
+        };
+      }
+
+      function pointToSplash(point) {
+        if (!point || !point.color) return null;
+        const nx = normalizeCoord(point.nx, normalizeCoord(point.x, undefined));
+        const ny = normalizeCoord(point.ny, normalizeCoord(point.y, undefined));
+        if (typeof nx !== 'number' || typeof ny !== 'number') return null;
+
+        let baseSize = point.baseSize || point.size;
+        if (!baseSize || baseSize < 1) baseSize = 220;
+
+        return {
+          nx,
+          ny,
+          color: point.color,
+          baseSize,
+          scaleFactor: point.scaleFactor ?? 1,
+          rotation: point.rotation ?? 0,
+          opacity: point.opacity ?? 0.75,
+          word: point.word || '',
+          timestamp: point.timestamp || 0
+        };
+      }
+
+      function parseInscapeHistorySessions() {
+        const sessions = [];
+        try {
+          const raw = localStorage.getItem(INSCAPE_HISTORY_KEY);
+          if (!raw) return sessions;
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return sessions;
+
+          data.forEach((item, sessionIndex) => {
+            if (!item || typeof item !== 'object') return;
+
+            if (Array.isArray(item.points) || Array.isArray(item.history)) {
+              const points = Array.isArray(item.points) ? item.points : [];
+              const history = Array.isArray(item.history) ? item.history : [];
+              const splats = points.map(pointToSplash).filter(Boolean);
+              sessions.push({
+                points,
+                splats,
+                history: history.map((e) => mapHistoryEntry(e)).filter((e) => e.color),
+                updatedAt: item.updatedAt || item.timestamp || 0,
+                sessionIndex,
+                title: item.title,
+                analysis: item.analysis,
+                wordsHash: item.wordsHash
+              });
+              return;
+            }
+
+            if (item.color && (item.word || item.text)) {
+              let legacySession = sessions.find((s) => s._legacyFlat);
+              if (!legacySession) {
+                legacySession = {
+                  points: [],
+                  splats: [],
+                  history: [],
+                  updatedAt: 0,
+                  sessionIndex,
+                  _legacyFlat: true
+                };
+                sessions.push(legacySession);
+              }
+              const entry = mapHistoryEntry(item);
+              legacySession.history.push(entry);
+              if ((entry.timestamp || 0) > legacySession.updatedAt) {
+                legacySession.updatedAt = entry.timestamp || 0;
+              }
+            }
+          });
+        } catch (err) {
+          console.warn('inscape_history の解析に失敗:', err);
+        }
+        return sessions;
+      }
+
+      function loadSplashesFallback() {
+        try {
+          const raw = localStorage.getItem(SPLASHES_KEY);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return [];
+          return data.map((s) => pointToSplash(s) || migrateSplash(s)).filter((s) => s && s.color);
+        } catch {
+          return [];
+        }
+      }
+
+      function loadHistoriesFallback() {
+        try {
+          const raw = localStorage.getItem(HISTORY_KEY);
+          if (!raw) return [];
+          const data = JSON.parse(raw);
+          if (!Array.isArray(data)) return [];
+          return data.map((s) => pointToSplash(s) || migrateSplash(s)).filter((s) => s && s.color);
+        } catch {
+          return [];
+        }
+      }
+
+      function splatsFingerprint(splats) {
+        return splats
+          .map((s) => `${Number(s.nx).toFixed(4)}|${Number(s.ny).toFixed(4)}|${s.color}|${s.timestamp || 0}`)
+          .join('\u241f');
+      }
+
+      function getSplatsFromItem(item) {
+        if (!item) return [];
+        if (Array.isArray(item.splats) && item.splats.length) {
+          return item.splats
+            .map((s) => {
+              const normalized = pointToSplash(s);
+              return migrateSplash(normalized || s);
+            })
+            .filter((s) => s && s.color && typeof s.nx === 'number');
+        }
+        if (Array.isArray(item.points) && item.points.length) {
+          return item.points.map(pointToSplash).filter(Boolean).map(migrateSplash);
+        }
+        return [];
+      }
+
+      function sessionToGalleryItem(session, storageRef) {
+        let splats = session.splats && session.splats.length
+          ? session.splats.map(migrateSplash)
+          : session.points.map(pointToSplash).filter(Boolean).map(migrateSplash);
+
+        if (!splats.length) {
+          const fromHistories = loadHistoriesFallback();
+          if (fromHistories.length) splats = fromHistories.map(migrateSplash);
+        }
+        if (!splats.length) {
+          const live = loadSplashesFallback();
+          if (live.length) splats = live.map(migrateSplash);
+        }
+
+        let history = Array.isArray(session.history) ? session.history : [];
+        if (!history.length && splats.length) {
+          history = splats.map((s, i) => mapHistoryEntry({
+            word: s.word,
+            color: s.color,
+            timestamp: s.timestamp || i
+          }));
+        }
+
+        return {
+          splats,
+          points: session.points || splats,
+          history,
+          date: history.length ? (history[history.length - 1].date || '') : '',
+          updatedAt: session.updatedAt || 0,
+          canvasW: DEFAULT_CANVAS_W,
+          canvasH: DEFAULT_CANVAS_H,
+          storageRef,
+          source: storageRef.kind,
+          title: session.title,
+          analysis: session.analysis,
+          wordsHash: session.wordsHash
+        };
+      }
+
+      function loadGalleryRaw() {
+        try {
+          const data = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
+          return Array.isArray(data) ? data : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveGalleryRaw(gallery) {
+        try {
+          localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+        } catch (err) {
+          console.warn('ギャラリー保存に失敗:', err);
+        }
+      }
 
       function drawSpacedText(ctx, text, centerX, y, spacingPx) {
         const chars = text.split('');
@@ -1042,17 +1097,32 @@
         return htmlCanvasToBlob(final);
       }
 
+      function resolveSplashDrawSize(s) {
+        if (typeof s.drawSizePx === 'number' && s.drawSizePx > 0) return s.drawSizePx;
+        const baseSize = s.baseSize || s.size || 95;
+        return baseSize * (s.scaleFactor ?? 1);
+      }
+
       function migrateSplash(s) {
-        let baseSize = s.baseSize || 220;
-        if (baseSize < 150) baseSize *= 2.5;
+        let baseSize = s.baseSize || s.size || 95;
+        if (baseSize >= 200) {
+          // 旧仕様（220〜410px台）のデータはそのまま維持
+        } else if (baseSize > 0 && baseSize < 35) {
+          baseSize *= 2.5;
+        }
+        const drawSizePx = resolveSplashDrawSize({ ...s, baseSize });
         return {
           nx: s.nx,
           ny: s.ny,
-          color: s.color,
+          color: s.color || s.color1,
           baseSize,
+          drawSizePx,
           rotation: s.rotation ?? 0,
           scaleFactor: s.scaleFactor ?? 1,
-          opacity: s.opacity ?? 0.75
+          opacity: s.opacity ?? 0.75,
+          splashPattern: s.splashPattern ?? 0,
+          word: s.word || '',
+          timestamp: s.timestamp || 0
         };
       }
 
@@ -1073,6 +1143,73 @@
             resolve();
           }
         });
+      }
+
+      function loadFabricImage() {
+        if (fabricReady && fabricImg.naturalWidth > 0) return Promise.resolve(fabricImg);
+        if (fabricLoadPromise) return fabricLoadPromise;
+
+        fabricLoadPromise = new Promise((resolve) => {
+          const finish = (ok) => {
+            fabricLoadPromise = null;
+            if (ok) {
+              fabricReady = true;
+              resolve(fabricImg);
+            } else {
+              resolve(null);
+            }
+          };
+
+          fabricImg.onload = () => finish(fabricImg.naturalWidth > 0);
+          fabricImg.onerror = () => finish(false);
+          fabricImg.src = FABRIC_IMAGE;
+
+          if (fabricImg.complete) {
+            finish(fabricImg.naturalWidth > 0);
+          }
+        });
+
+        return fabricLoadPromise;
+      }
+
+      function drawCanvasCrosshatch(targetCtx, w, h) {
+        targetCtx.save();
+        targetCtx.strokeStyle = 'rgba(0, 0, 0, 0.03)';
+        targetCtx.lineWidth = 1;
+        for (let y = 0; y < h; y += 4) {
+          targetCtx.beginPath();
+          targetCtx.moveTo(0, y);
+          targetCtx.lineTo(w, y);
+          targetCtx.stroke();
+        }
+        for (let x = 0; x < w; x += 4) {
+          targetCtx.beginPath();
+          targetCtx.moveTo(x, 0);
+          targetCtx.lineTo(x, h);
+          targetCtx.stroke();
+        }
+        targetCtx.restore();
+      }
+
+      function drawCanvasFabricBase(targetCtx, w, h, fabricImage) {
+        targetCtx.globalCompositeOperation = 'source-over';
+        targetCtx.fillStyle = CANVAS_BG;
+        targetCtx.fillRect(0, 0, w, h);
+        drawCanvasCrosshatch(targetCtx, w, h);
+        if (fabricImage && fabricImage.naturalWidth > 0) {
+          targetCtx.globalCompositeOperation = 'multiply';
+          targetCtx.drawImage(fabricImage, 0, 0, w, h);
+          targetCtx.globalCompositeOperation = 'source-over';
+        }
+      }
+
+      function drawCanvasFabricOverlay(targetCtx, w, h, fabricImage) {
+        if (!fabricImage || fabricImage.naturalWidth <= 0) return;
+        targetCtx.save();
+        targetCtx.globalAlpha = 0.35;
+        targetCtx.globalCompositeOperation = 'multiply';
+        targetCtx.drawImage(fabricImage, 0, 0, w, h);
+        targetCtx.restore();
       }
 
       function createColorStamp(color) {
@@ -1096,20 +1233,44 @@
         return work;
       }
 
+      function drawSplatterStamp(c, stamp, size, alpha, pattern) {
+        const p = pattern ?? 0;
+        if (p === 1) {
+          c.globalAlpha = alpha;
+          c.drawImage(stamp, -size / 2, -size / 2, size, size);
+          const spur = size * 0.36;
+          const offsets = [[1, 0], [-1, 0], [0, -1], [0.65, 0.65]];
+          offsets.forEach(([dx, dy]) => {
+            c.globalAlpha = alpha * 0.52;
+            c.drawImage(stamp, dx * spur - spur * 0.5, dy * spur - spur * 0.5, spur, spur);
+          });
+          return;
+        }
+        if (p === 2) {
+          const heavy = size * 1.28;
+          c.globalAlpha = alpha * 0.9;
+          c.drawImage(stamp, -heavy / 2, -heavy / 2, heavy, heavy);
+          c.globalAlpha = alpha * 0.42;
+          c.drawImage(stamp, -size / 2, -size / 2, size, size);
+          return;
+        }
+        c.globalAlpha = alpha;
+        c.drawImage(stamp, -size / 2, -size / 2, size, size);
+      }
+
       function drawSplatter(c, splash, w, h) {
         const stamp = createColorStamp(splash.color);
         if (!stamp) return;
 
         const cx = splash.nx * w;
         const cy = splash.ny * h;
-        const size = splash.baseSize * (splash.scaleFactor || 1);
+        const size = splash.drawSizePx || (splash.baseSize * (splash.scaleFactor || 1));
 
         c.save();
         c.translate(cx, cy);
         c.rotate(splash.rotation || 0);
-        c.globalAlpha = splash.opacity ?? 1;
         c.globalCompositeOperation = 'multiply';
-        c.drawImage(stamp, -size / 2, -size / 2, size, size);
+        drawSplatterStamp(c, stamp, size, splash.opacity ?? 1, splash.splashPattern ?? 0);
         c.restore();
         c.globalCompositeOperation = 'source-over';
       }
@@ -1133,11 +1294,74 @@
         return Math.abs((w / h) - (DEFAULT_CANVAS_W / DEFAULT_CANVAS_H)) < 0.04;
       }
 
+      function applyArtSurfaceAspect(surface, item) {
+        if (!surface || !item) return;
+        const aspectW = item.canvasW > 0 ? item.canvasW : DEFAULT_CANVAS_W;
+        const aspectH = item.canvasH > 0 ? item.canvasH : DEFAULT_CANVAS_H;
+        surface.style.aspectRatio = `${aspectW} / ${aspectH}`;
+      }
+
+      function applyGalleryAgeingFilter(artEl, surface, index) {
+        if (surface) {
+          surface.style.backgroundColor = '#ffffff';
+          surface.style.backgroundImage = 'none';
+          surface.style.opacity = '1';
+        }
+        if (!artEl) return;
+        artEl.style.opacity = '1';
+        artEl.style.boxShadow = 'none';
+        if (typeof index !== 'number' || index < 0) {
+          artEl.style.filter = 'none';
+          return;
+        }
+        if (index < 4) {
+          artEl.style.filter = 'none';
+        } else if (index === 4) {
+          artEl.style.filter = 'sepia(0.15) brightness(0.98) contrast(1.0)';
+        } else if (index === 5) {
+          artEl.style.filter = 'sepia(0.3) brightness(0.95) contrast(0.95)';
+        } else {
+          artEl.style.filter = 'sepia(0.5) brightness(0.88) contrast(0.9)';
+        }
+      }
+
+      function mountArtworkSurface(surface, item, displayIndex) {
+        if (!surface) return null;
+        applyArtSurfaceAspect(surface, item);
+        surface.style.backgroundColor = '#ffffff';
+        surface.style.backgroundImage = 'none';
+        surface.style.opacity = '1';
+
+        let artEl;
+        if (item.artworkImageDataUrl) {
+          surface.classList.add('art-surface--snapshot');
+          const img = document.createElement('img');
+          img.className = 'gallery-art-image';
+          img.src = item.artworkImageDataUrl;
+          img.alt = '';
+          img.decoding = 'async';
+          img.draggable = false;
+          surface.appendChild(img);
+          artEl = img;
+        } else {
+          const artCanvas = document.createElement('canvas');
+          artCanvas.className = 'gallery-art-canvas';
+          renderRecipeToCanvas(artCanvas, getSplatsFromItem(item), item);
+          surface.appendChild(artCanvas);
+          artEl = artCanvas;
+        }
+
+        if (typeof displayIndex === 'number') {
+          applyGalleryAgeingFilter(artEl, surface, displayIndex);
+        }
+        return artEl;
+      }
+
       function renderRecipeToCanvas(canvasEl, splats, item) {
         const { legacyW, legacyH } = getLegacyArtDimensions(item);
-        const targetW = DEFAULT_CANVAS_W;
-        const targetH = DEFAULT_CANVAS_H;
-        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const targetW = legacyW;
+        const targetH = legacyH;
+        const dpr = window.devicePixelRatio || 1;
         canvasEl.width = Math.round(targetW * dpr);
         canvasEl.height = Math.round(targetH * dpr);
         canvasEl.style.width = '100%';
@@ -1145,48 +1369,61 @@
 
         const c = canvasEl.getContext('2d');
         c.setTransform(dpr, 0, 0, dpr, 0, 0);
-        c.fillStyle = CANVAS_BG;
-        c.fillRect(0, 0, targetW, targetH);
+        const fabricImage = fabricReady && fabricImg.naturalWidth > 0 ? fabricImg : null;
+        drawCanvasFabricBase(c, targetW, targetH, fabricImage);
 
-        if (!Array.isArray(splats) || !splats.length) return;
+        if (!Array.isArray(splats) || !splats.length) {
+          drawCanvasFabricOverlay(c, targetW, targetH, fabricImage);
+          return;
+        }
 
         const needsRemap = !isPortrait916(legacyW, legacyH) ||
-          legacyW !== targetW || legacyH !== targetH;
+          legacyW !== DEFAULT_CANVAS_W || legacyH !== DEFAULT_CANVAS_H;
 
         if (!needsRemap) {
           splats.map(migrateSplash).forEach((splash) => {
             drawSplatter(c, splash, targetW, targetH);
           });
+        } else {
+          const off = document.createElement('canvas');
+          off.width = legacyW;
+          off.height = legacyH;
+          const offCtx = off.getContext('2d');
+          drawCanvasFabricBase(offCtx, legacyW, legacyH, fabricImage);
+          splats.map(migrateSplash).forEach((splash) => {
+            drawSplatter(offCtx, splash, legacyW, legacyH);
+          });
+          drawCanvasFabricOverlay(offCtx, legacyW, legacyH, fabricImage);
+          c.drawImage(off, 0, 0, targetW, targetH);
           return;
         }
 
-        const off = document.createElement('canvas');
-        off.width = legacyW;
-        off.height = legacyH;
-        const offCtx = off.getContext('2d');
-        offCtx.fillStyle = CANVAS_BG;
-        offCtx.fillRect(0, 0, legacyW, legacyH);
-        splats.map(migrateSplash).forEach((splash) => {
-          drawSplatter(offCtx, splash, legacyW, legacyH);
-        });
-        c.drawImage(off, 0, 0, targetW, targetH);
+        drawCanvasFabricOverlay(c, targetW, targetH, fabricImage);
       }
 
       function loadGallery() {
-        let galleryData = [];
-        try {
-          galleryData = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
-        } catch (e) {
-          galleryData = [];
-        }
-        if (!Array.isArray(galleryData)) galleryData = [];
-        return galleryData
-          .map((entry, galleryIndex) => ({ ...entry, galleryIndex }))
-          .filter((entry) => entry && Array.isArray(entry.splats) && entry.splats.length > 0);
-      }
+        const items = [];
 
-      function getShareCaption() {
-        return `${SHARE_HASHTAG} ${SHARE_APP_URL}`;
+        try {
+          const data = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
+          if (Array.isArray(data)) {
+            data.forEach((entry, index) => {
+              if (!entry) return;
+              const splats = getSplatsFromItem(entry);
+              if (!splats.length && !entry.artworkImageDataUrl) return;
+              items.push({
+                ...entry,
+                splats,
+                storageRef: { kind: 'gallery', index },
+                source: 'inscape_gallery'
+              });
+            });
+          }
+        } catch (err) {
+          console.warn('inscape_gallery の読み込みに失敗:', err);
+        }
+
+        return items;
       }
 
       function getFrameCaptureTarget(containerEl) {
@@ -1205,12 +1442,13 @@
       function stripPrivacyTextFromClone(clonedRoot) {
         if (!clonedRoot) return;
         clonedRoot.querySelectorAll(
-          '.art-date, .share-art-btn, .save-art-btn, .case-preview-btn, .modal-art-actions, ' +
-          '.museum-brand-logo, .memory-popover, [data-export-hide], .privacy-export-hidden'
+          '.art-date, .save-art-btn, .case-preview-btn, .modal-art-actions, ' +
+          '.museum-brand-logo, .memory-popover, [data-export-hide], .privacy-export-hidden, ' +
+          '.artwork-caption-block'
         ).forEach((node) => node.remove());
 
-        clonedRoot.querySelectorAll('.gallery-art-canvas').forEach((canvasEl) => {
-          const overlay = canvasEl.parentElement && canvasEl.parentElement.querySelector('.privacy-text-overlay');
+        clonedRoot.querySelectorAll('.gallery-art-canvas, .gallery-art-image').forEach((artEl) => {
+          const overlay = artEl.parentElement && artEl.parentElement.querySelector('.privacy-text-overlay');
           if (overlay) overlay.remove();
         });
       }
@@ -1297,68 +1535,6 @@
         }
       }
 
-      function openTwitterShareFallback() {
-        const text = encodeURIComponent(`${SHARE_HASHTAG}\n${SHARE_APP_URL}`);
-        window.open(`https://twitter.com/intent/tweet?text=${text}`, '_blank', 'noopener,noreferrer');
-      }
-
-      async function shareFramedArtwork(containerEl, triggerBtn) {
-        if (!containerEl) return;
-
-        const prevLabel = triggerBtn ? triggerBtn.textContent : '';
-        if (triggerBtn) {
-          triggerBtn.disabled = true;
-          triggerBtn.textContent = '画像を準備中…';
-        }
-
-        let blob;
-        try {
-          blob = await captureFramedArtworkBlob(containerEl);
-        } catch (err) {
-          console.warn('額装画像の生成に失敗:', err);
-          openTwitterShareFallback();
-          if (triggerBtn) {
-            triggerBtn.disabled = false;
-            triggerBtn.textContent = prevLabel;
-          }
-          return;
-        } finally {
-          if (triggerBtn && triggerBtn.disabled) {
-            triggerBtn.disabled = false;
-            triggerBtn.textContent = prevLabel;
-          }
-        }
-
-        const pngFile = new File([blob], 'inscape-framed.png', { type: 'image/png' });
-        const sharePayload = {
-          title: 'INSCAPE',
-          text: getShareCaption(),
-          url: SHARE_APP_URL
-        };
-
-        if (navigator.share) {
-          if (navigator.canShare && navigator.canShare({ files: [pngFile] })) {
-            try {
-              await navigator.share({ ...sharePayload, files: [pngFile] });
-              return;
-            } catch (err) {
-              if (err && err.name === 'AbortError') return;
-            }
-          }
-
-          try {
-            await navigator.share(sharePayload);
-            downloadBlob(blob, 'inscape-framed.png');
-            return;
-          } catch (err) {
-            if (err && err.name === 'AbortError') return;
-          }
-        }
-
-        openTwitterShareFallback();
-        downloadBlob(blob, 'inscape-framed.png');
-      }
-
       async function saveFramedArtwork(containerEl, triggerBtn) {
         if (!containerEl) return;
 
@@ -1381,21 +1557,6 @@
         }
       }
 
-      function createShareButton(label, getContainer) {
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'share-art-btn';
-        btn.textContent = label;
-        btn.setAttribute('aria-label', label);
-        btn.addEventListener('click', (e) => {
-          e.preventDefault();
-          e.stopPropagation();
-          const containerEl = typeof getContainer === 'function' ? getContainer() : getContainer;
-          shareFramedArtwork(containerEl, btn);
-        });
-        return btn;
-      }
-
       function createSaveButton(getContainer) {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -1411,19 +1572,54 @@
         return btn;
       }
 
+      const SELECTED_ARTWORK_KEY = 'inscape_selected_artwork';
+      const CASE_SESSION_KEY = 'inscape_case_session';
+
+      function persistSelectedArtworkForCase(galleryItem) {
+        if (!galleryItem) return;
+        try {
+          const splats = getSplatsFromItem(galleryItem);
+          const payload = {
+            idx: galleryItem.storageRef && galleryItem.storageRef.kind === 'gallery'
+              ? galleryItem.storageRef.index
+              : (typeof galleryItem.galleryIndex === 'number' ? galleryItem.galleryIndex : null),
+            wordsHash: galleryItem.wordsHash || null,
+            splats,
+            canvasW: galleryItem.canvasW || null,
+            canvasH: galleryItem.canvasH || null,
+            selectedAt: Date.now()
+          };
+          localStorage.setItem(SELECTED_ARTWORK_KEY, JSON.stringify(payload));
+          sessionStorage.setItem(CASE_SESSION_KEY, JSON.stringify(payload));
+        } catch (err) {
+          console.warn('ケースプレビュー用の作品選択保存に失敗:', err);
+        }
+      }
+
       function createCasePreviewLink(galleryItem) {
         const link = document.createElement('a');
         link.className = 'case-preview-btn';
         const dateKey = getArtworkCaseDateKey(galleryItem);
-        let href = `case.html?date=${encodeURIComponent(dateKey)}`;
-        if (galleryItem && typeof galleryItem.galleryIndex === 'number' && galleryItem.galleryIndex >= 0) {
-          href += `&idx=${galleryItem.galleryIndex}`;
+        const idx = galleryItem && galleryItem.storageRef && galleryItem.storageRef.kind === 'gallery'
+          ? galleryItem.storageRef.index
+          : (typeof galleryItem.galleryIndex === 'number' ? galleryItem.galleryIndex : null);
+        let href = 'case.html';
+        const query = [];
+        if (idx !== null && idx !== undefined && !isNaN(idx)) {
+          query.push(`id=${encodeURIComponent(String(idx))}`);
+          query.push(`idx=${encodeURIComponent(String(idx))}`);
         }
-        link.href = href;
+        if (galleryItem && galleryItem.wordsHash) {
+          query.push(`wh=${encodeURIComponent(galleryItem.wordsHash)}`);
+        }
+        query.push(`t=${Date.now()}`);
+        if (dateKey) query.push(`date=${encodeURIComponent(dateKey)}`);
+        link.href = `${href}?${query.join('&')}`;
         link.textContent = 'このデザインのスマホケースを見る';
         link.setAttribute('aria-label', 'このデザインのスマホケースを見る');
         link.addEventListener('click', (e) => {
           e.stopPropagation();
+          persistSelectedArtworkForCase(galleryItem);
         });
         return link;
       }
@@ -1476,7 +1672,80 @@
         return null;
       }
 
+      function compactDotDate(dotDate) {
+        const m = String(dotDate || '').match(/\d{4}\.(\d{2}\.\d{2})/);
+        return m ? m[1] : String(dotDate || '');
+      }
+
+      function formatCompactPeriod(startStr, endStr) {
+        const a = compactDotDate(startStr);
+        const b = compactDotDate(endStr);
+        if (!a && !b) return '';
+        if (!b || a === b) return a;
+        return `${a} - ${b}`;
+      }
+
+      function parseDotDate(dotDate) {
+        const matched = String(dotDate || '').match(/(\d{4})\.(\d{2})\.(\d{2})/);
+        if (!matched) return null;
+        const d = new Date(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3]));
+        return Number.isNaN(d.getTime()) ? null : d;
+      }
+
+      function inferArtworkWeekPeriod(endDate) {
+        if (!endDate || Number.isNaN(endDate.getTime())) return null;
+        const start = new Date(endDate);
+        start.setDate(start.getDate() - 6);
+        return {
+          startStr: formatDotDate(start),
+          endStr: formatDotDate(endDate)
+        };
+      }
+
+      function finalizePeriodCaption(startStr, endStr, item) {
+        const compact = formatCompactPeriod(startStr, endStr);
+        if (compact.includes(' - ')) return compact;
+
+        const splats = getSplatsFromItem(item);
+        const isWeekArtwork = splats.length >= 7
+          || (Array.isArray(item.history) && item.history.length >= 7)
+          || !!item.completedAt;
+        if (!isWeekArtwork) return compact;
+
+        let endDate = parseDotDate(endStr) || parseDotDate(startStr);
+        if (!endDate && item.completedAt) endDate = new Date(item.completedAt);
+        if (!endDate) {
+          const stamps = splats
+            .map((s) => Number(s.timestamp) || 0)
+            .filter((t) => t > 0);
+          if (stamps.length) endDate = new Date(Math.max(...stamps));
+        }
+
+        const inferred = inferArtworkWeekPeriod(endDate);
+        return inferred ? formatCompactPeriod(inferred.startStr, inferred.endStr) : compact;
+      }
+
       function computeArtworkPeriodCaption(item) {
+        if (item.periodStart && item.periodEnd) {
+          return finalizePeriodCaption(item.periodStart, item.periodEnd, item);
+        }
+        if (item.period) {
+          const parts = String(item.period).split(' - ').map((s) => s.trim());
+          if (parts.length === 2) return finalizePeriodCaption(parts[0], parts[1], item);
+          return finalizePeriodCaption(parts[0], parts[0], item);
+        }
+
+        const splats = getSplatsFromItem(item);
+        const stamps = splats
+          .map((s) => Number(s.timestamp) || 0)
+          .filter((t) => t > 0)
+          .sort((a, b) => a - b);
+        if (stamps.length) {
+          const startStr = formatDotDate(new Date(stamps[0]));
+          const endStr = formatDotDate(new Date(stamps[stamps.length - 1]));
+          return finalizePeriodCaption(startStr, endStr, item);
+        }
+
         const history = resolveArtworkHistory(item);
         const dates = history
           .map(parseHistoryEntryToDate)
@@ -1484,21 +1753,15 @@
           .sort((a, b) => a.getTime() - b.getTime());
 
         if (dates.length === 0) {
-          const fallback = parseHistoryEntryToDate({ date: item.date, timestamp: 0 });
-          return fallback ? formatDotDate(fallback) : '';
+          const fallback = parseHistoryEntryToDate({ date: item.date, timestamp: item.completedAt || 0 });
+          if (!fallback) return '';
+          const endStr = formatDotDate(fallback);
+          return finalizePeriodCaption(endStr, endStr, item);
         }
 
         const startStr = formatDotDate(dates[0]);
         const endStr = formatDotDate(dates[dates.length - 1]);
-        return startStr === endStr ? startStr : `${startStr} - ${endStr}`;
-      }
-
-      function createBrandLogoElement() {
-        const logo = document.createElement('p');
-        logo.className = 'museum-brand-logo';
-        logo.textContent = 'INSCAPE';
-        logo.setAttribute('aria-hidden', 'true');
-        return logo;
+        return finalizePeriodCaption(startStr, endStr, item);
       }
 
       function createPeriodCaptionElement(item) {
@@ -1509,7 +1772,7 @@
         return caption;
       }
 
-      function createFramedArtwork(item) {
+      function createFramedArtwork(item, displayIndex) {
         const artWrapper = document.createElement('div');
         artWrapper.className = 'gallery-item';
 
@@ -1521,72 +1784,51 @@
 
         const surface = document.createElement('div');
         surface.className = 'art-surface';
-        surface.style.aspectRatio = '9 / 16';
 
-        const artCanvas = document.createElement('canvas');
-        artCanvas.className = 'gallery-art-canvas';
-        renderRecipeToCanvas(artCanvas, item.splats, item);
-
-        const texture = document.createElement('div');
-        texture.className = 'paper-texture-overlay';
-        texture.setAttribute('aria-hidden', 'true');
-
-        surface.appendChild(artCanvas);
-        surface.appendChild(texture);
+        mountArtworkSurface(surface, item, displayIndex);
         sculpted.appendChild(surface);
         wallDisplay.appendChild(sculpted);
         wallDisplay.appendChild(createPeriodCaptionElement(item));
-        wallDisplay.appendChild(createBrandLogoElement());
+
         artWrapper.appendChild(wallDisplay);
-        artWrapper.appendChild(createShareButton('この色を放流する', () => artWrapper));
         artWrapper._galleryItem = item;
 
         return artWrapper;
       }
 
-      function formatHistoryDate(ts, fallback) {
-        if (!ts) return fallback || '';
-        const d = new Date(ts);
-        if (Number.isNaN(d.getTime())) return fallback || '';
-        const y = d.getFullYear();
-        const mo = String(d.getMonth() + 1).padStart(2, '0');
-        const da = String(d.getDate()).padStart(2, '0');
-        const hr = String(d.getHours()).padStart(2, '0');
-        const mi = String(d.getMinutes()).padStart(2, '0');
-        return `${y}/${mo}/${da} ${hr}:${mi}`;
-      }
-
       function loadGlobalInscapeHistory() {
-        try {
-          const raw = localStorage.getItem(INSCAPE_HISTORY_KEY) || localStorage.getItem(HISTORY_KEY);
-          if (!raw) return [];
-          const data = JSON.parse(raw);
-          if (!Array.isArray(data)) return [];
-          return data.map((entry) => ({
-            word: entry.word || entry.text || '',
-            color: entry.color,
-            date: entry.date || formatHistoryDate(entry.timestamp, ''),
-            timestamp: entry.timestamp || 0
-          })).filter((e) => e.color);
-        } catch {
-          return [];
+        const flat = [];
+        parseInscapeHistorySessions().forEach((session) => {
+          session.history.forEach((entry) => flat.push(entry));
+        });
+        if (flat.length) {
+          return flat.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
         }
+
+        const fromHistories = loadHistoriesFallback();
+        if (fromHistories.length) {
+          return fromHistories.map((s, i) => mapHistoryEntry({
+            word: s.word,
+            color: s.color,
+            timestamp: s.timestamp || i
+          }));
+        }
+
+        return loadSplashesFallback().map((s, i) => mapHistoryEntry({
+          word: s.word,
+          color: s.color,
+          timestamp: s.timestamp || i
+        }));
       }
 
       function resolveArtworkHistory(item) {
-        const mapEntry = (entry, fallbackDate) => ({
-          word: entry.word || entry.text || '',
-          color: entry.color,
-          date: entry.date || formatHistoryDate(entry.timestamp, fallbackDate || item.date || ''),
-          timestamp: entry.timestamp || 0
-        });
-
         if (Array.isArray(item.history) && item.history.length) {
-          return item.history.map((e) => mapEntry(e, item.date)).filter((e) => e.color);
+          return item.history.map((e) => mapHistoryEntry(e, item.date)).filter((e) => e.color);
         }
 
-        if (Array.isArray(item.splats) && item.splats.length) {
-          return item.splats.map((s, i) => mapEntry({
+        const splats = getSplatsFromItem(item);
+        if (splats.length) {
+          return splats.map((s, i) => mapHistoryEntry({
             word: s.word || '',
             color: s.color,
             timestamp: s.timestamp || i,
@@ -1793,13 +2035,25 @@
 
         const modalCanvas = modalBody.querySelector('.gallery-art-canvas');
         const surface = modalBody.querySelector('.art-surface');
-        if (surface) surface.style.aspectRatio = '9 / 16';
-        if (modalCanvas && galleryItem) {
-          renderRecipeToCanvas(modalCanvas, galleryItem.splats, galleryItem);
+        if (surface && galleryItem) {
+          applyArtSurfaceAspect(surface, galleryItem);
         }
+        if (galleryItem && modalCanvas && !galleryItem.artworkImageDataUrl) {
+          renderRecipeToCanvas(modalCanvas, getSplatsFromItem(galleryItem), galleryItem);
+        }
+        const modalArt = modalBody.querySelector('.gallery-art-image, .gallery-art-canvas');
+        const modalSurface = modalBody.querySelector('.art-surface');
+        const displayIndex = typeof artwork._displayIndex === 'number'
+          ? artwork._displayIndex
+          : null;
+        if (modalArt && displayIndex !== null) {
+          applyGalleryAgeingFilter(modalArt, modalSurface, displayIndex);
+        }
+        const staleOverlay = modalBody.querySelector('.paper-texture-overlay');
+        if (staleOverlay) staleOverlay.remove();
+        const staleLogo = modalBody.querySelector('.museum-brand-logo');
+        if (staleLogo) staleLogo.remove();
 
-        const listShareBtn = modalBody.querySelector('.share-art-btn');
-        if (listShareBtn) listShareBtn.remove();
         const listSaveBtn = modalBody.querySelector('.save-art-btn');
         if (listSaveBtn) listSaveBtn.remove();
         const listActions = modalBody.querySelector('.modal-art-actions');
@@ -1808,9 +2062,6 @@
         const actionsWrap = document.createElement('div');
         actionsWrap.className = 'modal-art-actions';
 
-        const modalShareBtn = createShareButton('この感情を肯定する', () => modalBody);
-        modalShareBtn.classList.add('modal-share');
-        actionsWrap.appendChild(modalShareBtn);
         actionsWrap.appendChild(createSaveButton(() => modalBody));
         actionsWrap.appendChild(createCasePreviewLink(galleryItem));
         modalBody.appendChild(actionsWrap);
@@ -1824,9 +2075,6 @@
         }
 
         const wallDisplay = modalBody.querySelector('.museum-wall-display');
-        if (wallDisplay && !wallDisplay.querySelector('.museum-brand-logo')) {
-          wallDisplay.appendChild(createBrandLogoElement());
-        }
 
         imageModal.classList.remove('view-diary');
         imageModal.classList.add('active');
@@ -1857,15 +2105,17 @@
         const galleryData = loadGallery();
 
         if (galleryData.length === 0) {
-          galleryContainer.innerHTML = '<p class="no-data">まだ額装された作品がありません。7日間の言葉をキャンバスに投げ、作品を完成させてください。</p>';
+          galleryContainer.innerHTML = '<p class="no-data">まだ額装された完成作品がありません。7つの言葉を紡ぎ、作品が完成するとここに飾られます。</p>';
           return;
         }
 
         galleryContainer.innerHTML = '';
-        galleryData.slice().reverse().forEach((item) => {
-          const artwork = createFramedArtwork(item);
+        const displayItems = galleryData.slice().reverse();
+        displayItems.forEach((item, index) => {
+          const artwork = createFramedArtwork(item, index);
+          artwork._displayIndex = index;
           artwork.addEventListener('click', (e) => {
-            if (e.target.closest('.share-art-btn') || e.target.closest('.save-art-btn')) return;
+            if (e.target.closest('.save-art-btn')) return;
             openArtworkModal(artwork, item);
           });
           galleryContainer.appendChild(artwork);
@@ -1918,7 +2168,7 @@
 
         imageModal.addEventListener('click', (e) => {
           if (e.target.closest('.vault-orb') || e.target.closest('.memory-popover') ||
-              e.target.closest('.share-art-btn') || e.target.closest('.save-art-btn') ||
+              e.target.closest('.save-art-btn') ||
               e.target.closest('.case-preview-btn') ||
               e.target.closest('.modal-content') ||
               e.target.closest('#modalCloseHint')) {
@@ -1952,6 +2202,7 @@
         bindSavePreview();
         bindImageModal();
         loadSplatImage()
+          .then(() => loadFabricImage())
           .then(renderGallery)
           .catch(() => {
             const galleryContainer = document.getElementById('gallery-container');

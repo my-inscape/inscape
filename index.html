@@ -143,8 +143,8 @@
 
     #wordInput {
       width: 100%;
-      min-height: 4.5rem;
-      max-height: 8.5rem;
+      min-height: 2.75rem;
+      max-height: 3.25rem;
       padding: 0.85rem 0.65rem;
       scroll-margin-top: 1rem;
       scroll-margin-bottom: 30vh;
@@ -215,6 +215,39 @@
 
     #wordInput:disabled { opacity: 0.28; cursor: not-allowed; }
 
+    .drop-word-btn {
+      display: block;
+      width: 100%;
+      margin-top: 0.65rem;
+      padding: 0.72rem 0.5rem;
+      border: 0.5px solid rgba(184, 160, 122, 0.28);
+      border-radius: 1px;
+      background: rgba(184, 160, 122, 0.06);
+      color: rgba(232, 230, 226, 0.72);
+      font-family: inherit;
+      font-size: 0.58rem;
+      font-weight: 300;
+      letter-spacing: 0.38em;
+      text-indent: 0.38em;
+      cursor: pointer;
+      transition: background 0.45s ease, border-color 0.45s ease, color 0.45s ease;
+    }
+
+    .drop-word-btn:hover:not(:disabled) {
+      border-color: rgba(184, 160, 122, 0.45);
+      color: rgba(232, 230, 226, 0.92);
+      background: rgba(184, 160, 122, 0.1);
+    }
+
+    .drop-word-btn:disabled {
+      opacity: 0.28;
+      cursor: not-allowed;
+    }
+
+    .input-wrap.locked-hidden .drop-word-btn {
+      display: none;
+    }
+
     .smoke-text {
       position: absolute;
       left: 0.5rem;
@@ -240,14 +273,102 @@
       100% { opacity: 0; transform: translateY(-160%) scale(1.2); filter: blur(6px); }
     }
 
-    .color-atelier {
+    .emotion-palette {
       flex: 0 0 auto;
       width: 100%;
+      padding: 0.55rem 1.15rem 1rem;
+    }
+
+    .emotion-palette.locked-hidden {
+      display: none;
+    }
+
+    .emotion-palette.is-ui-fading {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .mid-panel.is-ui-fading {
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(8px);
+      transition: opacity 0.55s ease, transform 0.55s ease;
+    }
+
+    .emotion-palette-spheres {
       display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.32rem;
+      max-width: 24.5rem;
+      margin: 0 auto;
+    }
+
+    .emotion-sphere-btn {
+      flex: 1 1 0;
+      max-width: 2.35rem;
+      min-width: 0;
+      padding: 0;
+      border: none;
+      background: none;
+      cursor: pointer;
+      touch-action: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .emotion-sphere-btn:disabled {
+      opacity: 0.2;
+      cursor: not-allowed;
+    }
+
+    .emotion-sphere-swatch {
+      display: block;
+      width: 100%;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      opacity: var(--charge-opacity, 0.12);
+      background-color: var(--sphere-color, #5d78b8);
+      background-image:
+        radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.72) 0%, transparent 46%),
+        radial-gradient(circle at 72% 78%, rgba(255, 255, 255, 0.28) 0%, transparent 52%),
+        radial-gradient(circle at 50% 55%, color-mix(in srgb, var(--sphere-color) 42%, white) 0%, color-mix(in srgb, var(--sphere-color) 68%, white) 58%, var(--sphere-color) 100%);
+      box-shadow:
+        inset 0 1px 4px rgba(255, 255, 255, 0.42),
+        inset 0 -2px 6px rgba(255, 255, 255, 0.12),
+        0 4px 14px rgba(255, 255, 255, 0.08),
+        0 0 10px color-mix(in srgb, var(--sphere-color) 6%, transparent);
+      transition: opacity 0.07s linear, box-shadow 0.28s ease, filter 0.28s ease;
+      filter: saturate(0.72) brightness(1.08);
+    }
+
+    .emotion-sphere-btn.is-charging .emotion-sphere-swatch {
+      filter: saturate(1) brightness(1);
+      box-shadow:
+        inset 0 2px 5px rgba(255, 255, 255, 0.2),
+        inset 0 -4px 10px rgba(0, 0, 0, 0.22),
+        0 12px 32px rgba(0, 0, 0, 0.38),
+        0 0 22px color-mix(in srgb, var(--sphere-color) 22%, transparent);
+    }
+
+    .emotion-palette-hint {
+      margin-top: 0.72rem;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+      font-size: 0.5rem;
+      font-weight: 300;
+      letter-spacing: 0.2em;
+      text-indent: 0.2em;
+      text-align: center;
+      color: rgba(201, 169, 98, 0.38);
+    }
+
+    .color-atelier {
+      display: none !important;
       flex-direction: column;
       align-items: center;
-      gap: 0.42rem;
-      padding: 0.5rem 1.15rem 0.75rem;
+      gap: 0.55rem;
+      padding: 0.5rem 1.15rem 0.85rem;
     }
 
     .color-atelier.locked-hidden {
@@ -265,8 +386,8 @@
     .color-magnifier {
       position: relative;
       z-index: 3;
-      width: 48px;
-      height: 48px;
+      width: 3.35rem;
+      height: 3.35rem;
       padding: 0;
       border-radius: 50%;
       border: 0.5px solid rgba(255, 255, 255, 0.14);
@@ -329,8 +450,37 @@
       -webkit-backdrop-filter: blur(12px);
     }
 
-    .color-wheel-host.disabled + .color-palette-rail {
+    .color-wheel-host.disabled + .color-palette-rail,
+    .color-wheel-host.disabled + .color-preview-orb + .color-palette-rail {
       opacity: 0.22;
+      pointer-events: none;
+    }
+
+    .color-preview-orb {
+      position: relative;
+      width: 2.85rem;
+      height: 2.85rem;
+      border-radius: 50%;
+      pointer-events: none;
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      background:
+        radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0) 42%),
+        radial-gradient(circle at 68% 78%, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 48%),
+        radial-gradient(circle at 48% 52%, color-mix(in srgb, var(--wheel-preview-color, #3d4f5f) 78%, white) 0%, var(--wheel-preview-color, #3d4f5f) 54%, color-mix(in srgb, var(--wheel-preview-color, #3d4f5f) 52%, black) 100%);
+      box-shadow:
+        inset 0 2px 5px rgba(255, 255, 255, 0.22),
+        inset 0 -3px 7px rgba(0, 0, 0, 0.32),
+        0 0 12px color-mix(in srgb, var(--wheel-preview-color, #3d4f5f) 55%, transparent),
+        0 0 24px color-mix(in srgb, var(--wheel-preview-color, #3d4f5f) 22%, transparent);
+      transition: background 0.18s ease, box-shadow 0.18s ease;
+    }
+
+    .color-preview-orb::after {
+      content: '';
+      position: absolute;
+      inset: 12%;
+      border-radius: 50%;
+      background: radial-gradient(circle at 38% 32%, rgba(255, 255, 255, 0.24) 0%, transparent 62%);
       pointer-events: none;
     }
 
@@ -920,24 +1070,24 @@
       padding: 0 0.65rem;
       z-index: 10;
       display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.38rem;
+    }
+
+    .header-nav-core {
+      display: flex;
       align-items: stretch;
-      justify-content: flex-start;
-      gap: 0.14rem;
-      overflow-x: auto;
-      overflow-y: hidden;
-      flex-wrap: nowrap;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
+      justify-content: center;
+      gap: 0.22rem;
+      width: 100%;
+      flex-wrap: wrap;
     }
 
-    .header-actions::-webkit-scrollbar {
-      display: none;
-      height: 0;
-    }
-
-    .header-actions > * {
-      flex: 0 0 auto;
-      min-width: max-content;
+    .header-nav-core > * {
+      flex: 1 1 0;
+      min-width: 3.4rem;
+      max-width: 5.2rem;
     }
 
     .header-action-btn {
@@ -988,8 +1138,12 @@
     }
 
     @media (max-width: 480px) {
-      .header-actions {
-        gap: 0.12rem;
+      .header-nav-core {
+        gap: 0.14rem;
+      }
+
+      .header-nav-core > * {
+        min-width: 2.9rem;
       }
 
       .header-action-btn {
@@ -1366,243 +1520,12 @@
       pointer-events: auto;
     }
 
-    .save-preview-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 10050;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding:
-        calc(0.85rem + env(safe-area-inset-top))
-        calc(0.85rem + env(safe-area-inset-right))
-        calc(0.85rem + env(safe-area-inset-bottom))
-        calc(0.85rem + env(safe-area-inset-left));
-      background:
-        radial-gradient(ellipse 70% 55% at 50% 45%, rgba(20, 18, 16, 0.97) 0%, rgba(3, 3, 4, 0.98) 100%);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity 0.45s ease, visibility 0.45s ease;
-    }
-
-    .save-preview-overlay.active {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-
-    .save-preview-panel {
-      position: relative;
-      width: min(92vw, 400px);
-      max-height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transform: translateY(18px) scale(0.96);
-      opacity: 0;
-      transition:
-        transform 0.55s cubic-bezier(0.34, 1.15, 0.64, 1),
-        opacity 0.45s ease;
-    }
-
-    .save-preview-overlay.active .save-preview-panel {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-
-    .save-preview-close {
-      align-self: flex-end;
-      margin-bottom: 0.85rem;
-      font-size: 0.48rem;
-      letter-spacing: 0.18em;
-      color: rgba(232, 230, 226, 0.32);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.45rem 0.5rem;
-    }
-
-    .save-preview-hint {
-      width: 100%;
-      margin-bottom: 1rem;
-      text-align: center;
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
-      font-size: 0.58rem;
-      font-weight: 300;
-      line-height: 2;
-      letter-spacing: 0.12em;
-      color: rgba(201, 169, 98, 0.62);
-    }
-
-    .save-preview-image-wrap {
-      width: 100%;
-      aspect-ratio: 9 / 16;
-      max-height: min(72vh, calc(92vw * 16 / 9));
-      border-radius: 2px;
-      overflow: hidden;
-      box-shadow:
-        0 24px 64px rgba(0, 0, 0, 0.85),
-        0 0 48px rgba(201, 169, 98, 0.06);
-      background: #0a0a0a;
-    }
-
-    .save-preview-image-wrap img {
-      display: block;
-      width: 100%;
-      height: 100%;
-      object-fit: contain;
-      -webkit-touch-callout: default;
-      touch-action: manipulation;
-      user-select: none;
-      -webkit-user-select: none;
-    }
-
-    .export-root {
-      position: fixed;
-      left: -10000px;
-      top: 0;
-      width: 400px;
-      pointer-events: none;
-      opacity: 1;
-      visibility: visible;
-      z-index: -9999;
-      overflow: visible;
-    }
-
-    .export-root.is-capturing {
-      left: 0;
-      top: 0;
-      z-index: 99999;
-    }
-
-    .museum-wall-export {
-      padding: 2.75rem 1.5rem 2rem !important;
-      background:
-        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0) 70%),
-        radial-gradient(ellipse 88% 52% at 50% -6%, rgba(255, 252, 240, 0.09) 0%, transparent 55%),
-        #0a0a0a !important;
-    }
-
-    .museum-wall-display {
-      position: relative;
-      display: inline-block;
-      width: 100%;
-      text-align: center;
-      overflow: visible;
-      padding: 2.75rem 1.5rem 2rem;
-      background:
-        radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.18) 0%, rgba(0, 0, 0, 0) 70%),
-        radial-gradient(ellipse 88% 52% at 50% -6%, rgba(255, 252, 240, 0.09) 0%, transparent 55%),
-        #0a0a0a;
-      border-radius: 1px;
-    }
-
-    .museum-wall-display::before {
-      content: '';
-      position: absolute;
-      inset: -8% -14%;
-      z-index: 0;
-      pointer-events: none;
-      background:
-        radial-gradient(circle at 50% 6%, rgba(255, 255, 255, 0.1) 0%, rgba(0, 0, 0, 0) 62%),
-        radial-gradient(ellipse 65% 38% at 50% 0%, rgba(201, 169, 98, 0.05) 0%, transparent 58%);
-      opacity: 0.9;
-    }
-
-    .museum-wall-display > * {
-      position: relative;
-      z-index: 1;
-    }
-
-    .export-frame-sculpted {
-      position: relative;
-      box-sizing: border-box;
-      width: 100%;
-      margin: 0 auto;
-      padding: 40px;
-      background: #fbf9f5;
-      border: 24px solid #1c110a;
-      border-top-color: #f3e5ab;
-      border-left-color: #d4af37;
-      border-right-color: #8a640f;
-      border-bottom-color: #5c430a;
-      outline: 4px solid #aa7c11;
-      outline-offset: -24px;
-      box-shadow:
-        inset 0 5px 0 rgba(255, 255, 255, 0.2),
-        inset 0 -3px 10px rgba(0, 0, 0, 0.65),
-        0 4px 14px rgba(0, 0, 0, 0.42),
-        0 20px 40px rgba(0, 0, 0, 0.8),
-        0 36px 72px rgba(0, 0, 0, 0.52);
-    }
-
-    .export-frame-sculpted::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      border: 20px solid transparent;
-      border-image: linear-gradient(145deg, rgba(255, 255, 255, 0.08) 0%, transparent 40%, rgba(0, 0, 0, 0.35) 100%) 1;
-      opacity: 0.85;
-    }
-
-    .export-art-surface {
-      position: relative;
-      width: 100%;
-      overflow: hidden;
-      line-height: 0;
-      font-size: 0;
-      z-index: 1;
-    }
-
-    .export-art-surface .export-art-image {
-      display: block;
-      width: 100%;
-      height: auto;
-      background-color: #f7f4eb;
-      background-image:
-        repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
-        repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.03) 0px, rgba(0, 0, 0, 0.03) 1px, transparent 1px, transparent 4px),
-        var(--canvas-fabric-url);
-      background-blend-mode: multiply;
-      background-size: auto, auto, cover;
-      box-shadow:
-        inset 5px 5px 15px rgba(0, 0, 0, 0.4),
-        inset -3px -3px 10px rgba(255, 255, 255, 0.6);
-    }
-
-    .export-art-surface .paper-texture-overlay {
-      position: absolute;
-      inset: 0;
-      pointer-events: none;
-      z-index: 2;
-      background-color: transparent;
-      background-image: var(--canvas-fabric-url);
-      background-size: cover;
-      background-blend-mode: multiply;
-      mix-blend-mode: multiply;
-      opacity: 0.35;
-    }
-
-    .art-period-caption {
-      margin-top: 1.1rem;
-      padding: 0 0.35rem;
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Georgia", "Times New Roman", serif;
-      font-size: 0.85rem;
-      font-weight: 300;
-      letter-spacing: 0.16em;
-      text-indent: 0.16em;
-      color: rgba(136, 136, 136, 0.92);
-      line-height: 1.65;
-    }
   </style>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
 <body>
   <div class="phone-shell" id="phoneShell">
     <p class="daily-lock-message" id="dailyLockMessage" aria-hidden="true">
-      今日の日記は紡がれました
+      七つの言葉が、ここに宿りました
     </p>
 
     <div class="frame-cta-overlay" id="frameCtaOverlay" aria-hidden="true">
@@ -1615,24 +1538,14 @@
 
     <div class="frame-modal" id="frameModal" aria-hidden="true">
       <div class="frame-modal-inner">
-        <p class="frame-modal-title">7日間の心の色 — 額装完了</p>
+        <p class="frame-modal-title">七つの言葉の色 — 額装完了</p>
         <div class="frame-preview-wrap">
           <img id="framePreview" alt="額装された作品">
         </div>
         <div class="frame-modal-actions">
           <button type="button" class="frame-action-btn primary" id="frameDownload">PNGで保存</button>
-          <button type="button" class="frame-action-btn" id="frameShare">シェアする</button>
-          <a class="frame-action-btn secondary" id="frameTweet" href="#" target="_blank" rel="noopener noreferrer">Xで投稿</a>
           <button type="button" class="frame-action-btn secondary" id="frameModalClose">閉じる</button>
         </div>
-      </div>
-    </div>
-
-    <div class="wheel-overlay" id="wheelOverlay" aria-hidden="true">
-      <div class="wheel-backdrop" id="wheelBackdrop"></div>
-      <div class="wheel-stage" id="wheelStage">
-        <div class="wheel-preview-orb" id="wheelPreviewOrb" aria-hidden="true"></div>
-        <canvas id="wheelCanvas" width="280" height="280" aria-label="カラーホイール"></canvas>
       </div>
     </div>
 
@@ -1640,14 +1553,12 @@
       <p class="logo logo--header zen-target" aria-label="INSCAPE">INSCAPE</p>
 
       <header class="header-actions" aria-label="ナビゲーション">
-        <button type="button" class="header-action-btn release-share-btn" id="releaseShareBtn" aria-label="この瞬間を放流する">この瞬間を放流する</button>
-        <a class="header-action-btn is-current" href="index.html" aria-current="page">キャンバス</a>
-        <a class="header-action-btn midspace-link" href="midspace.html">言葉の浮遊層</a>
-        <a class="header-action-btn gallery-link" href="gallery.html">感情の回廊</a>
-        <a class="header-action-btn mycolors-link" href="mycolors.html">今日の私の色</a>
-        <a class="header-action-btn ocean-link" href="ocean.html">感情の夜海</a>
-        <a class="header-action-btn room-link" href="room.html">合言葉の部屋</a>
-        <a class="header-action-btn case-link" href="case.html">プロダクトプレビュー</a>
+        <nav class="header-nav-core" aria-label="メイン">
+          <a class="header-action-btn is-current" href="index.html" aria-current="page">キャンバス</a>
+          <a class="header-action-btn gallery-link" href="gallery.html">感情の回廊</a>
+          <a class="header-action-btn mycolors-link" href="mycolors.html">今日の私の色</a>
+          <a class="header-action-btn case-link" href="case.html">プロダクトプレビュー</a>
+        </nav>
       </header>
 
       <div class="top-area">
@@ -1664,31 +1575,16 @@
         </div>
       </div>
 
-      <div class="mid-panel zen-target">
+      <div class="mid-panel zen-target" id="midPanel">
         <div class="input-wrap" id="inputWrap">
-          <textarea id="wordInput" placeholder="言葉を書いて、キャンバスをタップして紡ぐ" maxlength="10000" autocomplete="off" rows="4"></textarea>
+          <textarea id="wordInput" placeholder="感情をここに落とす" maxlength="20" autocomplete="off" rows="2" aria-label="言葉を紡ぐ（20文字まで）"></textarea>
           <span class="smoke-text" id="smokeText"></span>
         </div>
       </div>
 
-      <div class="color-atelier zen-target" id="colorAtelier">
-        <div class="color-wheel-host" id="colorWheelHost">
-          <button type="button" class="color-magnifier" id="colorMagnifier" aria-label="色を選ぶ・プレビュー"></button>
-        </div>
-        <div class="color-palette-rail" id="colorPaletteRail">
-          <div class="emotion-swatches" id="emotionSwatches" role="listbox" aria-label="感情のベースカラー"></div>
-          <label class="hue-rail">
-            <input type="range" class="color-hue-slider" id="hueSlider" min="0" max="360" value="210" aria-label="色相">
-          </label>
-          <div class="fine-rails">
-            <label class="hue-rail">
-              <input type="range" class="color-fine-slider" id="satSlider" data-rail="sat" min="10" max="90" value="32" aria-label="彩度">
-            </label>
-            <label class="hue-rail">
-              <input type="range" class="color-fine-slider" id="lightSlider" data-rail="light" min="8" max="62" value="28" aria-label="明度">
-            </label>
-          </div>
-        </div>
+      <div class="emotion-palette zen-target" id="emotionPalette">
+        <div class="emotion-palette-spheres" id="emotionPaletteSpheres" role="listbox" aria-label="感情の八色"></div>
+        <p class="emotion-palette-hint">長押しで感情を育て、上へフリックして落とす</p>
       </div>
 
       <footer class="controls zen-target" id="controlsFooter">
@@ -1704,17 +1600,6 @@
       </div>
     </div>
 
-    <div class="export-root" id="exportRoot" aria-hidden="true"></div>
-  </div>
-
-  <div class="save-preview-overlay" id="savePreviewOverlay" aria-hidden="true" role="dialog" aria-label="保存プレビュー">
-    <div class="save-preview-panel">
-      <button type="button" class="save-preview-close" id="savePreviewClose" aria-label="閉じる">CLOSE</button>
-      <p class="save-preview-hint">画像を長押しして<br>「写真に追加」を選択して保存してください</p>
-      <div class="save-preview-image-wrap">
-        <img id="savePreviewImage" alt="INSCAPE — 額装作品" draggable="false">
-      </div>
-    </div>
   </div>
 
   <script>
@@ -1725,6 +1610,7 @@
       const HISTORY_KEY = 'histories';
       const INSCAPE_HISTORY_KEY = 'inscape_history';
       const GALLERY_KEY = 'inscape_gallery';
+      const ALL_DIARIES_KEY = 'inscape_all_diaries';
       const LAST_DIARY_DATE_KEY = 'inscape_last_diary_date_v2';
       const MAX_ENTRIES = 7;
       const GALLERY_MAX = 28;
@@ -1733,34 +1619,47 @@
       const FRAME_ENTRIES_REQUIRED = 7;
       const ZEN_IDLE_MS = 5000;
       const ZEN_FADE_MS = 2000;
-      const EXPORT_W = 1080;
-      const EXPORT_H = 1920;
       const CANVAS_LOGICAL_W = 270;
       const CANVAS_LOGICAL_H = 480;
-      const SPLAT_WIDTH_MIN_FRAC = 0.25;
-      const SPLAT_WIDTH_MID_FRAC = 0.50;
-      const SPLAT_WIDTH_MAX_FRAC = 0.70;
-      const SPLAT_MID_CHAR_COUNT = 30;
-      const SPLAT_TAIL_DECAY_CHARS = 120;
-      const SPLAT_EXPECTED_SCALE = 1.02;
+      const BASE_SPLAT_SIZE = 72;
+      const CHARGE_OPACITY_MIN = 0.4;
+      const CHARGE_OPACITY_MAX = 1.0;
+      const CHARGE_SECONDS_TO_MAX = 5.0;
+      const SPLASH_AREA_COVERAGE = 0.5;
+      const SPLASH_MIN_TO_MAX_RATIO = 0.22;
+      const SPHERE_IDLE_OPACITY_DEFAULT = 0.12;
+      const FLICK_UP_THRESHOLD_PX = 52;
+      const SPLAT_PATTERN_COUNT = 3;
       const TAP_RIPPLE_DURATION = 900;
       const TAP_RIPPLE_MAX_FRAC = 0.24;
+
+      const CURATED_COLORS = [
+        { hex: '#5d78b8', label: 'Slate Blue', idleOpacity: 0.10 },
+        { hex: '#8b63c7', label: 'Dusty Violet', idleOpacity: 0.11 },
+        { hex: '#b56a88', label: 'Muted Rose', idleOpacity: 0.12 },
+        { hex: '#b56c4e', label: 'Terracotta', idleOpacity: 0.13 },
+        { hex: '#6e8a4b', label: 'Olive Green', idleOpacity: 0.12 },
+        { hex: '#c49a42', label: 'Ochre', idleOpacity: 0.11 },
+        { hex: '#4e8b91', label: 'Deep Teal', idleOpacity: 0.14 },
+        { hex: '#c9c4bc', label: 'Warm Gray', idleOpacity: 0.15 }
+      ];
+
+      const SPLASH_SLOTS = [
+        { nx: 0.72, ny: 0.14 },
+        { nx: 0.28, ny: 0.24 },
+        { nx: 0.54, ny: 0.40 },
+        { nx: 0.22, ny: 0.54 },
+        { nx: 0.70, ny: 0.60 },
+        { nx: 0.40, ny: 0.74 },
+        { nx: 0.58, ny: 0.88 }
+      ];
 
       const wordInput = document.getElementById('wordInput');
       const smokeText = document.getElementById('smokeText');
       const phoneShell = document.getElementById('phoneShell');
-      const colorWheelHost = document.getElementById('colorWheelHost');
-      const colorMagnifier = document.getElementById('colorMagnifier');
-      const colorAtelier = document.getElementById('colorAtelier');
-      const emotionSwatches = document.getElementById('emotionSwatches');
-      const hueSlider = document.getElementById('hueSlider');
-      const satSlider = document.getElementById('satSlider');
-      const lightSlider = document.getElementById('lightSlider');
-      const wheelStage = document.getElementById('wheelStage');
-      const wheelCanvas = document.getElementById('wheelCanvas');
-      const wheelPreviewOrb = document.getElementById('wheelPreviewOrb');
-      const wheelBackdrop = document.getElementById('wheelBackdrop');
-      const wheelOverlay = document.getElementById('wheelOverlay');
+      const midPanel = document.getElementById('midPanel');
+      const emotionPalette = document.getElementById('emotionPalette');
+      const emotionPaletteSpheres = document.getElementById('emotionPaletteSpheres');
       const inscapeBtn = document.getElementById('inscapeBtn');
       const canvas = document.getElementById('mainCanvas');
       const ctx = canvas.getContext('2d');
@@ -1776,27 +1675,33 @@
       const frameModal = document.getElementById('frameModal');
       const framePreview = document.getElementById('framePreview');
       const frameDownload = document.getElementById('frameDownload');
-      const frameShare = document.getElementById('frameShare');
-      const frameTweet = document.getElementById('frameTweet');
       const frameModalClose = document.getElementById('frameModalClose');
       const frameCompleteDialog = document.getElementById('frameCompleteDialog');
       const frameCompleteOk = document.getElementById('frameCompleteOk');
-      const releaseShareBtn = document.getElementById('releaseShareBtn');
       const dailyLockMessage = document.getElementById('dailyLockMessage');
       const inputWrap = document.getElementById('inputWrap');
       const controlsFooter = document.getElementById('controlsFooter');
       const appEl = document.querySelector('.app');
-      const exportRoot = document.getElementById('exportRoot');
 
-      let selectedColor = '#3d4f5f';
+      let selectedColor = '#5d78b8';
+      let chargeState = {
+        active: false,
+        landed: false,
+        color: null,
+        progress: 0,
+        inkOpacity: CHARGE_OPACITY_MIN,
+        inkSizePx: 0,
+        startX: 0,
+        startY: 0,
+        btnEl: null,
+        rafId: null,
+        lastTs: 0
+      };
       let colorSyncLock = false;
       let splashes = [];
       let audioCtx = null;
       let noiseBuffer = null;
       let activeSuckSound = null;
-      let wheelOpen = false;
-      let wheelPicking = false;
-      let wheelBuilt = false;
       let shockwaves = [];
       let tapRipples = [];
       let ambientLoopId = null;
@@ -1804,322 +1709,324 @@
       let zenFadeTimer = null;
       let zenArmed = false;
       let isZenMode = false;
-      let framedPngDataUrl = null;
-      let framedPngBlob = null;
       let framingCompleted = false;
       let frameProcessing = false;
-      let savePreviewObjectUrl = null;
       let lastCanvasExportDataUrl = null;
       let isDiarySubmitting = false;
       let canvasTouchStart = null;
       let lastCanvasTapHandledAt = 0;
 
-      const WORD_MAX_LEN = 10000;
-      const OPACITY_FULL_LEN = 400;
-      const WHEEL_SIZE = 280;
-      const WHEEL_R = WHEEL_SIZE / 2 - 2;
-
-      const EMOTION_BASES = [
-        { h: 210, s: 32, l: 28 },
-        { h: 265, s: 36, l: 30 },
-        { h: 340, s: 44, l: 36 },
-        { h: 15, s: 38, l: 34 },
-        { h: 175, s: 28, l: 26 },
-        { h: 45, s: 42, l: 38 },
-        { h: 195, s: 30, l: 24 },
-        { h: 300, s: 34, l: 32 },
-        { h: 0, s: 0, l: 18 },
-        { h: 0, s: 0, l: 52 }
-      ];
-
-      function hslToHex(h, s, l) {
-        const rgb = hslToRgb(h, s, l);
-        return rgbToHex(rgb.r, rgb.g, rgb.b);
-      }
-
-      function hexToHsl(hex) {
-        if (!hex || hex[0] !== '#') return null;
-        let r;
-        let g;
-        let b;
-        if (hex.length === 4) {
-          r = parseInt(hex[1] + hex[1], 16);
-          g = parseInt(hex[2] + hex[2], 16);
-          b = parseInt(hex[3] + hex[3], 16);
-        } else if (hex.length >= 7) {
-          r = parseInt(hex.slice(1, 3), 16);
-          g = parseInt(hex.slice(3, 5), 16);
-          b = parseInt(hex.slice(5, 7), 16);
-        } else {
-          return null;
-        }
-        r /= 255;
-        g /= 255;
-        b /= 255;
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        let h = 0;
-        let s = 0;
-        const l = (max + min) / 2;
-        if (max !== min) {
-          const d = max - min;
-          s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-          switch (max) {
-            case r: h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-            case g: h = ((b - r) / d + 2) / 6; break;
-            default: h = ((r - g) / d + 4) / 6;
-          }
-        }
-        return {
-          h: Math.round(h * 360),
-          s: Math.round(s * 100),
-          l: Math.round(l * 100)
-        };
-      }
-
-      function getColorPickerElement() {
-        return colorMagnifier || colorWheelHost;
-      }
-
-      function syncColorSlidersFromHex(color) {
-        if (!hueSlider || !satSlider || !lightSlider) return;
-        const hsl = hexToHsl(color);
-        if (!hsl) return;
-        colorSyncLock = true;
-        hueSlider.value = String(hsl.h);
-        satSlider.value = String(Math.max(10, Math.min(90, hsl.s)));
-        lightSlider.value = String(Math.max(8, Math.min(62, hsl.l)));
-        colorSyncLock = false;
-      }
-
-      function applyHslFromControls() {
-        if (colorSyncLock || !hueSlider || !satSlider || !lightSlider) return;
-        if (colorMagnifier && colorMagnifier.disabled) return;
-        const color = hslToHex(
-          Number(hueSlider.value),
-          Number(satSlider.value),
-          Number(lightSlider.value)
-        );
-        applySelectedColor(color, { syncSliders: false });
-      }
-
-      function updateEmotionSwatchActive(color) {
-        if (!emotionSwatches) return;
-        emotionSwatches.querySelectorAll('.emotion-swatch').forEach((btn) => {
-          btn.classList.toggle('is-active', btn.dataset.color === color);
-        });
-      }
-
-      function buildEmotionSwatches() {
-        if (!emotionSwatches) return;
-        emotionSwatches.innerHTML = '';
-        EMOTION_BASES.forEach((base) => {
-          const hex = hslToHex(base.h, base.s, base.l);
-          const btn = document.createElement('button');
-          btn.type = 'button';
-          btn.className = 'emotion-swatch';
-          btn.dataset.color = hex;
-          btn.style.setProperty('--swatch-color', hex);
-          btn.setAttribute('aria-label', 'ベースカラー');
-          btn.addEventListener('click', () => {
-            if (colorMagnifier && colorMagnifier.disabled) return;
-            applySelectedColor(hex);
-          });
-          emotionSwatches.appendChild(btn);
-        });
-      }
-
-      function bindColorControls() {
-        [hueSlider, satSlider, lightSlider].forEach((slider) => {
-          if (!slider) return;
-          slider.addEventListener('input', applyHslFromControls);
-          slider.addEventListener('change', applyHslFromControls);
-        });
-      }
-
-      function hslToRgb(h, s, l) {
-        h = ((h % 360) + 360) % 360;
-        s /= 100;
-        l /= 100;
-        const c = (1 - Math.abs(2 * l - 1)) * s;
-        const x = c * (1 - Math.abs((h / 60) % 2 - 1));
-        const m = l - c / 2;
-        let r = 0, g = 0, b = 0;
-        if (h < 60) { r = c; g = x; }
-        else if (h < 120) { r = x; g = c; }
-        else if (h < 180) { g = c; b = x; }
-        else if (h < 240) { g = x; b = c; }
-        else if (h < 300) { r = x; b = c; }
-        else { r = c; b = x; }
-        return {
-          r: Math.round((r + m) * 255),
-          g: Math.round((g + m) * 255),
-          b: Math.round((b + m) * 255)
-        };
-      }
-
       function rgbToHex(r, g, b) {
         return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
       }
 
-      // 中心=漆黒/白、外側=ニュアンスカラー（角度=色相、距離=彩度）
-      function wheelColorAt(hueDeg, t) {
-        if (t < 0.055) return { r: 0, g: 0, b: 0 };
+      function getSplashSizeBoundsPx(w, h) {
+        const cw = Math.max(1, w || canvas.clientWidth || CANVAS_LOGICAL_W);
+        const ch = Math.max(1, h || canvas.clientHeight || CANVAS_LOGICAL_H);
+        const maxSize = Math.sqrt(cw * ch * SPLASH_AREA_COVERAGE);
+        const minSize = maxSize * SPLASH_MIN_TO_MAX_RATIO;
+        return { minSize, maxSize };
+      }
 
-        const whiteWave = (Math.sin(hueDeg * (Math.PI / 180) * 2.2) + 1) / 2;
-        if (t < 0.2) {
-          const u = (t - 0.055) / 0.145;
-          const target = whiteWave > 0.62 ? 255 : 48;
-          const v = Math.round(u * target * (0.35 + whiteWave * 0.65));
-          return { r: v, g: v, b: v };
+      function splashPixelSizeFromProgress(progress, w, h) {
+        const { minSize, maxSize } = getSplashSizeBoundsPx(w, h);
+        const p = Math.min(1, Math.max(0, Number(progress) || 0));
+        return minSize + (maxSize - minSize) * p;
+      }
+
+      function resolveSplashDrawSizePx(splash) {
+        if (!splash) return BASE_SPLAT_SIZE;
+        if (typeof splash.drawSizePx === 'number' && splash.drawSizePx > 0) {
+          return splash.drawSizePx;
         }
-
-        const u = (t - 0.2) / 0.8;
-        const sat = 28 + u * 42;
-        const lit = 22 + u * 36;
-        return hslToRgb(hueDeg, sat, lit);
+        return Math.max(1, (splash.baseSize || BASE_SPLAT_SIZE) * (splash.scaleFactor || 1));
       }
 
-      function buildColorWheel() {
-        if (wheelBuilt) return;
-        const wctx = wheelCanvas.getContext('2d');
-        const cx = WHEEL_SIZE / 2;
-        const cy = WHEEL_SIZE / 2;
-        const img = wctx.createImageData(WHEEL_SIZE, WHEEL_SIZE);
-        const d = img.data;
-
-        for (let y = 0; y < WHEEL_SIZE; y++) {
-          for (let x = 0; x < WHEEL_SIZE; x++) {
-            const dx = x - cx + 0.5;
-            const dy = y - cy + 0.5;
-            const dist = Math.hypot(dx, dy);
-            const i = (y * WHEEL_SIZE + x) * 4;
-
-            if (dist > WHEEL_R) {
-              d[i + 3] = 0;
-              continue;
-            }
-
-            const t = dist / WHEEL_R;
-            const hue = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
-            const { r, g, b } = wheelColorAt(hue, t);
-            d[i] = r;
-            d[i + 1] = g;
-            d[i + 2] = b;
-            d[i + 3] = 255;
-          }
+      function getSplashMetaHalfExtent(splashMeta) {
+        if (!splashMeta) return BASE_SPLAT_SIZE * 0.5;
+        if (typeof splashMeta.drawSizePx === 'number' && splashMeta.drawSizePx > 0) {
+          return splashMeta.drawSizePx * 0.5;
         }
-
-        wctx.putImageData(img, 0, 0);
-        wheelBuilt = true;
+        return (splashMeta.baseSize || BASE_SPLAT_SIZE) * (splashMeta.scaleFactor || 1) * 0.5;
       }
 
-      function colorFromWheelPoint(clientX, clientY) {
-        const rect = wheelCanvas.getBoundingClientRect();
-        const scaleX = WHEEL_SIZE / rect.width;
-        const scaleY = WHEEL_SIZE / rect.height;
-        const x = (clientX - rect.left) * scaleX;
-        const y = (clientY - rect.top) * scaleY;
-        const cx = WHEEL_SIZE / 2;
-        const cy = WHEEL_SIZE / 2;
-        const dx = x - cx;
-        const dy = y - cy;
-        const dist = Math.hypot(dx, dy);
-        if (dist > WHEEL_R) return null;
-        const t = dist / WHEEL_R;
-        const hue = (Math.atan2(dy, dx) * 180 / Math.PI + 360) % 360;
-        const { r, g, b } = wheelColorAt(hue, t);
-        return rgbToHex(r, g, b);
+      function getSphereIdleOpacity(btn) {
+        if (!btn) return SPHERE_IDLE_OPACITY_DEFAULT;
+        const stored = parseFloat(btn.dataset.idleOpacity);
+        return Number.isFinite(stored) ? stored : SPHERE_IDLE_OPACITY_DEFAULT;
       }
 
-      function applySelectedColor(color, options) {
-        if (!color) return;
-        const opts = options || {};
-        selectedColor = color;
-        colorWheelHost.style.setProperty('--picked-color', color);
-        document.documentElement.style.setProperty('--picked-color', color);
-        if (opts.syncSliders !== false) {
-          syncColorSlidersFromHex(color);
-        }
-        updateEmotionSwatchActive(color);
+      function setSphereOpacity(btn, opacity) {
+        if (!btn) return;
+        btn.style.setProperty('--charge-opacity', String(opacity));
       }
 
-      function updateWheelPreviewColor(color) {
-        if (!wheelPreviewOrb || !color) return;
-        wheelPreviewOrb.style.setProperty('--wheel-preview-color', color);
+      function resetAllSphereVisuals() {
+        if (!emotionPaletteSpheres) return;
+        emotionPaletteSpheres.querySelectorAll('.emotion-sphere-btn').forEach((btn) => {
+          setSphereOpacity(btn, getSphereIdleOpacity(btn));
+          btn.classList.remove('is-charging');
+        });
       }
 
-      function setWheelPreviewState(active, picking) {
-        if (!wheelPreviewOrb) return;
-        wheelPreviewOrb.classList.toggle('is-active', !!active);
-        wheelPreviewOrb.classList.toggle('is-picking', !!picking);
-      }
-
-      function openColorWheel() {
-        if ((colorMagnifier && colorMagnifier.disabled) || wheelOpen) return;
-        buildColorWheel();
-        wheelOpen = true;
-        phoneShell.classList.remove('wheel-closing');
-        phoneShell.classList.add('wheel-open');
-        colorWheelHost.classList.add('open');
-        updateWheelPreviewColor(selectedColor);
-        setWheelPreviewState(true, false);
-      }
-
-      function closeColorWheel() {
-        if (!wheelOpen) return;
-        wheelOpen = false;
-        wheelPicking = false;
-        phoneShell.classList.add('wheel-closing');
-        phoneShell.classList.remove('wheel-open');
-        colorWheelHost.classList.remove('open');
-        setWheelPreviewState(false, false);
-        setTimeout(() => phoneShell.classList.remove('wheel-closing'), 450);
-      }
-
-      function pickColorAt(clientX, clientY, commit) {
-        const color = colorFromWheelPoint(clientX, clientY);
-        if (!color) return null;
-        updateWheelPreviewColor(color);
-        setWheelPreviewState(true, wheelPicking);
-        if (commit) {
-          applySelectedColor(color);
-        }
-        return color;
-      }
-
-      // 言葉の長さ → 本音の熱量（短い=淡く、長い=濃く）
-      function wordIntensity(len) {
-        return Math.min(1, Math.log1p(len) / Math.log1p(OPACITY_FULL_LEN));
-      }
-
-      function opacityFromWordLength(len) {
-        const normalized = wordIntensity(len);
-        const faint = 0.3 + Math.random() * 0.2;
-        const bold = 0.9 + Math.random() * 0.1;
-        return faint + normalized * (bold - faint);
-      }
-
-      /** キャンバス横幅に対するスプラッシュ直径の割合（1〜5字≈25%、30字≈50%、長文→最大70%） */
-      function splatWidthFractionFromWordLength(len) {
-        const n = Math.max(1, Math.min(len, WORD_MAX_LEN));
-
-        if (n <= SPLAT_MID_CHAR_COUNT) {
-          const t = Math.sqrt((n - 1) / (SPLAT_MID_CHAR_COUNT - 1));
-          return SPLAT_WIDTH_MIN_FRAC + (SPLAT_WIDTH_MID_FRAC - SPLAT_WIDTH_MIN_FRAC) * t;
-        }
-
-        const excess = n - SPLAT_MID_CHAR_COUNT;
-        const tail = 1 - Math.exp(-excess / SPLAT_TAIL_DECAY_CHARS);
-        return SPLAT_WIDTH_MID_FRAC + (SPLAT_WIDTH_MAX_FRAC - SPLAT_WIDTH_MID_FRAC) * tail;
-      }
-
-      function baseSizeFromWordLength(len) {
+      function updateChargeVisuals() {
+        const p = chargeState.progress;
+        const opacity = CHARGE_OPACITY_MIN + (CHARGE_OPACITY_MAX - CHARGE_OPACITY_MIN) * p;
         const w = canvas.clientWidth || CANVAS_LOGICAL_W;
-        let frac = splatWidthFractionFromWordLength(len);
-        frac *= 0.985 + Math.random() * 0.03;
-        const targetDiameter = w * frac;
-        return targetDiameter / SPLAT_EXPECTED_SCALE;
+        const h = canvas.clientHeight || CANVAS_LOGICAL_H;
+        chargeState.inkOpacity = opacity;
+        chargeState.inkSizePx = splashPixelSizeFromProgress(p, w, h);
+        if (chargeState.btnEl) {
+          setSphereOpacity(chargeState.btnEl, opacity);
+          chargeState.btnEl.classList.toggle('is-charging', p > 0.02);
+        }
+        if (emotionPaletteSpheres) {
+          emotionPaletteSpheres.querySelectorAll('.emotion-sphere-btn').forEach((btn) => {
+            if (btn !== chargeState.btnEl) {
+              setSphereOpacity(btn, getSphereIdleOpacity(btn));
+              btn.classList.remove('is-charging');
+            }
+          });
+        }
+      }
+
+      function stopChargeLoop() {
+        if (chargeState.rafId) {
+          cancelAnimationFrame(chargeState.rafId);
+          chargeState.rafId = null;
+        }
+        chargeState.lastTs = 0;
+      }
+
+      function chargeStep(ts) {
+        if (!chargeState.active) return;
+        if (!chargeState.lastTs) chargeState.lastTs = ts;
+        const dt = Math.min(48, ts - chargeState.lastTs);
+        chargeState.lastTs = ts;
+        chargeState.progress = Math.min(1, chargeState.progress + dt / (CHARGE_SECONDS_TO_MAX * 1000));
+        updateChargeVisuals();
+        chargeState.rafId = requestAnimationFrame(chargeStep);
+      }
+
+      let chargeDocCleanup = null;
+
+      function bindChargeDocumentListeners() {
+        unbindChargeDocumentListeners();
+        const onDocMove = (e) => {
+          if (!chargeState.active || chargeState.landed) return;
+          const point = e.touches && e.touches.length ? e.touches[0] : e;
+          if (!point) return;
+          handleChargeMove(point.clientX, point.clientY);
+        };
+        const onDocEnd = () => {
+          if (!chargeState.active || chargeState.landed) return;
+          resetChargeState();
+        };
+        document.addEventListener('mousemove', onDocMove);
+        document.addEventListener('touchmove', onDocMove, { passive: false });
+        document.addEventListener('mouseup', onDocEnd);
+        document.addEventListener('touchend', onDocEnd);
+        document.addEventListener('touchcancel', onDocEnd);
+        chargeDocCleanup = () => {
+          document.removeEventListener('mousemove', onDocMove);
+          document.removeEventListener('touchmove', onDocMove);
+          document.removeEventListener('mouseup', onDocEnd);
+          document.removeEventListener('touchend', onDocEnd);
+          document.removeEventListener('touchcancel', onDocEnd);
+          chargeDocCleanup = null;
+        };
+      }
+
+      function unbindChargeDocumentListeners() {
+        if (chargeDocCleanup) chargeDocCleanup();
+      }
+
+      function resetChargeState() {
+        stopChargeLoop();
+        unbindChargeDocumentListeners();
+        chargeState.active = false;
+        chargeState.landed = false;
+        chargeState.color = null;
+        chargeState.progress = 0;
+        chargeState.inkOpacity = CHARGE_OPACITY_MIN;
+        const resetW = canvas.clientWidth || CANVAS_LOGICAL_W;
+        const resetH = canvas.clientHeight || CANVAS_LOGICAL_H;
+        chargeState.inkSizePx = splashPixelSizeFromProgress(0, resetW, resetH);
+        chargeState.btnEl = null;
+        resetAllSphereVisuals();
+      }
+
+      function startCharge(btn, color, clientX, clientY) {
+        if (isDiarySubmitting || hasReachedSplashLimit()) return;
+        resetChargeState();
+        chargeState.active = true;
+        chargeState.color = color;
+        chargeState.btnEl = btn;
+        chargeState.startX = clientX;
+        chargeState.startY = clientY;
+        selectedColor = color;
+        updateChargeVisuals();
+        bindChargeDocumentListeners();
+        chargeState.rafId = requestAnimationFrame(chargeStep);
+      }
+
+      function handleChargeMove(clientX, clientY) {
+        if (!chargeState.active || chargeState.landed) return;
+        if (chargeState.startY - clientY >= FLICK_UP_THRESHOLD_PX) {
+          tryCommitLanding();
+        }
+      }
+
+      function fadeOutLandingUI() {
+        if (midPanel) midPanel.classList.add('is-ui-fading');
+        if (emotionPalette) emotionPalette.classList.add('is-ui-fading');
+      }
+
+      function tryCommitLanding() {
+        if (!chargeState.active || chargeState.landed || isDiarySubmitting) return;
+        const savedWord = wordInput.value.trim();
+        if (!savedWord || hasReachedSplashLimit()) return;
+        chargeState.landed = true;
+        stopChargeLoop();
+        const payload = {
+          color: chargeState.color,
+          opacity: chargeState.inkOpacity,
+          progress: chargeState.progress
+        };
+        resetChargeState();
+        commitInkLanding(savedWord, payload);
+      }
+
+      function buildEmotionPalette() {
+        if (!emotionPaletteSpheres) return;
+        emotionPaletteSpheres.innerHTML = '';
+        CURATED_COLORS.forEach((entry) => {
+          const btn = document.createElement('button');
+          btn.type = 'button';
+          btn.className = 'emotion-sphere-btn';
+          btn.dataset.color = entry.hex;
+          btn.dataset.idleOpacity = String(entry.idleOpacity ?? SPHERE_IDLE_OPACITY_DEFAULT);
+          btn.setAttribute('aria-label', entry.label);
+          setSphereOpacity(btn, entry.idleOpacity ?? SPHERE_IDLE_OPACITY_DEFAULT);
+
+          const swatch = document.createElement('span');
+          swatch.className = 'emotion-sphere-swatch';
+          swatch.style.setProperty('--sphere-color', entry.hex);
+          btn.appendChild(swatch);
+
+          const onDown = (e) => {
+            if (isDiarySubmitting || hasReachedSplashLimit()) return;
+            e.preventDefault();
+            const point = e.touches ? e.touches[0] : e;
+            startCharge(btn, entry.hex, point.clientX, point.clientY);
+          };
+
+          const onMove = (e) => {
+            if (!chargeState.active || chargeState.btnEl !== btn) return;
+            const point = e.touches ? e.touches[0] : e;
+            handleChargeMove(point.clientX, point.clientY);
+          };
+
+          btn.addEventListener('mousedown', onDown);
+          btn.addEventListener('touchstart', onDown, { passive: false });
+          btn.addEventListener('mousemove', onMove);
+          btn.addEventListener('touchmove', onMove, { passive: false });
+
+          emotionPaletteSpheres.appendChild(btn);
+        });
+      }
+
+      function extractHexColor(text) {
+        const m = String(text || '').match(/#[0-9A-Fa-f]{6}\b/);
+        return m ? m[0].toLowerCase() : null;
+      }
+
+      function normalizeSplashHex(color) {
+        return extractHexColor(color) || normalizeDiaryColor(color);
+      }
+
+      function hexToRgb(hex) {
+        const normalized = extractHexColor(hex);
+        if (!normalized) return null;
+        const n = parseInt(normalized.slice(1), 16);
+        return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+      }
+
+      function applyColorToSplash(splash, color) {
+        if (!splash) return splash;
+        const exactColor = normalizeSplashHex(color);
+        splash.color = exactColor;
+        splash.color1 = exactColor;
+        splash.color2 = null;
+        splash.gradient = false;
+        splash.weight = 1;
+        return splash;
+      }
+
+      function hashWeekWords(words) {
+        return words.map((w) => String(w).trim()).join('\u241e');
+      }
+
+      function getWeekWordsFromStorage() {
+        const fromSplashes = splashes
+          .slice()
+          .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+          .map((s) => String(s.word || '').trim())
+          .filter(Boolean);
+        if (fromSplashes.length >= MAX_ENTRIES) {
+          return fromSplashes.slice(0, MAX_ENTRIES);
+        }
+
+        const fromHistory = loadInscapeHistory()
+          .slice()
+          .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+          .map((e) => String(e.word || '').trim())
+          .filter(Boolean);
+        return fromHistory.slice(0, MAX_ENTRIES);
+      }
+
+      function getWeekEntryCount() {
+        const splashCount = splashes.filter((s) => String(s.word || '').trim()).length;
+        const historyCount = loadInscapeHistory().filter((e) => String(e.word || '').trim()).length;
+        return Math.max(splashCount, historyCount);
+      }
+
+      function hasReachedWeekDiagnosisThreshold() {
+        return getWeekEntryCount() >= MAX_ENTRIES && splashes.length >= MAX_ENTRIES;
+      }
+
+      function computeArtworkPeriodFromSplashes(list) {
+        const source = Array.isArray(list) ? list : splashes;
+        const stamps = source
+          .map((s) => Number(s.timestamp) || 0)
+          .filter((t) => t > 0)
+          .sort((a, b) => a - b);
+        const endDate = stamps.length ? new Date(stamps[stamps.length - 1]) : new Date();
+        const startDate = stamps.length ? new Date(stamps[0]) : endDate;
+        const periodStart = formatDotDate(startDate);
+        const periodEnd = formatDotDate(endDate);
+        const period = periodStart === periodEnd ? periodStart : `${periodStart} - ${periodEnd}`;
+        return { period, periodStart, periodEnd };
+      }
+
+      function hasReachedSplashLimit() {
+        return splashes.length >= MAX_ENTRIES;
+      }
+
+      function pickBalancedSplashPosition(w, h, splashMeta, slotIndex) {
+        const slot = SPLASH_SLOTS[slotIndex % SPLASH_SLOTS.length];
+        const jitter = 0.035;
+        const nx = Math.min(0.94, Math.max(0.06, slot.nx + (Math.random() - 0.5) * jitter));
+        const ny = Math.min(0.94, Math.max(0.06, slot.ny + (Math.random() - 0.5) * jitter));
+        const raw = { x: nx * w, y: ny * h };
+        return clampTapPosition(raw.x, raw.y, w, h, splashMeta);
+      }
+
+      function setEmotionPaletteDisabled(disabled) {
+        if (!emotionPaletteSpheres) return;
+        emotionPaletteSpheres.querySelectorAll('.emotion-sphere-btn').forEach((btn) => {
+          btn.disabled = !!disabled;
+        });
       }
 
       function getDiaryDayKey() {
@@ -2152,32 +2059,36 @@
       }
 
       function applyDailyLockUI() {
-        const locked = hasPostedToday();
+        const locked = hasReachedSplashLimit();
 
         if (appEl) appEl.classList.toggle('daily-locked', locked);
         phoneShell.classList.toggle('daily-locked', locked);
 
         if (locked) {
           if (inputWrap) inputWrap.classList.add('locked-hidden');
-          if (colorAtelier) colorAtelier.classList.add('locked-hidden');
+          if (emotionPalette) emotionPalette.classList.add('locked-hidden');
           if (controlsFooter) controlsFooter.classList.add('locked-hidden');
           if (dailyLockMessage) {
             dailyLockMessage.classList.add('visible');
             dailyLockMessage.setAttribute('aria-hidden', 'false');
           }
           wordInput.disabled = true;
-          if (colorMagnifier) colorMagnifier.disabled = true;
-          colorWheelHost.classList.add('disabled');
+          if (emotionPaletteSpheres) {
+            emotionPaletteSpheres.querySelectorAll('.emotion-sphere-btn').forEach((btn) => {
+              btn.disabled = true;
+            });
+          }
           canvasWrap.classList.remove('submit-ready');
-          closeColorWheel();
         } else {
           if (inputWrap) inputWrap.classList.remove('locked-hidden');
-          if (colorAtelier) colorAtelier.classList.remove('locked-hidden');
+          if (emotionPalette) emotionPalette.classList.remove('locked-hidden');
           if (controlsFooter) controlsFooter.classList.remove('locked-hidden');
           if (dailyLockMessage) {
             dailyLockMessage.classList.remove('visible');
             dailyLockMessage.setAttribute('aria-hidden', 'true');
           }
+          wordInput.disabled = isDiarySubmitting;
+          setEmotionPaletteDisabled(isDiarySubmitting);
         }
 
         updateCanvasSubmitHint();
@@ -2199,28 +2110,20 @@
         }
       }
 
-      function getCanvasDataUrl() {
-        if (!lastCanvasExportDataUrl) {
-          refreshCanvasExportSnapshot();
-        }
-        return lastCanvasExportDataUrl;
-      }
-
-      function waitForImageLoad(imgEl) {
-        if (!imgEl) return Promise.resolve();
-        if (imgEl.complete && imgEl.naturalWidth > 0) return Promise.resolve();
-        return new Promise((resolve, reject) => {
-          imgEl.onload = () => resolve();
-          imgEl.onerror = () => reject(new Error('export image load failed'));
-        });
-      }
-
       function loadInscapeHistory() {
         try {
           const raw = localStorage.getItem(INSCAPE_HISTORY_KEY);
           if (!raw) return [];
           const data = JSON.parse(raw);
           if (!Array.isArray(data)) return [];
+          if (data[0] && Array.isArray(data[0].history)) {
+            return data[0].history.map((entry) => ({
+              word: entry.word || entry.text || '',
+              color: entry.color,
+              date: entry.date || formatDate(entry.timestamp),
+              timestamp: entry.timestamp || 0
+            })).filter((e) => e.color);
+          }
           return data.map((entry) => ({
             word: entry.word || entry.text || '',
             color: entry.color,
@@ -2232,303 +2135,94 @@
         }
       }
 
-      function parseHistoryEntryToDate(entry) {
-        if (!entry) return null;
-        if (entry.timestamp && Number(entry.timestamp) > 0) {
-          const d = new Date(entry.timestamp);
-          if (!Number.isNaN(d.getTime())) return d;
-        }
-        if (entry.date) {
-          const dateStr = String(entry.date);
-          const matched = dateStr.match(/(\d{4})[./-](\d{1,2})[./-](\d{1,2})/);
-          if (matched) {
-            const d = new Date(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3]));
-            if (!Number.isNaN(d.getTime())) return d;
-          }
-          const parsed = Date.parse(dateStr);
-          if (!Number.isNaN(parsed)) return new Date(parsed);
-        }
-        return null;
-      }
-
-      function getExportPeriodCaption() {
-        const todayStr = formatDotDate(new Date());
-        const history = loadInscapeHistory();
-        const dates = history
-          .map(parseHistoryEntryToDate)
-          .filter(Boolean)
-          .sort((a, b) => a.getTime() - b.getTime());
-
-        if (dates.length === 0 || dates.length === 1) {
-          return `${todayStr} - ${todayStr}`;
-        }
-
-        const startStr = formatDotDate(dates[0]);
-        return `${startStr} - ${todayStr}`;
-      }
-
-      function buildExportWallDisplay() {
-        if (!exportRoot) throw new Error('export root missing');
-
-        const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth || CANVAS_LOGICAL_W;
-        const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight || CANVAS_LOGICAL_H;
-        const dataUrl = getCanvasDataUrl();
-        if (!dataUrl) throw new Error('canvas export failed');
-
-        exportRoot.innerHTML = '';
-        const wall = document.createElement('div');
-        wall.className = 'museum-wall-display museum-wall-export';
-
-        const sculpted = document.createElement('div');
-        sculpted.className = 'export-frame-sculpted';
-
-        const surface = document.createElement('div');
-        surface.className = 'export-art-surface';
-        surface.style.aspectRatio = `${aspectW} / ${aspectH}`;
-
-        const artImg = document.createElement('img');
-        artImg.className = 'export-art-image';
-        artImg.src = dataUrl;
-        artImg.alt = '';
-        artImg.setAttribute('role', 'presentation');
-
-        const texture = document.createElement('div');
-        texture.className = 'paper-texture-overlay';
-        texture.setAttribute('aria-hidden', 'true');
-
-        const caption = document.createElement('p');
-        caption.className = 'art-period-caption';
-        caption.textContent = getExportPeriodCaption();
-
-        surface.appendChild(artImg);
-        surface.appendChild(texture);
-        sculpted.appendChild(surface);
-        wall.appendChild(sculpted);
-        wall.appendChild(caption);
-        exportRoot.appendChild(wall);
-
-        return { wall, artImg };
-      }
-
-      async function captureMuseumWallBlob(wallEl, artImg) {
-        if (!wallEl || typeof html2canvas !== 'function') {
-          throw new Error('html2canvas not loaded');
-        }
-
-        await waitForImageLoad(artImg);
-
-        if (exportRoot) {
-          exportRoot.setAttribute('aria-hidden', 'false');
-          exportRoot.classList.add('is-capturing');
-        }
-        await new Promise((resolve) => {
-          requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(resolve, 48)));
-        });
-
-        try {
-          const scale = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1.5));
-          const artCanvas = await html2canvas(wallEl, {
-            scale,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: null,
-            logging: false,
-            imageTimeout: 0,
-            onclone: (_doc, clonedEl) => {
-              clonedEl.classList.add('museum-wall-export');
-            }
-          });
-
-          return compositeToMuseumExport(artCanvas);
-        } finally {
-          if (exportRoot) {
-            exportRoot.classList.remove('is-capturing');
-            exportRoot.setAttribute('aria-hidden', 'true');
-          }
-        }
-      }
-
-      function drawSpacedText(ctx, text, centerX, y, spacingPx) {
-        const chars = text.split('');
-        let totalWidth = 0;
-        chars.forEach((ch, i) => {
-          totalWidth += ctx.measureText(ch).width;
-          if (i < chars.length - 1) totalWidth += spacingPx;
-        });
-        let x = centerX - totalWidth / 2;
-        chars.forEach((ch, i) => {
-          ctx.fillText(ch, x, y);
-          x += ctx.measureText(ch).width + (i < chars.length - 1 ? spacingPx : 0);
-        });
-      }
-
-      function drawMuseumSpotlightBackground(ctx, w, h) {
-        ctx.fillStyle = '#0a0a0a';
-        ctx.fillRect(0, 0, w, h);
-
-        const spotlight = ctx.createRadialGradient(
-          w * 0.5, h * 0.1, 0,
-          w * 0.5, h * 0.1, Math.max(w, h) * 0.82
-        );
-        spotlight.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
-        spotlight.addColorStop(0.32, 'rgba(255, 255, 255, 0.07)');
-        spotlight.addColorStop(0.7, 'rgba(0, 0, 0, 0)');
-        spotlight.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = spotlight;
-        ctx.fillRect(0, 0, w, h);
-
-        const warmGlow = ctx.createRadialGradient(
-          w * 0.5, h * 0.02, 0,
-          w * 0.5, h * 0.02, w * 0.58
-        );
-        warmGlow.addColorStop(0, 'rgba(255, 252, 240, 0.1)');
-        warmGlow.addColorStop(0.45, 'rgba(255, 252, 240, 0.025)');
-        warmGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        ctx.fillStyle = warmGlow;
-        ctx.fillRect(0, 0, w, h);
-
-        const vignette = ctx.createRadialGradient(
-          w * 0.5, h * 0.46, Math.min(w, h) * 0.16,
-          w * 0.5, h * 0.46, Math.max(w, h) * 0.96
-        );
-        vignette.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        vignette.addColorStop(0.52, 'rgba(0, 0, 0, 0.22)');
-        vignette.addColorStop(0.82, 'rgba(5, 5, 5, 0.72)');
-        vignette.addColorStop(1, 'rgba(5, 5, 5, 0.96)');
-        ctx.fillStyle = vignette;
-        ctx.fillRect(0, 0, w, h);
-
-        const floorFade = ctx.createLinearGradient(0, h * 0.68, 0, h);
-        floorFade.addColorStop(0, 'rgba(0, 0, 0, 0)');
-        floorFade.addColorStop(1, 'rgba(0, 0, 0, 0.52)');
-        ctx.fillStyle = floorFade;
-        ctx.fillRect(0, 0, w, h);
-      }
-
-      function htmlCanvasToBlob(canvasEl) {
-        return new Promise((resolve, reject) => {
-          if (!canvasEl || !canvasEl.width || !canvasEl.height) {
-            reject(new Error('canvas invalid'));
-            return;
-          }
-          canvasEl.toBlob((blob) => {
-            if (blob) resolve(blob);
-            else reject(new Error('toBlob failed'));
-          }, 'image/png', 1);
-        });
-      }
-
-      async function compositeToMuseumExport(artCanvas) {
-        const final = document.createElement('canvas');
-        final.width = EXPORT_W;
-        final.height = EXPORT_H;
-        const exportCtx = final.getContext('2d');
-
-        drawMuseumSpotlightBackground(exportCtx, EXPORT_W, EXPORT_H);
-
-        const logoReserve = 148;
-        const topMargin = 220;
-        const sidePad = 96;
-        const maxW = EXPORT_W - sidePad * 2;
-        const maxH = EXPORT_H - topMargin - logoReserve - 100;
-
-        const scale = Math.min(maxW / artCanvas.width, maxH / artCanvas.height);
-        const dw = artCanvas.width * scale;
-        const dh = artCanvas.height * scale;
-        const dx = (EXPORT_W - dw) / 2;
-        const dy = topMargin + (maxH - dh) / 2;
-
-        exportCtx.drawImage(artCanvas, dx, dy, dw, dh);
-
-        exportCtx.save();
-        const logoSize = 34;
-        exportCtx.font = `300 ${logoSize}px "Times New Roman", Georgia, serif`;
-        exportCtx.fillStyle = 'rgba(190, 190, 190, 0.62)';
-        exportCtx.textBaseline = 'middle';
-        drawSpacedText(exportCtx, 'INSCAPE', EXPORT_W / 2, EXPORT_H - 92, logoSize * 0.44);
-        exportCtx.restore();
-
-        return htmlCanvasToBlob(final);
-      }
-
-      function closeSavePreview() {
-        const overlay = document.getElementById('savePreviewOverlay');
-        const img = document.getElementById('savePreviewImage');
-        if (overlay) {
-          overlay.classList.remove('active');
-          overlay.setAttribute('aria-hidden', 'true');
-        }
-        if (img) img.removeAttribute('src');
-        if (savePreviewObjectUrl) {
-          URL.revokeObjectURL(savePreviewObjectUrl);
-          savePreviewObjectUrl = null;
-        }
-      }
-
-      function showSavePreview(blob) {
-        const overlay = document.getElementById('savePreviewOverlay');
-        const img = document.getElementById('savePreviewImage');
-        if (!overlay || !img || !blob) return;
-
-        closeSavePreview();
-        savePreviewObjectUrl = URL.createObjectURL(blob);
-        img.src = savePreviewObjectUrl;
-        overlay.classList.add('active');
-        overlay.setAttribute('aria-hidden', 'false');
-      }
-
-      async function releaseIncompleteShare() {
-        if (!releaseShareBtn) return;
-
-        const prevLabel = releaseShareBtn.textContent;
-        releaseShareBtn.disabled = true;
-        releaseShareBtn.textContent = '画像を準備中…';
-
-        try {
-          refreshCanvasExportSnapshot();
-          const { wall, artImg } = buildExportWallDisplay();
-          const blob = await captureMuseumWallBlob(wall, artImg);
-          showSavePreview(blob);
-        } catch (err) {
-          console.warn('放流画像の生成に失敗:', err);
-        } finally {
-          releaseShareBtn.disabled = false;
-          releaseShareBtn.textContent = prevLabel;
-        }
-      }
-
-      function bindSavePreview() {
-        const overlay = document.getElementById('savePreviewOverlay');
-        const closeBtn = document.getElementById('savePreviewClose');
-        const panel = overlay && overlay.querySelector('.save-preview-panel');
-
-        if (closeBtn) {
-          closeBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            closeSavePreview();
-          });
-        }
-
-        if (overlay) {
-          overlay.addEventListener('click', (e) => {
-            if (e.target === overlay) closeSavePreview();
-          });
-        }
-
-        if (panel) {
-          panel.addEventListener('click', (e) => e.stopPropagation());
-        }
-      }
-
       const SPLAT_IMAGE = 'splat.png';
+      const FABRIC_IMAGE = 'canvas-fabric.png';
       const CANVAS_BG = '#f7f4eb';
       const splatImg = new Image();
+      const fabricImg = new Image();
       const stampCache = {};
       let splatReady = false;
       let splatLoadPromise = null;
+      let fabricReady = false;
+      let fabricLoadPromise = null;
 
       function clearStampCache() {
         Object.keys(stampCache).forEach(k => { delete stampCache[k]; });
+      }
+
+      function loadFabricImage() {
+        if (fabricReady && fabricImg.naturalWidth > 0) return Promise.resolve(fabricImg);
+        if (fabricLoadPromise) return fabricLoadPromise;
+
+        fabricLoadPromise = new Promise((resolve) => {
+          const finish = (ok) => {
+            fabricLoadPromise = null;
+            if (ok) {
+              fabricReady = true;
+              resolve(fabricImg);
+            } else {
+              resolve(null);
+            }
+          };
+
+          fabricImg.onload = () => finish(fabricImg.naturalWidth > 0);
+          fabricImg.onerror = () => finish(false);
+          fabricImg.src = FABRIC_IMAGE;
+
+          if (fabricImg.complete) {
+            finish(fabricImg.naturalWidth > 0);
+          }
+        });
+
+        return fabricLoadPromise;
+      }
+
+      function drawCanvasCrosshatch(targetCtx, w, h) {
+        targetCtx.save();
+        targetCtx.strokeStyle = 'rgba(0, 0, 0, 0.03)';
+        targetCtx.lineWidth = 1;
+        for (let y = 0; y < h; y += 4) {
+          targetCtx.beginPath();
+          targetCtx.moveTo(0, y);
+          targetCtx.lineTo(w, y);
+          targetCtx.stroke();
+        }
+        for (let x = 0; x < w; x += 4) {
+          targetCtx.beginPath();
+          targetCtx.moveTo(x, 0);
+          targetCtx.lineTo(x, h);
+          targetCtx.stroke();
+        }
+        targetCtx.restore();
+      }
+
+      function drawCanvasFabricBase(targetCtx, w, h, fabricImage) {
+        targetCtx.globalCompositeOperation = 'source-over';
+        targetCtx.fillStyle = CANVAS_BG;
+        targetCtx.fillRect(0, 0, w, h);
+        drawCanvasCrosshatch(targetCtx, w, h);
+        if (fabricImage && fabricImage.naturalWidth > 0) {
+          targetCtx.globalCompositeOperation = 'multiply';
+          targetCtx.drawImage(fabricImage, 0, 0, w, h);
+          targetCtx.globalCompositeOperation = 'source-over';
+        }
+      }
+
+      function captureCompositeArtworkDataUrl(w, h, fabricImage) {
+        const out = document.createElement('canvas');
+        out.width = w;
+        out.height = h;
+        const octx = out.getContext('2d');
+        drawCanvasFabricBase(octx, w, h, fabricImage);
+        octx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, w, h);
+        if (fabricImage && fabricImage.naturalWidth > 0) {
+          octx.globalAlpha = 0.35;
+          octx.globalCompositeOperation = 'multiply';
+          octx.drawImage(fabricImage, 0, 0, w, h);
+          octx.globalAlpha = 1;
+          octx.globalCompositeOperation = 'source-over';
+        }
+        return out.toDataURL('image/png');
       }
 
       function loadSplatImage() {
@@ -2571,10 +2265,52 @@
         return loadSplatImage();
       }
 
+      function createGradientStamp(color1, color2) {
+        if (!splatReady || !splatImg.naturalWidth) return null;
+        const c1 = normalizeSplashHex(color1);
+        const c2 = normalizeSplashHex(color2);
+        if (!c1) return null;
+        const cacheKey = `grad:${c1}|${c2 || c1}`;
+        if (stampCache[cacheKey]) return stampCache[cacheKey];
+
+        try {
+          const w = splatImg.naturalWidth;
+          const h = splatImg.naturalHeight;
+          const work = document.createElement('canvas');
+          work.width = w;
+          work.height = h;
+          const wctx = work.getContext('2d');
+          const grad = wctx.createLinearGradient(0, 0, w, h);
+          grad.addColorStop(0, c1);
+          grad.addColorStop(1, c2);
+          wctx.fillStyle = grad;
+          wctx.fillRect(0, 0, w, h);
+          wctx.globalCompositeOperation = 'screen';
+          wctx.drawImage(splatImg, 0, 0);
+          wctx.globalCompositeOperation = 'source-over';
+          stampCache[cacheKey] = work;
+          return work;
+        } catch (err) {
+          console.error('グラデーションスタンプ生成エラー:', err);
+          return createColorStamp(c1);
+        }
+      }
+
+      function getSplashStamp(splash) {
+        const primary = normalizeSplashHex(splash.color1 || splash.color);
+        if (!primary) return null;
+        if (splash.gradient && splash.color2) {
+          return createGradientStamp(primary, splash.color2);
+        }
+        return createColorStamp(primary);
+      }
+
       // getImageData 不使用: screen で色染め → multiply で白背景を壁色に溶かす
       function createColorStamp(color) {
         if (!splatReady || !splatImg.naturalWidth) return null;
-        if (stampCache[color]) return stampCache[color];
+        const normalized = normalizeSplashHex(color);
+        if (!normalized) return null;
+        if (stampCache[normalized]) return stampCache[normalized];
 
         try {
           const w = splatImg.naturalWidth;
@@ -2584,13 +2320,13 @@
           work.height = h;
           const wctx = work.getContext('2d');
 
-          wctx.fillStyle = color;
+          wctx.fillStyle = normalized;
           wctx.fillRect(0, 0, w, h);
           wctx.globalCompositeOperation = 'screen';
           wctx.drawImage(splatImg, 0, 0);
           wctx.globalCompositeOperation = 'source-over';
 
-          stampCache[color] = work;
+          stampCache[normalized] = work;
           return work;
         } catch (err) {
           console.error('スタンプ生成エラー:', err);
@@ -2606,18 +2342,19 @@
         ctx.fillRect(0, 0, w, h);
       }
 
-      // スタンプ用メタデータ（大きさ・不透明度・角度を毎回ランダム化）
-      function createSplashData(wordLen) {
-        const intensity = wordIntensity(wordLen);
-        const baseSize = baseSizeFromWordLength(wordLen);
-        const scaleFactor = 0.92 + Math.random() * 0.18 + intensity * 0.06;
+      // チャージ進行度とキャンバス実寸から描画ピクセルサイズを決定
+      function createSplashData(chargeProgress, inkOpacity, w, h) {
+        const drawSizePx = splashPixelSizeFromProgress(chargeProgress, w, h);
+        const opacity = Math.min(CHARGE_OPACITY_MAX, Math.max(CHARGE_OPACITY_MIN, Number(inkOpacity) || CHARGE_OPACITY_MIN));
         return {
-          v: 8,
-          baseSize,
+          v: 10,
+          drawSizePx,
+          baseSize: drawSizePx,
           rotation: Math.random() * Math.PI * 2,
-          scaleFactor,
-          opacity: opacityFromWordLength(wordLen),
-          hitRadius: Math.max(14, baseSize * scaleFactor * 0.22)
+          scaleFactor: 1,
+          opacity,
+          splashPattern: Math.floor(Math.random() * SPLAT_PATTERN_COUNT),
+          hitRadius: Math.max(14, drawSizePx * 0.22)
         };
       }
 
@@ -2629,25 +2366,32 @@
           baseSize *= 2.5;
         }
         const scaleFactor = s.scaleFactor ?? (0.9 + Math.random() * 0.45);
+        const drawSizePx = s.drawSizePx ?? (baseSize * scaleFactor);
         return {
           id: s.id || Date.now().toString(36),
           nx: s.nx,
           ny: s.ny,
-          color: s.color,
+          color: normalizeSplashHex(s.color1 || s.color),
+          color1: normalizeSplashHex(s.color1 || s.color),
+          color2: s.color2 ? normalizeSplashHex(s.color2) : null,
+          gradient: !!s.gradient && !!s.color2,
+          weight: s.weight ?? 1.2,
           word: s.word || '',
           timestamp: s.timestamp,
-          v: 8,
-          baseSize,
+          v: s.v ?? 10,
+          drawSizePx,
+          baseSize: drawSizePx,
           rotation: s.rotation ?? Math.random() * Math.PI * 2,
-          scaleFactor,
-          opacity: s.opacity ?? 0.75,
-          hitRadius: s.hitRadius || Math.max(14, baseSize * scaleFactor * 0.22),
+          scaleFactor: s.drawSizePx ? 1 : scaleFactor,
+          opacity: s.opacity ?? CHARGE_OPACITY_MIN,
+          splashPattern: s.splashPattern ?? 0,
+          hitRadius: s.hitRadius || Math.max(14, drawSizePx * 0.22),
           drip: null
         };
       }
 
       function initDrip(splash) {
-        const size = splash.baseSize * (splash.scaleFactor || 1);
+        const size = resolveSplashDrawSizePx(splash);
         splash.drip = {
           offsetX: (Math.random() - 0.5) * size * 0.1,
           offsetY: size * (0.16 + Math.random() * 0.1),
@@ -2868,12 +2612,28 @@
       }
 
       function buildDiaryHistoryFromSplashes(list) {
-        return list.map((s) => ({
+        const points = list.map((s) => ({
+          nx: s.nx,
+          ny: s.ny,
+          x: typeof s.nx === 'number' ? Math.round(s.nx * 100) : undefined,
+          y: typeof s.ny === 'number' ? Math.round(s.ny * 100) : undefined,
+          color: normalizeSplashHex(s.color1 || s.color),
+          baseSize: resolveSplashDrawSizePx(s),
+          size: resolveSplashDrawSizePx(s),
+          drawSizePx: resolveSplashDrawSizePx(s),
+          scaleFactor: s.scaleFactor,
+          rotation: s.rotation,
+          opacity: s.opacity,
           word: s.word || '',
-          color: s.color,
+          timestamp: s.timestamp || Date.now()
+        }));
+        const entries = list.map((s) => ({
+          word: s.word || '',
+          color: normalizeSplashHex(s.color1 || s.color),
           date: formatDate(s.timestamp),
           timestamp: s.timestamp || Date.now()
         })).filter((e) => e.color);
+        return [{ points, history: entries, updatedAt: Date.now() }];
       }
 
       function syncHistoriesFromSplashes() {
@@ -2882,19 +2642,126 @@
         localStorage.setItem(INSCAPE_HISTORY_KEY, JSON.stringify(buildDiaryHistoryFromSplashes(splashes)));
       }
 
-      function saveRecipeToGallery() {
+      function normalizeDiaryColor(color) {
+        if (!color) return null;
+        const raw = String(color).trim();
+        const matched = raw.match(/#[0-9A-Fa-f]{6}\b/);
+        if (matched) return matched[0].toLowerCase();
+        if (/^[0-9A-Fa-f]{6}$/.test(raw)) return `#${raw.toLowerCase()}`;
+        return raw;
+      }
+
+      function appendDiaryColorLog(word, color, timestamp) {
+        const hex = normalizeDiaryColor(color);
+        if (!hex) return;
+        try {
+          let logs = JSON.parse(localStorage.getItem(ALL_DIARIES_KEY)) || [];
+          if (!Array.isArray(logs)) logs = [];
+          const ts = timestamp || Date.now();
+          const entry = {
+            word: String(word || '').trim(),
+            color: hex,
+            date: formatDate(ts),
+            timestamp: ts
+          };
+          const dedupeKey = `${entry.timestamp}|${entry.color}|${entry.word}`;
+          if (logs.some((e) => `${e.timestamp || 0}|${e.color}|${e.word || ''}` === dedupeKey)) {
+            return;
+          }
+          logs.push(entry);
+          localStorage.setItem(ALL_DIARIES_KEY, JSON.stringify(logs));
+        } catch (err) {
+          console.warn('カラー日記ログの保存に失敗:', err);
+        }
+      }
+
+      function artworkExistsInGallery(wordsHash) {
+        if (!wordsHash) return false;
+        try {
+          const gallery = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
+          if (!Array.isArray(gallery)) return false;
+          return gallery.some((entry) => entry && entry.wordsHash === wordsHash);
+        } catch {
+          return false;
+        }
+      }
+
+      async function persistArtworkCanvasSnapshot() {
+        redrawCanvas();
+        const pixelW = canvas.width;
+        const pixelH = canvas.height;
+        const logicalW = Math.round(canvas.clientWidth) || CANVAS_LOGICAL_W;
+        const logicalH = Math.round(canvas.clientHeight) || CANVAS_LOGICAL_H;
+        if (pixelW < 1 || pixelH < 1) return null;
+        try {
+          const fabricImage = await loadFabricImage();
+          const dataUrl = captureCompositeArtworkDataUrl(pixelW, pixelH, fabricImage);
+          if (!dataUrl || dataUrl === 'data:,') return null;
+          refreshCanvasExportSnapshot();
+          return {
+            artworkImageDataUrl: dataUrl,
+            canvasW: logicalW,
+            canvasH: logicalH,
+            snapshotPixelW: pixelW,
+            snapshotPixelH: pixelH
+          };
+        } catch (err) {
+          console.warn('作品スナップショットの保存に失敗:', err);
+          return null;
+        }
+      }
+
+      function updateGallerySnapshotByWordsHash(wordsHash, snapshot) {
+        if (!wordsHash || !snapshot || !snapshot.artworkImageDataUrl) return;
+        try {
+          let gallery = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
+          if (!Array.isArray(gallery)) return;
+          const idx = gallery.findIndex((entry) => entry && entry.wordsHash === wordsHash);
+          if (idx < 0) return;
+          gallery[idx] = { ...gallery[idx], ...snapshot };
+          localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+        } catch (err) {
+          console.warn('回廊スナップショットの更新に失敗:', err);
+        }
+      }
+
+      async function saveCompletedArtworkToGallery() {
+        if (!hasReachedWeekDiagnosisThreshold()) return;
+
+        const wordsHash = hashWeekWords(getWeekWordsFromStorage());
+        if (artworkExistsInGallery(wordsHash)) return;
+
         syncHistoriesFromSplashes();
-        const diaryHistory = buildDiaryHistoryFromSplashes(splashes);
-        let gallery = JSON.parse(localStorage.getItem('inscape_gallery')) || [];
+        const splatsRecipes = splashes.map(({ drip, ...rest }) => rest);
+        const snapshot = await persistArtworkCanvasSnapshot();
+        const { period, periodStart, periodEnd } = computeArtworkPeriodFromSplashes(splashes);
+
+        let gallery = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
         if (!Array.isArray(gallery)) gallery = [];
+
         gallery.push({
-          date: new Date().toLocaleDateString(),
-          splats: JSON.parse(localStorage.getItem('histories')) || [],
-          history: diaryHistory,
-          canvasW: parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth,
-          canvasH: parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight
+          splats: splatsRecipes,
+          period,
+          periodStart,
+          periodEnd,
+          wordsHash,
+          completedAt: Date.now(),
+          canvasW: snapshot && snapshot.canvasW ? snapshot.canvasW : (parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth),
+          canvasH: snapshot && snapshot.canvasH ? snapshot.canvasH : (parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight),
+          artworkImageDataUrl: snapshot ? snapshot.artworkImageDataUrl : undefined
         });
-        localStorage.setItem('inscape_gallery', JSON.stringify(gallery));
+        localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+      }
+
+      async function saveRecipeToGallery() {
+        const wordsHash = hashWeekWords(getWeekWordsFromStorage());
+        const snapshot = await persistArtworkCanvasSnapshot();
+        if (artworkExistsInGallery(wordsHash)) {
+          updateGallerySnapshotByWordsHash(wordsHash, snapshot);
+          return;
+        }
+        await saveCompletedArtworkToGallery();
+        if (snapshot) updateGallerySnapshotByWordsHash(wordsHash, snapshot);
       }
 
       const FRAME_MAT_PADDING = 28;
@@ -2963,8 +2830,6 @@
           frameCompleteOk.addEventListener('click', close);
         });
       }
-
-      const FRAME_SHARE_TEXT = '#INSCAPE で7日間の心の色を額装しました';
 
       function dayKeyFromTimestamp(ts) {
         const d = new Date(ts);
@@ -3042,7 +2907,7 @@
         }
 
         hideFrameCta();
-        frameProgressHint.textContent = `${entryCount} / ${FRAME_ENTRIES_REQUIRED} 回`;
+        frameProgressHint.textContent = `言葉 ${entryCount} / ${FRAME_ENTRIES_REQUIRED}`;
         frameProgressHint.classList.add('visible');
       }
 
@@ -3067,8 +2932,6 @@
         tapRipples = [];
         shockCtx.clearRect(0, 0, shockCanvas.width, shockCanvas.height);
 
-        framedPngDataUrl = null;
-        framedPngBlob = null;
         framingCompleted = false;
         zenArmed = false;
         exitZenMode();
@@ -3125,9 +2988,10 @@
           });
         });
 
-        waitForFrameAnimation(museumFrame, 1500).then(() => {
+        waitForFrameAnimation(museumFrame, 1500).then(async () => {
           try {
-            saveRecipeToGallery();
+            redrawCanvas();
+            await saveRecipeToGallery();
             frameProgress.textContent = '額装完了';
             return showFrameCompleteDialog();
           } catch (err) {
@@ -3147,36 +3011,9 @@
         });
       }
 
-      async function shareFramedArtwork() {
-        if (!framedPngBlob && !framedPngDataUrl) return;
-        try {
-          if (navigator.share) {
-            const blob = framedPngBlob || await (await fetch(framedPngDataUrl)).blob();
-            const file = new File([blob], 'INSCAPE_framed.png', { type: 'image/png' });
-            if (navigator.canShare && navigator.canShare({ files: [file] })) {
-              await navigator.share({
-                files: [file],
-                title: 'INSCAPE',
-                text: FRAME_SHARE_TEXT
-              });
-              return;
-            }
-            await navigator.share({
-              title: 'INSCAPE',
-              text: FRAME_SHARE_TEXT,
-              url: window.location.href
-            });
-            return;
-          }
-        } catch (err) {
-          if (err.name !== 'AbortError') console.warn('シェアに失敗:', err);
-        }
-        window.open(frameTweet.href, '_blank', 'noopener,noreferrer');
-      }
-
       // キャンバス全体（上下左右）にダイナミックに散らす
       function randomSplashPosition(w, h, splashMeta) {
-        const half = splashMeta.baseSize * splashMeta.scaleFactor * 0.5;
+        const half = getSplashMetaHalfExtent(splashMeta);
         const padX = Math.max(8, Math.min(half * 0.18, w * 0.06));
         const padY = Math.max(8, Math.min(half * 0.18, h * 0.06));
         return {
@@ -3187,9 +3024,8 @@
 
       function updateUIState() {
         if (applyDailyLockUI()) return;
-        wordInput.disabled = false;
-        if (colorMagnifier) colorMagnifier.disabled = false;
-        colorWheelHost.classList.remove('disabled');
+        wordInput.disabled = isDiarySubmitting;
+        setEmotionPaletteDisabled(isDiarySubmitting);
         updateCanvasSubmitHint();
       }
 
@@ -3792,9 +3628,11 @@
 
       function drawDrip(splash, w, h, targetCtx) {
         if (!splash.drip || splash.drip.length <= 0.5) return;
-        const stamp = createColorStamp(splash.color);
+        const stamp = getSplashStamp(splash);
         if (!stamp) return;
         const c = targetCtx || ctx;
+        const primary = normalizeSplashHex(splash.color1 || splash.color);
+        if (!primary) return;
 
         const cx = splash.nx * w;
         const cy = splash.ny * h;
@@ -3803,38 +3641,64 @@
         const originY = cy + drip.offsetY;
         const dripH = drip.length;
         const dripW = drip.width;
+        const weightBoost = splash.weight ? 0.9 + (splash.weight - 1) * 0.2 : 1;
 
         c.save();
         c.translate(originX, originY);
-        c.globalAlpha = (splash.opacity ?? 1) * 0.88;
+        c.globalAlpha = (splash.opacity ?? 1) * 0.88 * weightBoost;
         c.globalCompositeOperation = 'multiply';
         c.drawImage(stamp, -dripW / 2, 0, dripW, dripH);
         c.globalCompositeOperation = 'source-over';
-        c.globalAlpha = (splash.opacity ?? 1) * 0.55;
-        c.fillStyle = splash.color;
+        c.globalAlpha = (splash.opacity ?? 1) * 0.55 * weightBoost;
+        c.fillStyle = primary;
         c.fillRect(-dripW * 0.35, dripH * 0.85, dripW * 0.7, dripH * 0.15);
         c.restore();
         c.globalCompositeOperation = 'source-over';
       }
 
+      function drawSplatterStamp(c, stamp, size, alpha, pattern) {
+        const p = pattern ?? 0;
+        if (p === 1) {
+          c.globalAlpha = alpha;
+          c.drawImage(stamp, -size / 2, -size / 2, size, size);
+          const spur = size * 0.36;
+          const offsets = [[1, 0], [-1, 0], [0, -1], [0.65, 0.65]];
+          offsets.forEach(([dx, dy]) => {
+            c.globalAlpha = alpha * 0.52;
+            c.drawImage(stamp, dx * spur - spur * 0.5, dy * spur - spur * 0.5, spur, spur);
+          });
+          return;
+        }
+        if (p === 2) {
+          const heavy = size * 1.28;
+          c.globalAlpha = alpha * 0.9;
+          c.drawImage(stamp, -heavy / 2, -heavy / 2, heavy, heavy);
+          c.globalAlpha = alpha * 0.42;
+          c.drawImage(stamp, -size / 2, -size / 2, size, size);
+          return;
+        }
+        c.globalAlpha = alpha;
+        c.drawImage(stamp, -size / 2, -size / 2, size, size);
+      }
+
       function drawSplatter(splash, w, h, scale, targetCtx) {
         if (!splatReady) return;
 
-        const stamp = createColorStamp(splash.color);
+        const stamp = getSplashStamp(splash);
         if (!stamp) return;
         const c = targetCtx || ctx;
 
         const cx = splash.nx * w;
         const cy = splash.ny * h;
         const s = scale !== undefined ? scale : 1;
-        const size = splash.baseSize * (splash.scaleFactor || 1) * s;
+        const size = resolveSplashDrawSizePx(splash) * s;
+        const alpha = splash.opacity ?? CHARGE_OPACITY_MAX;
 
         c.save();
         c.translate(cx, cy);
         c.rotate(splash.rotation || 0);
-        c.globalAlpha = splash.opacity ?? 1;
         c.globalCompositeOperation = 'multiply';
-        c.drawImage(stamp, -size / 2, -size / 2, size, size);
+        drawSplatterStamp(c, stamp, size, alpha, splash.splashPattern ?? 0);
         c.restore();
         c.globalCompositeOperation = 'source-over';
       }
@@ -3955,7 +3819,7 @@
       }
 
       function clampTapPosition(x, y, w, h, splashMeta) {
-        const half = splashMeta.baseSize * (splashMeta.scaleFactor || 1) * 0.5;
+        const half = getSplashMetaHalfExtent(splashMeta);
         const pad = Math.max(8, half * 0.2);
         return {
           x: Math.max(pad, Math.min(w - pad, x)),
@@ -3963,8 +3827,81 @@
         };
       }
 
+      function commitInkLanding(savedWord, payload) {
+        const pickedColor = normalizeSplashHex(payload.color);
+        if (!pickedColor || isDiarySubmitting) return;
+
+        onUserActivity();
+        ensureAudio();
+        isDiarySubmitting = true;
+        wordInput.disabled = true;
+        setEmotionPaletteDisabled(true);
+        fadeOutLandingUI();
+
+        ensureSplatLoaded().then(() => {
+          const w = canvas.clientWidth;
+          const h = canvas.clientHeight;
+          const splashMeta = createSplashData(payload.progress, payload.opacity, w, h);
+          const pos = randomSplashPosition(w, h, splashMeta);
+
+          vibrate();
+          playBeep();
+          triggerCanvasShake();
+          spawnShockwave(pos.x, pos.y);
+
+          const splash = {
+            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
+            nx: pos.x / w,
+            ny: pos.y / h,
+            word: savedWord,
+            timestamp: Date.now(),
+            ...splashMeta
+          };
+          applyColorToSplash(splash, pickedColor);
+
+          initDrip(splash);
+          splashes.push(splash);
+          const now = Date.now();
+          splashes = splashes
+            .filter(s => now - s.timestamp < RETENTION_MS)
+            .slice(-MAX_ENTRIES);
+          saveSplashes();
+          syncHistoriesFromSplashes();
+          appendDiaryColorLog(savedWord, pickedColor, splash.timestamp);
+          wordInput.value = '';
+
+          animateSplash(splash, w, h, () => {
+            redrawCanvas();
+            refreshCanvasExportSnapshot();
+            ensureAmbientLoop();
+            saveGallerySnapshot();
+            if (getGalleryProgress().ready) {
+              updateFrameButtonState();
+            } else {
+              scheduleZenAfterImpact();
+            }
+            isDiarySubmitting = false;
+            applyDailyLockUI();
+            updateUIState();
+            if (hasReachedWeekDiagnosisThreshold()) {
+              setTimeout(() => {
+                saveCompletedArtworkToGallery().catch((err) => {
+                  console.warn('回廊への保存に失敗:', err);
+                });
+              }, 520);
+            }
+          });
+        }).catch((err) => {
+          console.error(err);
+          isDiarySubmitting = false;
+          if (midPanel) midPanel.classList.remove('is-ui-fading');
+          if (emotionPalette) emotionPalette.classList.remove('is-ui-fading');
+          updateUIState();
+        });
+      }
+
       function canSubmitDiaryNow() {
-        return !hasPostedToday() && !isDiarySubmitting && !!wordInput.value.trim();
+        return false;
       }
 
       function isCanvasDirectTarget(e) {
@@ -4002,94 +3939,16 @@
       function handleCanvasTapAt(coords, e) {
         spawnTapRipple(coords.x, coords.y);
 
-        if (hasPostedToday()) {
+        if (hasReachedSplashLimit()) {
           const s = findSplashAt(coords.x, coords.y);
           if (s) showTooltip(s, coords.clientX, coords.clientY);
           else hideTooltip();
           return;
         }
 
-        if (canSubmitDiaryNow()) {
-          if (e && e.cancelable) e.preventDefault();
-          lastCanvasTapHandledAt = Date.now();
-          submitDiaryAtCanvasTap(coords.x, coords.y);
-          return;
-        }
-
         const s = findSplashAt(coords.x, coords.y);
         if (s) showTooltip(s, coords.clientX, coords.clientY);
         else hideTooltip();
-      }
-
-      function submitDiaryAtCanvasTap(tapX, tapY) {
-        if (hasPostedToday() || isDiarySubmitting) return;
-
-        const word = wordInput.value.trim();
-        if (!word) return;
-
-        onUserActivity();
-        ensureAudio();
-        const savedWord = word;
-        isDiarySubmitting = true;
-        updateCanvasSubmitHint();
-
-        animateWordSuckIn(savedWord, () => {
-          animateBlackHoleCondense(savedWord, selectedColor, (startX, startY, ballEl) => {
-            ensureSplatLoaded().then(() => {
-              const w = canvas.clientWidth;
-              const h = canvas.clientHeight;
-              const splashMeta = createSplashData(savedWord.length);
-              const pos = clampTapPosition(tapX, tapY, w, h, splashMeta);
-              const canvasRect = canvas.getBoundingClientRect();
-              const targetX = canvasRect.left + pos.x;
-              const targetY = canvasRect.top + pos.y;
-
-              launchPaintBall(startX, startY, targetX, targetY, selectedColor, () => {
-                vibrate();
-                playBeep();
-                triggerCanvasShake();
-                spawnShockwave(pos.x, pos.y);
-
-                const splash = {
-                  id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-                  nx: pos.x / w,
-                  ny: pos.y / h,
-                  color: selectedColor,
-                  word: savedWord,
-                  timestamp: Date.now(),
-                  ...splashMeta
-                };
-
-                initDrip(splash);
-                splashes.push(splash);
-                const now = Date.now();
-                splashes = splashes
-                  .filter(s => now - s.timestamp < RETENTION_MS)
-                  .slice(-MAX_ENTRIES);
-                saveSplashes();
-                lockDiaryForToday();
-
-                animateSplash(splash, w, h, () => {
-                  redrawCanvas();
-                  refreshCanvasExportSnapshot();
-                  ensureAmbientLoop();
-                  saveGallerySnapshot();
-                  if (getGalleryProgress().ready) {
-                    updateFrameButtonState();
-                  } else {
-                    scheduleZenAfterImpact();
-                  }
-                  isDiarySubmitting = false;
-                  applyDailyLockUI();
-                });
-              }, ballEl);
-            }).catch((err) => {
-              console.error(err);
-              isDiarySubmitting = false;
-              updateUIState();
-            });
-          });
-        });
       }
 
       function formatDate(ts) {
@@ -4171,7 +4030,7 @@
           id: touch.identifier
         };
 
-        if (canSubmitDiaryNow() || hasPostedToday()) {
+        if (canSubmitDiaryNow() || hasReachedSplashLimit()) {
           if (canSubmitDiaryNow() && document.activeElement === wordInput) {
             wordInput.blur();
           }
@@ -4191,7 +4050,7 @@
         canvasTouchStart = null;
 
         if (moved > 16 || elapsed > 700) {
-          if (hasPostedToday()) setTimeout(hideTooltip, 1800);
+          if (hasReachedSplashLimit()) setTimeout(hideTooltip, 1800);
           return;
         }
 
@@ -4203,59 +4062,6 @@
         canvasTouchStart = null;
       }, { passive: true });
 
-      if (colorMagnifier) {
-        colorMagnifier.addEventListener('click', (e) => {
-          e.stopPropagation();
-          if (colorMagnifier.disabled) return;
-          if (wheelOpen) closeColorWheel();
-          else openColorWheel();
-        });
-      }
-
-      if (window.matchMedia('(hover: hover)').matches && colorMagnifier) {
-        colorMagnifier.addEventListener('mouseenter', () => {
-          if (!colorMagnifier.disabled && !wheelOpen) openColorWheel();
-        });
-      }
-
-      wheelCanvas.addEventListener('pointerdown', (e) => {
-        if (!wheelOpen) return;
-        e.preventDefault();
-        wheelPicking = true;
-        wheelCanvas.setPointerCapture(e.pointerId);
-        pickColorAt(e.clientX, e.clientY, false);
-      });
-
-      wheelCanvas.addEventListener('pointermove', (e) => {
-        if (!wheelPicking) return;
-        pickColorAt(e.clientX, e.clientY, false);
-      });
-
-      function finishWheelPick(e) {
-        if (!wheelPicking) return;
-        wheelPicking = false;
-        if (wheelCanvas.hasPointerCapture(e.pointerId)) {
-          wheelCanvas.releasePointerCapture(e.pointerId);
-        }
-        pickColorAt(e.clientX, e.clientY, true);
-        closeColorWheel();
-      }
-
-      wheelCanvas.addEventListener('pointerup', finishWheelPick);
-
-      wheelCanvas.addEventListener('pointercancel', (e) => {
-        wheelPicking = false;
-        if (wheelCanvas.hasPointerCapture(e.pointerId)) {
-          wheelCanvas.releasePointerCapture(e.pointerId);
-        }
-      });
-
-      wheelOverlay.addEventListener('click', (e) => {
-        if (!wheelOpen || wheelPicking) return;
-        if (e.target === wheelBackdrop) closeColorWheel();
-      });
-
-
       wordInput.addEventListener('input', () => {
         onUserActivity();
         updateUIState();
@@ -4266,15 +4072,6 @@
           wordInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
         }, 320);
       });
-
-      if (releaseShareBtn) {
-        releaseShareBtn.addEventListener('click', (e) => {
-          e.stopPropagation();
-          releaseIncompleteShare();
-        });
-      }
-
-      bindSavePreview();
 
       document.addEventListener('mousemove', onUserActivity, { passive: true });
       document.addEventListener('touchstart', onUserActivity, { passive: true });
@@ -4289,13 +4086,12 @@
       saveSplashes();
       if (!loadHistoryRecipes().length && splashes.length) {
         syncHistoriesFromSplashes();
+      } else if (splashes.length) {
+        syncHistoriesFromSplashes();
       }
       loadSplatImage().catch(() => {});
-      buildColorWheel();
-      buildEmotionSwatches();
-      bindColorControls();
-      applySelectedColor(selectedColor);
-      updateWheelPreviewColor(selectedColor);
+      loadFabricImage().catch(() => {});
+      buildEmotionPalette();
       resizeCanvas();
       requestAnimationFrame(() => {
         resizeCanvas();
@@ -4305,14 +4101,6 @@
       updateUIState();
       updateFrameButtonState();
       bindFrameButtonClick();
-
-      document.addEventListener('keydown', (e) => {
-        if (e.key !== 'Escape') return;
-        const saveOverlay = document.getElementById('savePreviewOverlay');
-        if (saveOverlay && saveOverlay.classList.contains('active')) {
-          closeSavePreview();
-        }
-      });
 
       document.addEventListener('touchstart', () => { ensureAudio(); }, { once: true });
       document.addEventListener('click', () => { ensureAudio(); }, { once: true });
