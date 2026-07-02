@@ -22,6 +22,9 @@
       --gold-antique: #b8860b;
       --wood-walnut: #1c110a;
       --canvas-fabric-url: url('canvas-fabric.png');
+      --canvas-portrait-w: 270px;
+      --canvas-portrait-h: 480px;
+      --canvas-portrait-ratio: 9 / 16;
     }
 
     html, body {
@@ -177,7 +180,7 @@
     .gallery-item {
       flex-shrink: 0;
       width: auto;
-      max-width: min(92vw, 300px);
+      max-width: min(94vw, calc(var(--canvas-portrait-w) + 4.5rem));
       height: auto;
       margin: 0 auto;
       text-align: center;
@@ -235,11 +238,12 @@
     .museum-frame-sculpted {
       position: relative;
       box-sizing: border-box;
-      width: 100%;
+      display: inline-block;
+      width: fit-content;
       max-width: 100%;
       height: auto;
       margin: 0 auto;
-      padding: 28px 22px 32px;
+      padding: 12px;
       background: #ffffff;
       border: 20px solid #1c110a;
       border-top-color: #f3e5ab;
@@ -268,16 +272,17 @@
 
     .art-surface {
       position: relative;
-      width: 100%;
+      display: block;
+      width: var(--canvas-portrait-w);
+      max-width: 100%;
       height: auto;
-      max-width: 270px;
-      aspect-ratio: 9 / 16;
+      aspect-ratio: var(--canvas-portrait-ratio);
       margin: 0 auto;
+      padding: 0;
       overflow: hidden;
       z-index: 2;
       line-height: 0;
       font-size: 0;
-      padding: 0;
       background-color: #ffffff;
       background-image: none;
       opacity: 1;
@@ -286,17 +291,21 @@
 
     .art-surface--snapshot {
       background-color: #ffffff;
-      background-image: none;
     }
 
     .gallery-art-image {
       display: block;
-      width: 100%;
-      height: 100%;
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+      max-height: none !important;
       object-fit: contain;
       object-position: center;
-      vertical-align: top;
-      position: relative;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      box-sizing: border-box;
       z-index: 1;
       background: #ffffff;
       box-shadow: none;
@@ -306,10 +315,15 @@
 
     .gallery-art-canvas {
       display: block;
-      width: 100%;
-      height: 100%;
-      vertical-align: top;
-      position: relative;
+      position: absolute;
+      inset: 0;
+      width: 100% !important;
+      height: 100% !important;
+      max-width: none !important;
+      max-height: none !important;
+      margin: 0 auto !important;
+      padding: 0 !important;
+      box-sizing: border-box;
       z-index: 1;
       background: #ffffff !important;
       background-image: none !important;
@@ -368,7 +382,7 @@
     }
 
     .gallery-item .museum-wall-display {
-      padding: 1.75rem 0.65rem 1.25rem;
+      padding: 1.5rem 0.5rem 1.1rem;
       background:
         radial-gradient(circle at 50% 10%, rgba(255, 255, 255, 0.14) 0%, rgba(0, 0, 0, 0) 68%),
         radial-gradient(ellipse 85% 48% at 50% -5%, rgba(255, 252, 240, 0.07) 0%, transparent 52%),
@@ -516,7 +530,7 @@
     .modal-content {
       position: relative;
       z-index: 3;
-      width: min(90vw, 400px);
+      width: min(92vw, calc(var(--canvas-portrait-w) + 6rem));
       max-height: min(
         90dvh,
         calc(100dvh - 3.5rem - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px))
@@ -755,6 +769,93 @@
     .modal-content .save-art-btn {
       color: rgba(232, 230, 226, 0.82);
     }
+
+    .save-preview-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10060;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding:
+        calc(0.85rem + env(safe-area-inset-top))
+        calc(0.85rem + env(safe-area-inset-right))
+        calc(0.85rem + env(safe-area-inset-bottom))
+        calc(0.85rem + env(safe-area-inset-left));
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 45%, rgba(20, 18, 16, 0.97) 0%, rgba(3, 3, 4, 0.98) 100%);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    .save-preview-overlay.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .save-preview-panel {
+      position: relative;
+      width: min(92vw, calc(var(--canvas-portrait-w) + 2rem));
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translateY(18px) scale(0.96);
+      opacity: 0;
+      transition: transform 0.55s cubic-bezier(0.34, 1.15, 0.64, 1), opacity 0.45s ease;
+    }
+
+    .save-preview-overlay.active .save-preview-panel {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .save-preview-close {
+      align-self: flex-end;
+      margin-bottom: 0.85rem;
+      font-size: 0.48rem;
+      letter-spacing: 0.18em;
+      color: rgba(232, 230, 226, 0.32);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.45rem 0.5rem;
+    }
+
+    .save-preview-hint {
+      width: 100%;
+      margin-bottom: 1rem;
+      text-align: center;
+      font-size: 0.58rem;
+      font-weight: 300;
+      line-height: 2;
+      letter-spacing: 0.12em;
+      color: rgba(201, 169, 98, 0.62);
+    }
+
+    .save-preview-image-wrap {
+      width: 100%;
+      aspect-ratio: var(--canvas-portrait-ratio);
+      max-height: min(72vh, calc(92vw * 16 / 9));
+      border-radius: 2px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
+      background: #0a0a0a;
+    }
+
+    .save-preview-image-wrap img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      -webkit-touch-callout: default;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 </head>
@@ -788,8 +889,6 @@
       const CANVAS_BG = '#f7f4eb';
       const DEFAULT_CANVAS_W = 270;
       const DEFAULT_CANVAS_H = 480;
-      const LEGACY_CANVAS_W = 400;
-      const LEGACY_CANVAS_H = 300;
       const EXPORT_W = 1080;
       const EXPORT_H = 1920;
       const MAX_WORD_ENTRIES = 7;
@@ -1275,62 +1374,28 @@
         c.globalCompositeOperation = 'source-over';
       }
 
-      function getLegacyArtDimensions(item) {
-        let legacyW = item && item.canvasW > 0 ? Math.round(item.canvasW) : 0;
-        let legacyH = item && item.canvasH > 0 ? Math.round(item.canvasH) : 0;
-        if (!legacyW || !legacyH) {
-          legacyW = LEGACY_CANVAS_W;
-          legacyH = LEGACY_CANVAS_H;
-        }
-        return { legacyW, legacyH };
-      }
-
-      function getArtDimensions(item) {
-        return { srcW: DEFAULT_CANVAS_W, srcH: DEFAULT_CANVAS_H };
-      }
-
-      function isPortrait916(w, h) {
-        if (!w || !h) return false;
-        return Math.abs((w / h) - (DEFAULT_CANVAS_W / DEFAULT_CANVAS_H)) < 0.04;
-      }
-
-      function applyArtSurfaceAspect(surface, item) {
-        if (!surface || !item) return;
-        const aspectW = item.canvasW > 0 ? item.canvasW : DEFAULT_CANVAS_W;
-        const aspectH = item.canvasH > 0 ? item.canvasH : DEFAULT_CANVAS_H;
-        surface.style.aspectRatio = `${aspectW} / ${aspectH}`;
-      }
-
-      function applyGalleryAgeingFilter(artEl, surface, index) {
-        if (surface) {
-          surface.style.backgroundColor = '#ffffff';
-          surface.style.backgroundImage = 'none';
-          surface.style.opacity = '1';
-        }
+      function applyGalleryAgeingFilter(artEl, index) {
         if (!artEl) return;
-        artEl.style.opacity = '1';
-        artEl.style.boxShadow = 'none';
-        if (typeof index !== 'number' || index < 0) {
-          artEl.style.filter = 'none';
-          return;
-        }
-        if (index < 4) {
-          artEl.style.filter = 'none';
-        } else if (index === 4) {
+        if (index === 4) {
           artEl.style.filter = 'sepia(0.15) brightness(0.98) contrast(1.0)';
         } else if (index === 5) {
           artEl.style.filter = 'sepia(0.3) brightness(0.95) contrast(0.95)';
-        } else {
+        } else if (index >= 6) {
           artEl.style.filter = 'sepia(0.5) brightness(0.88) contrast(0.9)';
+        } else {
+          artEl.style.filter = 'none';
         }
+      }
+
+      function syncSnapshotAspect(surface, img) {
+        const w = img.naturalWidth || 0;
+        const h = img.naturalHeight || 0;
+        if (!surface || !w || !h || h <= w) return;
+        surface.style.aspectRatio = `${w} / ${h}`;
       }
 
       function mountArtworkSurface(surface, item, displayIndex) {
         if (!surface) return null;
-        applyArtSurfaceAspect(surface, item);
-        surface.style.backgroundColor = '#ffffff';
-        surface.style.backgroundImage = 'none';
-        surface.style.opacity = '1';
 
         let artEl;
         if (item.artworkImageDataUrl) {
@@ -1339,8 +1404,12 @@
           img.className = 'gallery-art-image';
           img.src = item.artworkImageDataUrl;
           img.alt = '';
-          img.decoding = 'async';
           img.draggable = false;
+          if (img.complete) {
+            syncSnapshotAspect(surface, img);
+          } else {
+            img.addEventListener('load', () => syncSnapshotAspect(surface, img), { once: true });
+          }
           surface.appendChild(img);
           artEl = img;
         } else {
@@ -1352,20 +1421,19 @@
         }
 
         if (typeof displayIndex === 'number') {
-          applyGalleryAgeingFilter(artEl, surface, displayIndex);
+          applyGalleryAgeingFilter(artEl, displayIndex);
         }
         return artEl;
       }
 
       function renderRecipeToCanvas(canvasEl, splats, item) {
-        const { legacyW, legacyH } = getLegacyArtDimensions(item);
-        const targetW = legacyW;
-        const targetH = legacyH;
+        const targetW = DEFAULT_CANVAS_W;
+        const targetH = DEFAULT_CANVAS_H;
+        const srcW = item && item.canvasW > 0 ? Math.round(item.canvasW) : targetW;
+        const srcH = item && item.canvasH > 0 ? Math.round(item.canvasH) : targetH;
         const dpr = window.devicePixelRatio || 1;
         canvasEl.width = Math.round(targetW * dpr);
         canvasEl.height = Math.round(targetH * dpr);
-        canvasEl.style.width = '100%';
-        canvasEl.style.height = '100%';
 
         const c = canvasEl.getContext('2d');
         c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1377,23 +1445,20 @@
           return;
         }
 
-        const needsRemap = !isPortrait916(legacyW, legacyH) ||
-          legacyW !== DEFAULT_CANVAS_W || legacyH !== DEFAULT_CANVAS_H;
-
-        if (!needsRemap) {
+        if (srcW === targetW && srcH === targetH) {
           splats.map(migrateSplash).forEach((splash) => {
             drawSplatter(c, splash, targetW, targetH);
           });
         } else {
           const off = document.createElement('canvas');
-          off.width = legacyW;
-          off.height = legacyH;
+          off.width = srcW;
+          off.height = srcH;
           const offCtx = off.getContext('2d');
-          drawCanvasFabricBase(offCtx, legacyW, legacyH, fabricImage);
+          drawCanvasFabricBase(offCtx, srcW, srcH, fabricImage);
           splats.map(migrateSplash).forEach((splash) => {
-            drawSplatter(offCtx, splash, legacyW, legacyH);
+            drawSplatter(offCtx, splash, srcW, srcH);
           });
-          drawCanvasFabricOverlay(offCtx, legacyW, legacyH, fabricImage);
+          drawCanvasFabricOverlay(offCtx, srcW, srcH, fabricImage);
           c.drawImage(off, 0, 0, targetW, targetH);
           return;
         }
@@ -1685,83 +1750,60 @@
         return `${a} - ${b}`;
       }
 
-      function parseDotDate(dotDate) {
-        const matched = String(dotDate || '').match(/(\d{4})\.(\d{2})\.(\d{2})/);
-        if (!matched) return null;
-        const d = new Date(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3]));
-        return Number.isNaN(d.getTime()) ? null : d;
-      }
+      function computeArtworkPeriodCaption(item) {
+        let startStr = '';
+        let endStr = '';
 
-      function inferArtworkWeekPeriod(endDate) {
-        if (!endDate || Number.isNaN(endDate.getTime())) return null;
-        const start = new Date(endDate);
-        start.setDate(start.getDate() - 6);
-        return {
-          startStr: formatDotDate(start),
-          endStr: formatDotDate(endDate)
-        };
-      }
-
-      function finalizePeriodCaption(startStr, endStr, item) {
-        const compact = formatCompactPeriod(startStr, endStr);
-        if (compact.includes(' - ')) return compact;
-
-        const splats = getSplatsFromItem(item);
-        const isWeekArtwork = splats.length >= 7
-          || (Array.isArray(item.history) && item.history.length >= 7)
-          || !!item.completedAt;
-        if (!isWeekArtwork) return compact;
-
-        let endDate = parseDotDate(endStr) || parseDotDate(startStr);
-        if (!endDate && item.completedAt) endDate = new Date(item.completedAt);
-        if (!endDate) {
+        if (item.periodStart && item.periodEnd) {
+          startStr = item.periodStart;
+          endStr = item.periodEnd;
+        } else if (item.period) {
+          const parts = String(item.period).split(' - ').map((s) => s.trim());
+          startStr = parts[0] || '';
+          endStr = parts[1] || parts[0] || '';
+        } else {
+          const splats = getSplatsFromItem(item);
           const stamps = splats
             .map((s) => Number(s.timestamp) || 0)
-            .filter((t) => t > 0);
-          if (stamps.length) endDate = new Date(Math.max(...stamps));
+            .filter((t) => t > 0)
+            .sort((a, b) => a - b);
+          if (stamps.length) {
+            startStr = formatDotDate(new Date(stamps[0]));
+            endStr = formatDotDate(new Date(stamps[stamps.length - 1]));
+          } else {
+            const history = resolveArtworkHistory(item);
+            const dates = history
+              .map(parseHistoryEntryToDate)
+              .filter(Boolean)
+              .sort((a, b) => a.getTime() - b.getTime());
+            if (dates.length) {
+              startStr = formatDotDate(dates[0]);
+              endStr = formatDotDate(dates[dates.length - 1]);
+            } else {
+              const fallback = parseHistoryEntryToDate({ date: item.date, timestamp: item.completedAt || 0 });
+              if (fallback) {
+                startStr = formatDotDate(fallback);
+                endStr = startStr;
+              }
+            }
+          }
         }
 
-        const inferred = inferArtworkWeekPeriod(endDate);
-        return inferred ? formatCompactPeriod(inferred.startStr, inferred.endStr) : compact;
-      }
-
-      function computeArtworkPeriodCaption(item) {
-        if (item.periodStart && item.periodEnd) {
-          return finalizePeriodCaption(item.periodStart, item.periodEnd, item);
-        }
-        if (item.period) {
-          const parts = String(item.period).split(' - ').map((s) => s.trim());
-          if (parts.length === 2) return finalizePeriodCaption(parts[0], parts[1], item);
-          return finalizePeriodCaption(parts[0], parts[0], item);
-        }
+        let caption = formatCompactPeriod(startStr, endStr);
+        if (caption.includes(' - ')) return caption;
 
         const splats = getSplatsFromItem(item);
-        const stamps = splats
-          .map((s) => Number(s.timestamp) || 0)
-          .filter((t) => t > 0)
-          .sort((a, b) => a - b);
-        if (stamps.length) {
-          const startStr = formatDotDate(new Date(stamps[0]));
-          const endStr = formatDotDate(new Date(stamps[stamps.length - 1]));
-          return finalizePeriodCaption(startStr, endStr, item);
-        }
+        if (splats.length < 7 && !item.completedAt) return caption;
 
-        const history = resolveArtworkHistory(item);
-        const dates = history
-          .map(parseHistoryEntryToDate)
-          .filter(Boolean)
-          .sort((a, b) => a.getTime() - b.getTime());
+        const matched = String(endStr || startStr).match(/(\d{4})\.(\d{2})\.(\d{2})/);
+        let endDate = matched
+          ? new Date(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3]))
+          : (item.completedAt ? new Date(item.completedAt) : null);
+        if (!endDate || Number.isNaN(endDate.getTime())) return caption;
 
-        if (dates.length === 0) {
-          const fallback = parseHistoryEntryToDate({ date: item.date, timestamp: item.completedAt || 0 });
-          if (!fallback) return '';
-          const endStr = formatDotDate(fallback);
-          return finalizePeriodCaption(endStr, endStr, item);
-        }
-
-        const startStr = formatDotDate(dates[0]);
-        const endStr = formatDotDate(dates[dates.length - 1]);
-        return finalizePeriodCaption(startStr, endStr, item);
+        const weekStart = new Date(endDate);
+        weekStart.setDate(weekStart.getDate() - 6);
+        return formatCompactPeriod(formatDotDate(weekStart), formatDotDate(endDate));
       }
 
       function createPeriodCaptionElement(item) {
@@ -2034,20 +2076,24 @@
         const galleryItem = item || artwork._galleryItem;
 
         const modalCanvas = modalBody.querySelector('.gallery-art-canvas');
-        const surface = modalBody.querySelector('.art-surface');
-        if (surface && galleryItem) {
-          applyArtSurfaceAspect(surface, galleryItem);
+        const modalSurface = modalBody.querySelector('.art-surface');
+        const modalImg = modalBody.querySelector('.gallery-art-image');
+        if (modalSurface && modalImg) {
+          if (modalImg.complete) {
+            syncSnapshotAspect(modalSurface, modalImg);
+          } else {
+            modalImg.addEventListener('load', () => syncSnapshotAspect(modalSurface, modalImg), { once: true });
+          }
         }
         if (galleryItem && modalCanvas && !galleryItem.artworkImageDataUrl) {
           renderRecipeToCanvas(modalCanvas, getSplatsFromItem(galleryItem), galleryItem);
         }
         const modalArt = modalBody.querySelector('.gallery-art-image, .gallery-art-canvas');
-        const modalSurface = modalBody.querySelector('.art-surface');
         const displayIndex = typeof artwork._displayIndex === 'number'
           ? artwork._displayIndex
           : null;
         if (modalArt && displayIndex !== null) {
-          applyGalleryAgeingFilter(modalArt, modalSurface, displayIndex);
+          applyGalleryAgeingFilter(modalArt, displayIndex);
         }
         const staleOverlay = modalBody.querySelector('.paper-texture-overlay');
         if (staleOverlay) staleOverlay.remove();
