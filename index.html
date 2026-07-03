@@ -1995,14 +1995,35 @@
         return getWeekEntryCount() >= MAX_ENTRIES && splashes.length >= MAX_ENTRIES;
       }
 
+      function getArtworkDiaryDay(ts) {
+        const n = Number(ts);
+        if (!n || n <= 0) return null;
+        const d = new Date(n);
+        if (Number.isNaN(d.getTime())) return null;
+        const shifted = new Date(d.getTime() - (6 * 60 * 60 * 1000));
+        return new Date(shifted.getFullYear(), shifted.getMonth(), shifted.getDate());
+      }
+
+      function collectArtworkDiaryDays(list) {
+        const source = Array.isArray(list) ? list : [];
+        const seen = new Set();
+        const days = [];
+        source.forEach((entry) => {
+          const day = getArtworkDiaryDay(entry && entry.timestamp);
+          if (!day) return;
+          const key = day.getTime();
+          if (seen.has(key)) return;
+          seen.add(key);
+          days.push(day);
+        });
+        days.sort((a, b) => a.getTime() - b.getTime());
+        return days;
+      }
+
       function computeArtworkPeriodFromSplashes(list) {
-        const source = Array.isArray(list) ? list : splashes;
-        const stamps = source
-          .map((s) => Number(s.timestamp) || 0)
-          .filter((t) => t > 0)
-          .sort((a, b) => a - b);
-        const endDate = stamps.length ? new Date(stamps[stamps.length - 1]) : new Date();
-        const startDate = stamps.length ? new Date(stamps[0]) : endDate;
+        const days = collectArtworkDiaryDays(list);
+        const endDate = days.length ? days[days.length - 1] : (getArtworkDiaryDay(Date.now()) || new Date());
+        const startDate = days.length ? days[0] : endDate;
         const periodStart = formatDotDate(startDate);
         const periodEnd = formatDotDate(endDate);
         const period = periodStart === periodEnd ? periodStart : `${periodStart} - ${periodEnd}`;

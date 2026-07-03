@@ -1750,60 +1750,79 @@
         return `${a} - ${b}`;
       }
 
-      function computeArtworkPeriodCaption(item) {
-        let startStr = '';
-        let endStr = '';
+      function getArtworkDiaryDay(ts) {
+        const n = Number(ts);
+        if (!n || n <= 0) return null;
+        const d = new Date(n);
+        if (Number.isNaN(d.getTime())) return null;
+        const shifted = new Date(d.getTime() - (6 * 60 * 60 * 1000));
+        return new Date(shifted.getFullYear(), shifted.getMonth(), shifted.getDate());
+      }
 
-        if (item.periodStart && item.periodEnd) {
-          startStr = item.periodStart;
-          endStr = item.periodEnd;
-        } else if (item.period) {
-          const parts = String(item.period).split(' - ').map((s) => s.trim());
-          startStr = parts[0] || '';
-          endStr = parts[1] || parts[0] || '';
-        } else {
-          const splats = getSplatsFromItem(item);
-          const stamps = splats
-            .map((s) => Number(s.timestamp) || 0)
-            .filter((t) => t > 0)
-            .sort((a, b) => a - b);
-          if (stamps.length) {
-            startStr = formatDotDate(new Date(stamps[0]));
-            endStr = formatDotDate(new Date(stamps[stamps.length - 1]));
-          } else {
-            const history = resolveArtworkHistory(item);
-            const dates = history
-              .map(parseHistoryEntryToDate)
-              .filter(Boolean)
-              .sort((a, b) => a.getTime() - b.getTime());
-            if (dates.length) {
-              startStr = formatDotDate(dates[0]);
-              endStr = formatDotDate(dates[dates.length - 1]);
-            } else {
-              const fallback = parseHistoryEntryToDate({ date: item.date, timestamp: item.completedAt || 0 });
-              if (fallback) {
-                startStr = formatDotDate(fallback);
-                endStr = startStr;
-              }
-            }
-          }
+      function collectArtworkDiaryDays(list) {
+        const source = Array.isArray(list) ? list : [];
+        const seen = new Set();
+        const days = [];
+        source.forEach((entry) => {
+          const day = getArtworkDiaryDay(entry && entry.timestamp);
+          if (!day) return;
+          const key = day.getTime();
+          if (seen.has(key)) return;
+          seen.add(key);
+          days.push(day);
+        });
+        days.sort((a, b) => a.getTime() - b.getTime());
+        return days;
+      }
+
+      function periodCaptionFromDays(days) {
+        if (!days.length) return '';
+        const startStr = formatDotDate(days[0]);
+        const endStr = formatDotDate(days[days.length - 1]);
+        return formatCompactPeriod(startStr, endStr);
+      }
+
+      function computeArtworkPeriodCaption(item) {
+        const splats = getSplatsFromItem(item);
+        const daysFromSplats = collectArtworkDiaryDays(splats);
+        if (daysFromSplats.length) {
+          return periodCaptionFromDays(daysFromSplats);
         }
 
-        let caption = formatCompactPeriod(startStr, endStr);
-        if (caption.includes(' - ')) return caption;
+        if (item.periodStart && item.periodEnd) {
+          return formatCompactPeriod(item.periodStart, item.periodEnd);
+        }
+        if (item.period) {
+          const parts = String(item.period).split(' - ').map((s) => s.trim());
+          if (parts.length === 2) return formatCompactPeriod(parts[0], parts[1]);
+          return compactDotDate(parts[0]);
+        }
 
-        const splats = getSplatsFromItem(item);
-        if (splats.length < 7 && !item.completedAt) return caption;
+        const history = resolveArtworkHistory(item);
+        const historyDays = [];
+        const seenHistoryDays = new Set();
+        history.forEach((entry) => {
+          const parsed = parseHistoryEntryToDate(entry);
+          if (!parsed) return;
+          const day = getArtworkDiaryDay(parsed.getTime());
+          if (!day) return;
+          const key = day.getTime();
+          if (seenHistoryDays.has(key)) return;
+          seenHistoryDays.add(key);
+          historyDays.push(day);
+        });
+        historyDays.sort((a, b) => a.getTime() - b.getTime());
+        if (historyDays.length) {
+          return periodCaptionFromDays(historyDays);
+        }
 
-        const matched = String(endStr || startStr).match(/(\d{4})\.(\d{2})\.(\d{2})/);
-        let endDate = matched
-          ? new Date(Number(matched[1]), Number(matched[2]) - 1, Number(matched[3]))
-          : (item.completedAt ? new Date(item.completedAt) : null);
-        if (!endDate || Number.isNaN(endDate.getTime())) return caption;
+        if (item.completedAt) {
+          const completedDay = getArtworkDiaryDay(item.completedAt);
+          if (completedDay) return compactDotDate(formatDotDate(completedDay));
+        }
 
-        const weekStart = new Date(endDate);
-        weekStart.setDate(weekStart.getDate() - 6);
-        return formatCompactPeriod(formatDotDate(weekStart), formatDotDate(endDate));
+        const fallback = parseHistoryEntryToDate({ date: item.date, timestamp: item.completedAt || 0 });
+        return fallback ? compactDotDate(formatDotDate(fallback)) : '';
       }
 
       function createPeriodCaptionElement(item) {
@@ -1873,7 +1892,7 @@
           return splats.map((s, i) => mapHistoryEntry({
             word: s.word || '',
             color: s.color,
-            timestamp: s.timestamp || i,
+            timestamp: Number(s.timestamp) > 0 ? Number(s.timestamp) : 0,
             date: formatHistoryDate(s.timestamp, item.date || '')
           }, item.date)).filter((e) => e.color);
         }
