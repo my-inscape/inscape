@@ -283,14 +283,14 @@
       z-index: 2;
       line-height: 0;
       font-size: 0;
-      background-color: #ffffff;
+      background-color: #f7f4eb;
       background-image: none;
       opacity: 1;
       isolation: isolate;
     }
 
     .art-surface--snapshot {
-      background-color: #ffffff;
+      background-color: #f7f4eb;
     }
 
     .gallery-art-image {
@@ -307,10 +307,9 @@
       padding: 0 !important;
       box-sizing: border-box;
       z-index: 1;
-      background: #ffffff;
+      background: #f7f4eb;
       box-shadow: none;
       opacity: 1;
-      transition: filter 0.85s ease;
     }
 
     .gallery-art-canvas {
@@ -325,11 +324,10 @@
       padding: 0 !important;
       box-sizing: border-box;
       z-index: 1;
-      background: #ffffff !important;
+      background: #f7f4eb !important;
       background-image: none !important;
       box-shadow: none;
       opacity: 1;
-      transition: filter 0.85s ease;
     }
 
     .art-period-caption {
@@ -1290,6 +1288,12 @@
         targetCtx.restore();
       }
 
+      function drawCanvasBackgroundOnly(targetCtx, w, h) {
+        targetCtx.globalCompositeOperation = 'source-over';
+        targetCtx.fillStyle = CANVAS_BG;
+        targetCtx.fillRect(0, 0, w, h);
+      }
+
       function drawCanvasFabricBase(targetCtx, w, h, fabricImage) {
         targetCtx.globalCompositeOperation = 'source-over';
         targetCtx.fillStyle = CANVAS_BG;
@@ -1374,19 +1378,6 @@
         c.globalCompositeOperation = 'source-over';
       }
 
-      function applyGalleryAgeingFilter(artEl, index) {
-        if (!artEl) return;
-        if (index === 4) {
-          artEl.style.filter = 'sepia(0.15) brightness(0.98) contrast(1.0)';
-        } else if (index === 5) {
-          artEl.style.filter = 'sepia(0.3) brightness(0.95) contrast(0.95)';
-        } else if (index >= 6) {
-          artEl.style.filter = 'sepia(0.5) brightness(0.88) contrast(0.9)';
-        } else {
-          artEl.style.filter = 'none';
-        }
-      }
-
       function syncSnapshotAspect(surface, img) {
         const w = img.naturalWidth || 0;
         const h = img.naturalHeight || 0;
@@ -1394,7 +1385,7 @@
         surface.style.aspectRatio = `${w} / ${h}`;
       }
 
-      function mountArtworkSurface(surface, item, displayIndex) {
+      function mountArtworkSurface(surface, item) {
         if (!surface) return null;
 
         let artEl;
@@ -1420,9 +1411,6 @@
           artEl = artCanvas;
         }
 
-        if (typeof displayIndex === 'number') {
-          applyGalleryAgeingFilter(artEl, displayIndex);
-        }
         return artEl;
       }
 
@@ -1438,32 +1426,32 @@
         const c = canvasEl.getContext('2d');
         c.setTransform(dpr, 0, 0, dpr, 0, 0);
         const fabricImage = fabricReady && fabricImg.naturalWidth > 0 ? fabricImg : null;
-        drawCanvasFabricBase(c, targetW, targetH, fabricImage);
 
         if (!Array.isArray(splats) || !splats.length) {
+          drawCanvasBackgroundOnly(c, targetW, targetH);
           drawCanvasFabricOverlay(c, targetW, targetH, fabricImage);
           return;
         }
 
         if (srcW === targetW && srcH === targetH) {
+          drawCanvasBackgroundOnly(c, targetW, targetH);
           splats.map(migrateSplash).forEach((splash) => {
             drawSplatter(c, splash, targetW, targetH);
           });
-        } else {
-          const off = document.createElement('canvas');
-          off.width = srcW;
-          off.height = srcH;
-          const offCtx = off.getContext('2d');
-          drawCanvasFabricBase(offCtx, srcW, srcH, fabricImage);
-          splats.map(migrateSplash).forEach((splash) => {
-            drawSplatter(offCtx, splash, srcW, srcH);
-          });
-          drawCanvasFabricOverlay(offCtx, srcW, srcH, fabricImage);
-          c.drawImage(off, 0, 0, targetW, targetH);
+          drawCanvasFabricOverlay(c, targetW, targetH, fabricImage);
           return;
         }
 
-        drawCanvasFabricOverlay(c, targetW, targetH, fabricImage);
+        const off = document.createElement('canvas');
+        off.width = srcW;
+        off.height = srcH;
+        const offCtx = off.getContext('2d');
+        drawCanvasBackgroundOnly(offCtx, srcW, srcH);
+        splats.map(migrateSplash).forEach((splash) => {
+          drawSplatter(offCtx, splash, srcW, srcH);
+        });
+        drawCanvasFabricOverlay(offCtx, srcW, srcH, fabricImage);
+        c.drawImage(off, 0, 0, targetW, targetH);
       }
 
       function loadGallery() {
@@ -1833,7 +1821,7 @@
         return caption;
       }
 
-      function createFramedArtwork(item, displayIndex) {
+      function createFramedArtwork(item) {
         const artWrapper = document.createElement('div');
         artWrapper.className = 'gallery-item';
 
@@ -1846,7 +1834,7 @@
         const surface = document.createElement('div');
         surface.className = 'art-surface';
 
-        mountArtworkSurface(surface, item, displayIndex);
+        mountArtworkSurface(surface, item);
         sculpted.appendChild(surface);
         wallDisplay.appendChild(sculpted);
         wallDisplay.appendChild(createPeriodCaptionElement(item));
@@ -2107,13 +2095,6 @@
         if (galleryItem && modalCanvas && !galleryItem.artworkImageDataUrl) {
           renderRecipeToCanvas(modalCanvas, getSplatsFromItem(galleryItem), galleryItem);
         }
-        const modalArt = modalBody.querySelector('.gallery-art-image, .gallery-art-canvas');
-        const displayIndex = typeof artwork._displayIndex === 'number'
-          ? artwork._displayIndex
-          : null;
-        if (modalArt && displayIndex !== null) {
-          applyGalleryAgeingFilter(modalArt, displayIndex);
-        }
         const staleOverlay = modalBody.querySelector('.paper-texture-overlay');
         if (staleOverlay) staleOverlay.remove();
         const staleLogo = modalBody.querySelector('.museum-brand-logo');
@@ -2176,9 +2157,8 @@
 
         galleryContainer.innerHTML = '';
         const displayItems = galleryData.slice().reverse();
-        displayItems.forEach((item, index) => {
-          const artwork = createFramedArtwork(item, index);
-          artwork._displayIndex = index;
+        displayItems.forEach((item) => {
+          const artwork = createFramedArtwork(item);
           artwork.addEventListener('click', (e) => {
             if (e.target.closest('.save-art-btn')) return;
             openArtworkModal(artwork, item);

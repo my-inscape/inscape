@@ -2234,14 +2234,13 @@
         out.width = w;
         out.height = h;
         const octx = out.getContext('2d');
-        drawCanvasFabricBase(octx, w, h, fabricImage);
         octx.drawImage(canvas, 0, 0, canvas.width, canvas.height, 0, 0, w, h);
         if (fabricImage && fabricImage.naturalWidth > 0) {
+          octx.save();
           octx.globalAlpha = 0.35;
           octx.globalCompositeOperation = 'multiply';
           octx.drawImage(fabricImage, 0, 0, w, h);
-          octx.globalAlpha = 1;
-          octx.globalCompositeOperation = 'source-over';
+          octx.restore();
         }
         return out.toDataURL('image/png');
       }
@@ -2711,8 +2710,6 @@
         }
       }
 
-      const GALLERY_SNAPSHOT_MAX_W = 540;
-
       async function persistArtworkCanvasSnapshot() {
         try {
           redrawCanvas();
@@ -2722,23 +2719,16 @@
           const logicalH = Math.round(canvas.clientHeight) || CANVAS_LOGICAL_H;
           if (pixelW < 1 || pixelH < 1) return null;
 
-          let exportW = pixelW;
-          let exportH = pixelH;
-          if (pixelW > GALLERY_SNAPSHOT_MAX_W) {
-            exportW = GALLERY_SNAPSHOT_MAX_W;
-            exportH = Math.max(1, Math.round(pixelH * (GALLERY_SNAPSHOT_MAX_W / pixelW)));
-          }
-
           const fabricImage = await loadFabricImage();
-          const dataUrl = captureCompositeArtworkDataUrl(exportW, exportH, fabricImage);
+          const dataUrl = captureCompositeArtworkDataUrl(pixelW, pixelH, fabricImage);
           if (!dataUrl || dataUrl === 'data:,') return null;
           refreshCanvasExportSnapshot();
           return {
             artworkImageDataUrl: dataUrl,
             canvasW: logicalW,
             canvasH: logicalH,
-            snapshotPixelW: exportW,
-            snapshotPixelH: exportH
+            snapshotPixelW: pixelW,
+            snapshotPixelH: pixelH
           };
         } catch (err) {
           console.warn('作品スナップショットの保存に失敗:', err);
@@ -2760,7 +2750,7 @@
         }
       }
 
-      async function saveCompletedArtworkToGallery() {
+      async function saveCompletedArtworkToGallery(prefetchedSnapshot) {
         if (!hasReachedWeekDiagnosisThreshold()) return;
 
         const wordsHash = hashWeekWords(getWeekWordsFromStorage());
@@ -2768,7 +2758,9 @@
 
         syncHistoriesFromSplashes();
         const splatsRecipes = splashes.map(({ drip, ...rest }) => rest);
-        const snapshot = await persistArtworkCanvasSnapshot();
+        const snapshot = (prefetchedSnapshot && prefetchedSnapshot.artworkImageDataUrl)
+          ? prefetchedSnapshot
+          : await persistArtworkCanvasSnapshot();
         const { period, periodStart, periodEnd } = computeArtworkPeriodFromSplashes(splashes);
 
         let gallery = [];
@@ -2809,16 +2801,16 @@
         }
       }
 
-      async function saveRecipeToGallery() {
+      async function saveRecipeToGallery(prefetchedSnapshot) {
         try {
           const wordsHash = hashWeekWords(getWeekWordsFromStorage());
-          const snapshot = await persistArtworkCanvasSnapshot();
           if (artworkExistsInGallery(wordsHash)) {
-            updateGallerySnapshotByWordsHash(wordsHash, snapshot);
+            if (prefetchedSnapshot && prefetchedSnapshot.artworkImageDataUrl) {
+              updateGallerySnapshotByWordsHash(wordsHash, prefetchedSnapshot);
+            }
             return;
           }
-          await saveCompletedArtworkToGallery();
-          if (snapshot) updateGallerySnapshotByWordsHash(wordsHash, snapshot);
+          await saveCompletedArtworkToGallery(prefetchedSnapshot);
         } catch (err) {
           console.warn('回廊レシピ保存に失敗:', err);
         }
@@ -3037,6 +3029,7 @@
         frameBtn.setAttribute('aria-disabled', 'true');
         frameProgress.textContent = '額装中...';
         hideFrameCta();
+        const snapshotPromise = persistArtworkCanvasSnapshot();
         updateCanvasAspectVars();
         updateFramedArtSize();
         canvasWrap.classList.add('framing-active', 'is-framed');
@@ -3050,8 +3043,8 @@
 
         waitForFrameAnimation(museumFrame, 1500).then(async () => {
           try {
-            redrawCanvas();
-            await saveRecipeToGallery();
+            const snapshot = await snapshotPromise;
+            await saveRecipeToGallery(snapshot);
           } catch (err) {
             console.warn('額装保存処理:', err);
           }
