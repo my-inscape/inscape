@@ -722,42 +722,6 @@
       transform: scale(0.98);
     }
 
-    .case-preview-btn {
-      display: inline-block;
-      padding: 0.65rem 1.15rem;
-      border: 0.5px solid rgba(255, 255, 255, 0.14);
-      border-radius: 1px;
-      background: rgba(255, 255, 255, 0.03);
-      color: rgba(232, 230, 226, 0.62);
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
-      font-size: 0.52rem;
-      font-weight: 300;
-      letter-spacing: 0.22em;
-      text-indent: 0.22em;
-      text-decoration: none;
-      cursor: pointer;
-      transition:
-        color 0.3s ease,
-        border-color 0.3s ease,
-        background 0.3s ease,
-        box-shadow 0.3s ease;
-    }
-
-    .case-preview-btn:hover {
-      color: rgba(201, 169, 98, 0.82);
-      border-color: rgba(201, 169, 98, 0.38);
-      background: rgba(201, 169, 98, 0.07);
-      box-shadow: 0 0 20px rgba(201, 169, 98, 0.1);
-    }
-
-    .case-preview-btn:active {
-      transform: scale(0.98);
-    }
-
-    .modal-content .case-preview-btn {
-      color: rgba(232, 230, 226, 0.68);
-    }
-
     .save-art-btn:disabled {
       opacity: 0.45;
       cursor: wait;
@@ -863,7 +827,6 @@
       <a class="site-nav-link" href="index.html">キャンバス</a>
       <a class="site-nav-link is-current" href="gallery.html" aria-current="page">感情の回廊</a>
       <a class="site-nav-link" href="mycolors.html">今日の私の色</a>
-      <a class="site-nav-link" href="case.html">プロダクトプレビュー</a>
     </nav>
 
     <header class="museum-header">
@@ -1495,7 +1458,7 @@
       function stripPrivacyTextFromClone(clonedRoot) {
         if (!clonedRoot) return;
         clonedRoot.querySelectorAll(
-          '.art-date, .save-art-btn, .case-preview-btn, .modal-art-actions, ' +
+          '.art-date, .save-art-btn, .modal-art-actions, ' +
           '.museum-brand-logo, .memory-popover, [data-export-hide], .privacy-export-hidden, ' +
           '.artwork-caption-block'
         ).forEach((node) => node.remove());
@@ -1623,70 +1586,6 @@
           saveFramedArtwork(containerEl, btn);
         });
         return btn;
-      }
-
-      const SELECTED_ARTWORK_KEY = 'inscape_selected_artwork';
-      const CASE_SESSION_KEY = 'inscape_case_session';
-
-      function persistSelectedArtworkForCase(galleryItem) {
-        if (!galleryItem) return;
-        try {
-          const splats = getSplatsFromItem(galleryItem);
-          const payload = {
-            idx: galleryItem.storageRef && galleryItem.storageRef.kind === 'gallery'
-              ? galleryItem.storageRef.index
-              : (typeof galleryItem.galleryIndex === 'number' ? galleryItem.galleryIndex : null),
-            wordsHash: galleryItem.wordsHash || null,
-            splats,
-            canvasW: galleryItem.canvasW || null,
-            canvasH: galleryItem.canvasH || null,
-            selectedAt: Date.now()
-          };
-          localStorage.setItem(SELECTED_ARTWORK_KEY, JSON.stringify(payload));
-          sessionStorage.setItem(CASE_SESSION_KEY, JSON.stringify(payload));
-        } catch (err) {
-          console.warn('ケースプレビュー用の作品選択保存に失敗:', err);
-        }
-      }
-
-      function createCasePreviewLink(galleryItem) {
-        const link = document.createElement('a');
-        link.className = 'case-preview-btn';
-        const dateKey = getArtworkCaseDateKey(galleryItem);
-        const idx = galleryItem && galleryItem.storageRef && galleryItem.storageRef.kind === 'gallery'
-          ? galleryItem.storageRef.index
-          : (typeof galleryItem.galleryIndex === 'number' ? galleryItem.galleryIndex : null);
-        let href = 'case.html';
-        const query = [];
-        if (idx !== null && idx !== undefined && !isNaN(idx)) {
-          query.push(`id=${encodeURIComponent(String(idx))}`);
-          query.push(`idx=${encodeURIComponent(String(idx))}`);
-        }
-        if (galleryItem && galleryItem.wordsHash) {
-          query.push(`wh=${encodeURIComponent(galleryItem.wordsHash)}`);
-        }
-        query.push(`t=${Date.now()}`);
-        if (dateKey) query.push(`date=${encodeURIComponent(dateKey)}`);
-        link.href = `${href}?${query.join('&')}`;
-        link.textContent = 'このデザインのスマホケースを見る';
-        link.setAttribute('aria-label', 'このデザインのスマホケースを見る');
-        link.addEventListener('click', (e) => {
-          e.stopPropagation();
-          persistSelectedArtworkForCase(galleryItem);
-        });
-        return link;
-      }
-
-      function getArtworkCaseDateKey(item) {
-        if (!item) return '';
-        const history = resolveArtworkHistory(item);
-        const dates = history
-          .map(parseHistoryEntryToDate)
-          .filter(Boolean)
-          .sort((a, b) => a.getTime() - b.getTime());
-        if (dates.length) return formatDotDate(dates[dates.length - 1]);
-        const fallback = parseHistoryEntryToDate({ date: item.date, timestamp: 0 });
-        return fallback ? formatDotDate(fallback) : normalizeGalleryDateKey(item.date);
       }
 
       function normalizeGalleryDateKey(str) {
@@ -2109,7 +2008,6 @@
         actionsWrap.className = 'modal-art-actions';
 
         actionsWrap.appendChild(createSaveButton(() => modalBody));
-        actionsWrap.appendChild(createCasePreviewLink(galleryItem));
         modalBody.appendChild(actionsWrap);
 
         hideMemoryPopover();
@@ -2214,7 +2112,6 @@
         imageModal.addEventListener('click', (e) => {
           if (e.target.closest('.vault-orb') || e.target.closest('.memory-popover') ||
               e.target.closest('.save-art-btn') ||
-              e.target.closest('.case-preview-btn') ||
               e.target.closest('.modal-content') ||
               e.target.closest('#modalCloseHint')) {
             return;
