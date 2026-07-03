@@ -3673,36 +3673,6 @@
         requestAnimationFrame(tick);
       }
 
-      function drawDrip(splash, w, h, targetCtx) {
-        if (!splash.drip || splash.drip.length <= 0.5) return;
-        const stamp = getSplashStamp(splash);
-        if (!stamp) return;
-        const c = targetCtx || ctx;
-        const primary = normalizeSplashHex(splash.color1 || splash.color);
-        if (!primary) return;
-
-        const cx = splash.nx * w;
-        const cy = splash.ny * h;
-        const drip = splash.drip;
-        const originX = cx + drip.offsetX;
-        const originY = cy + drip.offsetY;
-        const dripH = drip.length;
-        const dripW = drip.width;
-        const weightBoost = splash.weight ? 0.9 + (splash.weight - 1) * 0.2 : 1;
-
-        c.save();
-        c.translate(originX, originY);
-        c.globalAlpha = (splash.opacity ?? 1) * 0.88 * weightBoost;
-        c.globalCompositeOperation = 'multiply';
-        c.drawImage(stamp, -dripW / 2, 0, dripW, dripH);
-        c.globalCompositeOperation = 'source-over';
-        c.globalAlpha = (splash.opacity ?? 1) * 0.55 * weightBoost;
-        c.fillStyle = primary;
-        c.fillRect(-dripW * 0.35, dripH * 0.85, dripW * 0.7, dripH * 0.15);
-        c.restore();
-        c.globalCompositeOperation = 'source-over';
-      }
-
       function drawSplatterStamp(c, stamp, size, alpha, pattern) {
         const p = pattern ?? 0;
         if (p === 1) {
@@ -3748,6 +3718,33 @@
         drawSplatterStamp(c, stamp, size, alpha, splash.splashPattern ?? 0);
         c.restore();
         c.globalCompositeOperation = 'source-over';
+      }
+
+      function drawDrip(splash, w, h) {
+        if (!splash.drip || splash.drip.length <= 0.5) return;
+        const stamp = getSplashStamp(splash);
+        if (!stamp) return;
+
+        const cx = splash.nx * w;
+        const cy = splash.ny * h;
+        const drip = splash.drip;
+        const originX = cx + drip.offsetX;
+        const originY = cy + drip.offsetY;
+        const dripH = drip.length;
+        const dripW = drip.width;
+        const color = normalizeSplashHex(splash.color1 || splash.color);
+
+        ctx.save();
+        ctx.translate(originX, originY);
+        ctx.globalAlpha = (splash.opacity ?? 1) * 0.88;
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.drawImage(stamp, -dripW / 2, 0, dripW, dripH);
+        ctx.globalCompositeOperation = 'source-over';
+        ctx.globalAlpha = (splash.opacity ?? 1) * 0.55;
+        ctx.fillStyle = color || '#1a2e40';
+        ctx.fillRect(-dripW * 0.35, dripH * 0.85, dripW * 0.7, dripH * 0.15);
+        ctx.restore();
+        ctx.globalCompositeOperation = 'source-over';
       }
 
       function redrawCanvas() {
@@ -3885,7 +3882,7 @@
         setEmotionPaletteDisabled(true);
         fadeOutLandingUI();
 
-        ensureSplatLoaded().then(() => {
+          ensureSplatLoaded().then(() => {
           const w = canvas.clientWidth;
           const h = canvas.clientHeight;
           const splashMeta = createSplashData(payload.progress, payload.opacity, w, h);
