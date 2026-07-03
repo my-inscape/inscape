@@ -2638,8 +2638,12 @@
 
       function syncHistoriesFromSplashes() {
         const recipes = splashes.map(({ drip, ...rest }) => rest);
-        localStorage.setItem(HISTORY_KEY, JSON.stringify(recipes));
-        localStorage.setItem(INSCAPE_HISTORY_KEY, JSON.stringify(buildDiaryHistoryFromSplashes(splashes)));
+        try {
+          localStorage.setItem(HISTORY_KEY, JSON.stringify(recipes));
+          localStorage.setItem(INSCAPE_HISTORY_KEY, JSON.stringify(buildDiaryHistoryFromSplashes(splashes)));
+        } catch (err) {
+          console.warn('履歴同期に失敗:', err);
+        }
       }
 
       function normalizeDiaryColor(color) {
@@ -2686,24 +2690,34 @@
         }
       }
 
+      const GALLERY_SNAPSHOT_MAX_W = 540;
+
       async function persistArtworkCanvasSnapshot() {
-        redrawCanvas();
-        const pixelW = canvas.width;
-        const pixelH = canvas.height;
-        const logicalW = Math.round(canvas.clientWidth) || CANVAS_LOGICAL_W;
-        const logicalH = Math.round(canvas.clientHeight) || CANVAS_LOGICAL_H;
-        if (pixelW < 1 || pixelH < 1) return null;
         try {
+          redrawCanvas();
+          const pixelW = canvas.width;
+          const pixelH = canvas.height;
+          const logicalW = Math.round(canvas.clientWidth) || CANVAS_LOGICAL_W;
+          const logicalH = Math.round(canvas.clientHeight) || CANVAS_LOGICAL_H;
+          if (pixelW < 1 || pixelH < 1) return null;
+
+          let exportW = pixelW;
+          let exportH = pixelH;
+          if (pixelW > GALLERY_SNAPSHOT_MAX_W) {
+            exportW = GALLERY_SNAPSHOT_MAX_W;
+            exportH = Math.max(1, Math.round(pixelH * (GALLERY_SNAPSHOT_MAX_W / pixelW)));
+          }
+
           const fabricImage = await loadFabricImage();
-          const dataUrl = captureCompositeArtworkDataUrl(pixelW, pixelH, fabricImage);
+          const dataUrl = captureCompositeArtworkDataUrl(exportW, exportH, fabricImage);
           if (!dataUrl || dataUrl === 'data:,') return null;
           refreshCanvasExportSnapshot();
           return {
             artworkImageDataUrl: dataUrl,
             canvasW: logicalW,
             canvasH: logicalH,
-            snapshotPixelW: pixelW,
-            snapshotPixelH: pixelH
+            snapshotPixelW: exportW,
+            snapshotPixelH: exportH
           };
         } catch (err) {
           console.warn('作品スナップショットの保存に失敗:', err);
@@ -2736,10 +2750,15 @@
         const snapshot = await persistArtworkCanvasSnapshot();
         const { period, periodStart, periodEnd } = computeArtworkPeriodFromSplashes(splashes);
 
-        let gallery = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
+        let gallery = [];
+        try {
+          gallery = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
+        } catch {
+          gallery = [];
+        }
         if (!Array.isArray(gallery)) gallery = [];
 
-        gallery.push({
+        const entry = {
           splats: splatsRecipes,
           period,
           periodStart,
@@ -2748,20 +2767,40 @@
           completedAt: Date.now(),
           canvasW: snapshot && snapshot.canvasW ? snapshot.canvasW : (parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth),
           canvasH: snapshot && snapshot.canvasH ? snapshot.canvasH : (parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight),
+          snapshotPixelW: snapshot && snapshot.snapshotPixelW ? snapshot.snapshotPixelW : undefined,
+          snapshotPixelH: snapshot && snapshot.snapshotPixelH ? snapshot.snapshotPixelH : undefined,
           artworkImageDataUrl: snapshot ? snapshot.artworkImageDataUrl : undefined
-        });
-        localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+        };
+
+        gallery.push(entry);
+        try {
+          localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+        } catch (err) {
+          console.warn('回廊保存失敗（画像付き）:', err);
+          delete entry.artworkImageDataUrl;
+          delete entry.snapshotPixelW;
+          delete entry.snapshotPixelH;
+          try {
+            localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+          } catch (err2) {
+            console.warn('回廊保存失敗:', err2);
+          }
+        }
       }
 
       async function saveRecipeToGallery() {
-        const wordsHash = hashWeekWords(getWeekWordsFromStorage());
-        const snapshot = await persistArtworkCanvasSnapshot();
-        if (artworkExistsInGallery(wordsHash)) {
-          updateGallerySnapshotByWordsHash(wordsHash, snapshot);
-          return;
+        try {
+          const wordsHash = hashWeekWords(getWeekWordsFromStorage());
+          const snapshot = await persistArtworkCanvasSnapshot();
+          if (artworkExistsInGallery(wordsHash)) {
+            updateGallerySnapshotByWordsHash(wordsHash, snapshot);
+            return;
+          }
+          await saveCompletedArtworkToGallery();
+          if (snapshot) updateGallerySnapshotByWordsHash(wordsHash, snapshot);
+        } catch (err) {
+          console.warn('回廊レシピ保存に失敗:', err);
         }
-        await saveCompletedArtworkToGallery();
-        if (snapshot) updateGallerySnapshotByWordsHash(wordsHash, snapshot);
       }
 
       const FRAME_MAT_PADDING = 28;
@@ -2992,17 +3031,11 @@
           try {
             redrawCanvas();
             await saveRecipeToGallery();
-            frameProgress.textContent = '額装完了';
-            return showFrameCompleteDialog();
           } catch (err) {
-            console.error('額装処理エラー:', err);
-            clearCssFrameFromCanvas();
-            alert('額装処理中にエラーが発生しました。もう一度お試しください。');
-            frameProcessing = false;
-            frameBtn.classList.remove('processing');
-            updateFrameButtonState();
-            return null;
+            console.warn('額装保存処理:', err);
           }
+          frameProgress.textContent = '額装完了';
+          return showFrameCompleteDialog();
         }).then((dialogResult) => {
           if (dialogResult === null || !frameProcessing) return;
           restartAppCycle();
