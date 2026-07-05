@@ -144,7 +144,7 @@
     #wordInput {
       width: 100%;
       min-height: 2.75rem;
-      max-height: 3.25rem;
+      max-height: min(32vh, 10rem);
       padding: 0.85rem 0.65rem;
       scroll-margin-top: 1rem;
       scroll-margin-bottom: 30vh;
@@ -1654,6 +1654,18 @@
       ];
 
       const wordInput = document.getElementById('wordInput');
+
+      function clearWordInputLengthLimit() {
+        if (!wordInput) return;
+        wordInput.removeAttribute('maxlength');
+        wordInput.removeAttribute('maxLength');
+        // iOS/Android のキャッシュや PWA で maxlength が残る場合の保険
+        if (typeof wordInput.maxLength === 'number' && wordInput.maxLength > 0 && wordInput.maxLength < 100000) {
+          wordInput.maxLength = 1048576;
+        }
+      }
+
+      clearWordInputLengthLimit();
       const smokeText = document.getElementById('smokeText');
       const phoneShell = document.getElementById('phoneShell');
       const midPanel = document.getElementById('midPanel');
@@ -4105,12 +4117,16 @@
         canvasTouchStart = null;
       }, { passive: true });
 
+      wordInput.addEventListener('beforeinput', clearWordInputLengthLimit);
+
       wordInput.addEventListener('input', () => {
+        clearWordInputLengthLimit();
         onUserActivity();
         updateUIState();
       });
 
       wordInput.addEventListener('focus', () => {
+        clearWordInputLengthLimit();
         setTimeout(() => {
           wordInput.scrollIntoView({ block: 'center', behavior: 'smooth' });
         }, 320);
