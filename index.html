@@ -1479,29 +1479,41 @@
     }
 
     .completion-whisper {
-      position: absolute;
+      position: fixed;
       bottom: calc(1.15rem + env(safe-area-inset-bottom));
       left: 50%;
-      z-index: 110;
-      width: min(92%, 22rem);
+      z-index: 9000;
+      width: min(92vw, 22rem);
       margin: 0;
       padding: 0 0.5rem;
       text-align: center;
       pointer-events: none;
       font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", serif;
-      font-size: 0.62rem;
+      font-size: 0.68rem;
       font-weight: 300;
-      letter-spacing: 0.12em;
+      letter-spacing: 0.1em;
       line-height: 1.8;
       color: rgba(232, 230, 226, 0.35);
       opacity: 0;
-      transform: translateX(-50%) translateY(8px);
+      transform: translate3d(-50%, 8px, 0);
       transition: opacity 2s ease, transform 2s ease;
+      -webkit-transform: translate3d(-50%, 8px, 0);
+      -webkit-transition: opacity 2s ease, -webkit-transform 2s ease;
+      will-change: opacity, transform;
     }
 
     .completion-whisper.visible {
       opacity: 1;
-      transform: translateX(-50%) translateY(0);
+      transform: translate3d(-50%, 0, 0);
+      -webkit-transform: translate3d(-50%, 0, 0);
+    }
+
+    @media (max-width: 480px) {
+      .completion-whisper {
+        font-size: 0.74rem;
+        letter-spacing: 0.08em;
+        bottom: calc(1.35rem + env(safe-area-inset-bottom));
+      }
     }
 
     .input-wrap.locked-hidden,
@@ -1611,6 +1623,7 @@
       const ALL_DIARIES_KEY = 'inscape_all_diaries';
       const LAST_DIARY_DATE_KEY = 'inscape_last_diary_date_v2';
       const LAST_EXPLOSION_AT_KEY = 'inscape_last_explosion_at';
+      const COMPLETION_WHISPER_KEY = 'inscape_completion_whisper_v1';
       const MAX_ENTRIES = 7;
       const GALLERY_MAX = 28;
       const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -2075,10 +2088,28 @@
         });
       }
 
-      function getDiaryDayKey() {
-        const now = new Date();
-        const offsetTime = new Date(now.getTime() - (6 * 60 * 60 * 1000));
-        return offsetTime.toLocaleDateString('ja-JP');
+      function getDiaryDayKey(date = new Date()) {
+        const offsetTime = new Date(date.getTime() - (6 * 60 * 60 * 1000));
+        const y = offsetTime.getFullYear();
+        const mo = String(offsetTime.getMonth() + 1).padStart(2, '0');
+        const da = String(offsetTime.getDate()).padStart(2, '0');
+        return `${y}-${mo}-${da}`;
+      }
+
+      function normalizeDiaryDayKey(raw) {
+        if (!raw) return '';
+        const text = String(raw).trim();
+        const iso = text.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+        if (iso) {
+          return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
+        }
+        const slash = text.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+        if (slash) {
+          return `${slash[1]}-${slash[2].padStart(2, '0')}-${slash[3].padStart(2, '0')}`;
+        }
+        const parsed = Date.parse(text.replace(/\./g, '/'));
+        if (!Number.isNaN(parsed)) return getDiaryDayKey(new Date(parsed));
+        return text;
       }
 
       function formatDotDate(d) {
@@ -2091,8 +2122,7 @@
       function getDiaryDayKeyFromTimestamp(ts) {
         const n = Number(ts);
         if (!n || n <= 0) return '';
-        const offsetTime = new Date(n - (6 * 60 * 60 * 1000));
-        return offsetTime.toLocaleDateString('ja-JP');
+        return getDiaryDayKey(new Date(n));
       }
 
       function hasPostedToday() {
@@ -2102,7 +2132,9 @@
             const at = Number(atRaw);
             if (at > 0) return getDiaryDayKeyFromTimestamp(at) === getDiaryDayKey();
           }
-          return localStorage.getItem(LAST_DIARY_DATE_KEY) === getDiaryDayKey();
+          const legacy = localStorage.getItem(LAST_DIARY_DATE_KEY);
+          if (!legacy) return false;
+          return normalizeDiaryDayKey(legacy) === getDiaryDayKey();
         } catch {
           return false;
         }
@@ -2112,7 +2144,7 @@
         const now = Date.now();
         try {
           localStorage.setItem(LAST_EXPLOSION_AT_KEY, String(now));
-          localStorage.setItem(LAST_DIARY_DATE_KEY, getDiaryDayKeyFromTimestamp(now));
+          localStorage.setItem(LAST_DIARY_DATE_KEY, getDiaryDayKey(new Date(now)));
         } catch (err) {
           console.warn('日記ロックの保存に失敗:', err);
         }
@@ -2126,19 +2158,59 @@
         return COMPLETION_WHISPERS[Math.floor(Math.random() * COMPLETION_WHISPERS.length)];
       }
 
-      function showCompletionWhisper() {
-        if (!completionWhisper) return;
-        completionWhisper.textContent = pickCompletionWhisper();
+      function loadStoredCompletionWhisper() {
+        try {
+          const raw = localStorage.getItem(COMPLETION_WHISPER_KEY);
+          if (!raw) return null;
+          const data = JSON.parse(raw);
+          if (!data || !data.text) return null;
+          if (normalizeDiaryDayKey(data.dayKey) !== getDiaryDayKey()) return null;
+          return String(data.text);
+        } catch {
+          return null;
+        }
+      }
+
+      function storeCompletionWhisper(text) {
+        try {
+          localStorage.setItem(COMPLETION_WHISPER_KEY, JSON.stringify({
+            dayKey: getDiaryDayKey(),
+            text: String(text || '')
+          }));
+        } catch (err) {
+          console.warn('完了メッセージの保存に失敗:', err);
+        }
+      }
+
+      function revealCompletionWhisper(text) {
+        if (!completionWhisper || !text) return;
+        completionWhisper.textContent = text;
         completionWhisper.classList.remove('visible');
         void completionWhisper.offsetWidth;
         completionWhisper.classList.add('visible');
         completionWhisper.setAttribute('aria-hidden', 'false');
       }
 
+      function showCompletionWhisper(forceNew) {
+        let text = forceNew ? pickCompletionWhisper() : (loadStoredCompletionWhisper() || pickCompletionWhisper());
+        storeCompletionWhisper(text);
+        revealCompletionWhisper(text);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => revealCompletionWhisper(text));
+        });
+        setTimeout(() => revealCompletionWhisper(text), 600);
+      }
+
       function hideCompletionWhisper() {
         if (!completionWhisper) return;
         completionWhisper.classList.remove('visible');
         completionWhisper.setAttribute('aria-hidden', 'true');
+      }
+
+      function restoreCompletionWhisperIfNeeded() {
+        if (!hasPostedToday()) return;
+        const text = loadStoredCompletionWhisper();
+        if (text) revealCompletionWhisper(text);
       }
 
       function getMsUntilNextDiaryReset() {
@@ -2157,6 +2229,9 @@
           diaryUnlockTimer = null;
           if (!hasPostedToday()) {
             hideCompletionWhisper();
+            try {
+              localStorage.removeItem(COMPLETION_WHISPER_KEY);
+            } catch (_) {}
             applyDailyLockUI();
             updateUIState();
           }
@@ -4006,7 +4081,7 @@
             lockDiaryForToday();
             applyDailyLockUI();
             updateUIState();
-            setTimeout(() => showCompletionWhisper(), 480);
+            showCompletionWhisper(true);
             if (hasReachedWeekDiagnosisThreshold()) {
               setTimeout(() => {
                 saveCompletedArtworkToGallery().catch((err) => {
@@ -4226,6 +4301,7 @@
         refreshCanvasExportSnapshot();
       });
       applyDailyLockUI();
+      restoreCompletionWhisperIfNeeded();
       updateUIState();
       updateFrameButtonState();
       bindFrameButtonClick();
@@ -4233,8 +4309,12 @@
 
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) return;
-        if (!hasPostedToday()) hideCompletionWhisper();
         applyDailyLockUI();
+        if (hasPostedToday()) {
+          restoreCompletionWhisperIfNeeded();
+        } else {
+          hideCompletionWhisper();
+        }
         updateUIState();
       });
 
