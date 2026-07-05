@@ -1475,32 +1475,33 @@
     }
 
     .daily-lock-message {
-      position: absolute;
-      bottom: calc(0.65rem + env(safe-area-inset-bottom));
-      right: calc(1rem + env(safe-area-inset-right));
-      z-index: 120;
-      padding: 0.4rem 0.58rem;
-      text-align: right;
-      pointer-events: none;
-      opacity: 0;
-      transform: translateY(4px);
-      transition: opacity 0.55s ease, transform 0.55s ease;
-      border: 0.5px solid rgba(201, 169, 98, 0.12);
-      border-radius: 1px;
-      background: rgba(14, 13, 16, 0.42);
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      white-space: nowrap;
-      font-size: 0.4rem;
-      font-weight: 300;
-      line-height: 1.35;
-      letter-spacing: 0.06em;
-      color: rgba(232, 230, 226, 0.48);
+      display: none;
     }
 
-    .daily-lock-message.visible {
+    .completion-whisper {
+      position: absolute;
+      bottom: calc(1.15rem + env(safe-area-inset-bottom));
+      left: 50%;
+      z-index: 110;
+      width: min(92%, 22rem);
+      margin: 0;
+      padding: 0 0.5rem;
+      text-align: center;
+      pointer-events: none;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", serif;
+      font-size: 0.62rem;
+      font-weight: 300;
+      letter-spacing: 0.12em;
+      line-height: 1.8;
+      color: rgba(232, 230, 226, 0.35);
+      opacity: 0;
+      transform: translateX(-50%) translateY(8px);
+      transition: opacity 2s ease, transform 2s ease;
+    }
+
+    .completion-whisper.visible {
       opacity: 1;
-      transform: translateY(0);
+      transform: translateX(-50%) translateY(0);
     }
 
     .input-wrap.locked-hidden,
@@ -1524,9 +1525,7 @@
 </head>
 <body>
   <div class="phone-shell" id="phoneShell">
-    <p class="daily-lock-message" id="dailyLockMessage" aria-hidden="true">
-      七つの言葉が、ここに宿りました
-    </p>
+    <p class="completion-whisper" id="completionWhisper" aria-hidden="true"></p>
 
     <div class="frame-cta-overlay" id="frameCtaOverlay" aria-hidden="true">
       <button type="button" class="frame-btn" id="frameBtn" aria-label="作品を額装する">
@@ -1611,6 +1610,7 @@
       const GALLERY_KEY = 'inscape_gallery';
       const ALL_DIARIES_KEY = 'inscape_all_diaries';
       const LAST_DIARY_DATE_KEY = 'inscape_last_diary_date_v2';
+      const LAST_EXPLOSION_AT_KEY = 'inscape_last_explosion_at';
       const MAX_ENTRIES = 7;
       const GALLERY_MAX = 28;
       const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
@@ -1631,6 +1631,19 @@
       const SPLAT_PATTERN_COUNT = 3;
       const TAP_RIPPLE_DURATION = 900;
       const TAP_RIPPLE_MAX_FRAC = 0.24;
+
+      const COMPLETION_WHISPERS = [
+        '今日は、この色でした。',
+        'この瞬間を、とどめました。',
+        '今日は、ここに置いておきます。',
+        'ありのまま、残りました。',
+        '今日という一日を、保管しました。',
+        'この色は、未来のあなたへ。',
+        '言葉も色も、このままで。',
+        'また一つ、人生が残りました。',
+        '意味は、いつか人生がつくります。',
+        'ありのままを、そのまま。'
+      ];
 
       const CURATED_COLORS = [
         { hex: '#5d78b8', label: 'Slate Blue', idleOpacity: 0.10 },
@@ -1689,7 +1702,7 @@
       const frameModalClose = document.getElementById('frameModalClose');
       const frameCompleteDialog = document.getElementById('frameCompleteDialog');
       const frameCompleteOk = document.getElementById('frameCompleteOk');
-      const dailyLockMessage = document.getElementById('dailyLockMessage');
+      const completionWhisper = document.getElementById('completionWhisper');
       const inputWrap = document.getElementById('inputWrap');
       const controlsFooter = document.getElementById('controlsFooter');
       const appEl = document.querySelector('.app');
@@ -1726,6 +1739,7 @@
       let isDiarySubmitting = false;
       let canvasTouchStart = null;
       let lastCanvasTapHandledAt = 0;
+      let diaryUnlockTimer = null;
 
       function rgbToHex(r, g, b) {
         return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
@@ -1868,7 +1882,7 @@
       }
 
       function startCharge(btn, color, clientX, clientY) {
-        if (isDiarySubmitting || hasReachedSplashLimit()) return;
+        if (isDiarySubmitting || isCanvasInteractionLocked()) return;
         resetChargeState();
         chargeState.active = true;
         chargeState.color = color;
@@ -1896,7 +1910,7 @@
       function tryCommitLanding() {
         if (!chargeState.active || chargeState.landed || isDiarySubmitting) return;
         const savedWord = wordInput.value.trim();
-        if (!savedWord || hasReachedSplashLimit()) return;
+        if (!savedWord || isCanvasInteractionLocked()) return;
         chargeState.landed = true;
         stopChargeLoop();
         const payload = {
@@ -1926,7 +1940,7 @@
           btn.appendChild(swatch);
 
           const onDown = (e) => {
-            if (isDiarySubmitting || hasReachedSplashLimit()) return;
+            if (isDiarySubmitting || isCanvasInteractionLocked()) return;
             e.preventDefault();
             const point = e.touches ? e.touches[0] : e;
             startCharge(btn, entry.hex, point.clientX, point.clientY);
@@ -2074,8 +2088,20 @@
         return `${y}.${mo}.${da}`;
       }
 
+      function getDiaryDayKeyFromTimestamp(ts) {
+        const n = Number(ts);
+        if (!n || n <= 0) return '';
+        const offsetTime = new Date(n - (6 * 60 * 60 * 1000));
+        return offsetTime.toLocaleDateString('ja-JP');
+      }
+
       function hasPostedToday() {
         try {
+          const atRaw = localStorage.getItem(LAST_EXPLOSION_AT_KEY);
+          if (atRaw) {
+            const at = Number(atRaw);
+            if (at > 0) return getDiaryDayKeyFromTimestamp(at) === getDiaryDayKey();
+          }
           return localStorage.getItem(LAST_DIARY_DATE_KEY) === getDiaryDayKey();
         } catch {
           return false;
@@ -2083,15 +2109,63 @@
       }
 
       function lockDiaryForToday() {
+        const now = Date.now();
         try {
-          localStorage.setItem(LAST_DIARY_DATE_KEY, getDiaryDayKey());
+          localStorage.setItem(LAST_EXPLOSION_AT_KEY, String(now));
+          localStorage.setItem(LAST_DIARY_DATE_KEY, getDiaryDayKeyFromTimestamp(now));
         } catch (err) {
           console.warn('日記ロックの保存に失敗:', err);
         }
       }
 
+      function isCanvasInteractionLocked() {
+        return hasPostedToday() || hasReachedSplashLimit();
+      }
+
+      function pickCompletionWhisper() {
+        return COMPLETION_WHISPERS[Math.floor(Math.random() * COMPLETION_WHISPERS.length)];
+      }
+
+      function showCompletionWhisper() {
+        if (!completionWhisper) return;
+        completionWhisper.textContent = pickCompletionWhisper();
+        completionWhisper.classList.remove('visible');
+        void completionWhisper.offsetWidth;
+        completionWhisper.classList.add('visible');
+        completionWhisper.setAttribute('aria-hidden', 'false');
+      }
+
+      function hideCompletionWhisper() {
+        if (!completionWhisper) return;
+        completionWhisper.classList.remove('visible');
+        completionWhisper.setAttribute('aria-hidden', 'true');
+      }
+
+      function getMsUntilNextDiaryReset() {
+        const now = new Date();
+        const next = new Date(now);
+        next.setHours(6, 0, 0, 0);
+        if (now.getTime() >= next.getTime()) {
+          next.setDate(next.getDate() + 1);
+        }
+        return Math.max(1000, next.getTime() - now.getTime());
+      }
+
+      function scheduleDiaryDayUnlockCheck() {
+        if (diaryUnlockTimer) clearTimeout(diaryUnlockTimer);
+        diaryUnlockTimer = setTimeout(() => {
+          diaryUnlockTimer = null;
+          if (!hasPostedToday()) {
+            hideCompletionWhisper();
+            applyDailyLockUI();
+            updateUIState();
+          }
+          scheduleDiaryDayUnlockCheck();
+        }, getMsUntilNextDiaryReset());
+      }
+
       function applyDailyLockUI() {
-        const locked = hasReachedSplashLimit();
+        const locked = isCanvasInteractionLocked();
 
         if (appEl) appEl.classList.toggle('daily-locked', locked);
         phoneShell.classList.toggle('daily-locked', locked);
@@ -2100,10 +2174,6 @@
           if (inputWrap) inputWrap.classList.add('locked-hidden');
           if (emotionPalette) emotionPalette.classList.add('locked-hidden');
           if (controlsFooter) controlsFooter.classList.add('locked-hidden');
-          if (dailyLockMessage) {
-            dailyLockMessage.classList.add('visible');
-            dailyLockMessage.setAttribute('aria-hidden', 'false');
-          }
           wordInput.disabled = true;
           if (emotionPaletteSpheres) {
             emotionPaletteSpheres.querySelectorAll('.emotion-sphere-btn').forEach((btn) => {
@@ -2115,10 +2185,7 @@
           if (inputWrap) inputWrap.classList.remove('locked-hidden');
           if (emotionPalette) emotionPalette.classList.remove('locked-hidden');
           if (controlsFooter) controlsFooter.classList.remove('locked-hidden');
-          if (dailyLockMessage) {
-            dailyLockMessage.classList.remove('visible');
-            dailyLockMessage.setAttribute('aria-hidden', 'true');
-          }
+          hideCompletionWhisper();
           wordInput.disabled = isDiarySubmitting;
           setEmotionPaletteDisabled(isDiarySubmitting);
         }
@@ -3936,8 +4003,10 @@
               scheduleZenAfterImpact();
             }
             isDiarySubmitting = false;
+            lockDiaryForToday();
             applyDailyLockUI();
             updateUIState();
+            setTimeout(() => showCompletionWhisper(), 480);
             if (hasReachedWeekDiagnosisThreshold()) {
               setTimeout(() => {
                 saveCompletedArtworkToGallery().catch((err) => {
@@ -3994,7 +4063,7 @@
       function handleCanvasTapAt(coords, e) {
         spawnTapRipple(coords.x, coords.y);
 
-        if (hasReachedSplashLimit()) {
+        if (isCanvasInteractionLocked()) {
           const s = findSplashAt(coords.x, coords.y);
           if (s) showTooltip(s, coords.clientX, coords.clientY);
           else hideTooltip();
@@ -4085,7 +4154,7 @@
           id: touch.identifier
         };
 
-        if (canSubmitDiaryNow() || hasReachedSplashLimit()) {
+        if (canSubmitDiaryNow() || isCanvasInteractionLocked()) {
           if (canSubmitDiaryNow() && document.activeElement === wordInput) {
             wordInput.blur();
           }
@@ -4105,7 +4174,7 @@
         canvasTouchStart = null;
 
         if (moved > 16 || elapsed > 700) {
-          if (hasReachedSplashLimit()) setTimeout(hideTooltip, 1800);
+          if (isCanvasInteractionLocked()) setTimeout(hideTooltip, 1800);
           return;
         }
 
@@ -4160,6 +4229,14 @@
       updateUIState();
       updateFrameButtonState();
       bindFrameButtonClick();
+      scheduleDiaryDayUnlockCheck();
+
+      document.addEventListener('visibilitychange', () => {
+        if (document.hidden) return;
+        if (!hasPostedToday()) hideCompletionWhisper();
+        applyDailyLockUI();
+        updateUIState();
+      });
 
       document.addEventListener('touchstart', () => { ensureAudio(); }, { once: true });
       document.addEventListener('click', () => { ensureAudio(); }, { once: true });
