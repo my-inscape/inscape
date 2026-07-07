@@ -2632,17 +2632,47 @@
       }
 
       function getStoredCanvasAspect() {
-        const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w'));
-        const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h'));
+        const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--creation-aspect-w'))
+          || parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w'));
+        const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--creation-aspect-h'))
+          || parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h'));
         if (aspectW > 0 && aspectH > 0) {
           return { w: Math.round(aspectW), h: Math.round(aspectH) };
         }
-        const cw = Math.round(canvas.clientWidth);
-        const ch = Math.round(canvas.clientHeight);
-        if (cw > 0 && ch > 0) {
-          return { w: cw, h: ch };
+        const isFramed = canvasWrap.classList.contains('is-framed')
+          || canvasWrap.classList.contains('framing-active');
+        if (!isFramed) {
+          const cw = Math.round(canvas.clientWidth);
+          const ch = Math.round(canvas.clientHeight);
+          if (cw > 0 && ch > 0) {
+            return { w: cw, h: ch };
+          }
         }
         return { w: CANVAS_LOGICAL_W, h: CANVAS_LOGICAL_H };
+      }
+
+      function lockCreationCanvasAspect() {
+        if (canvasWrap.dataset.creationAspectLocked === '1') {
+          return getStoredCanvasAspect();
+        }
+        let cw = Math.round(canvas.clientWidth);
+        let ch = Math.round(canvas.clientHeight);
+        if (!(cw > 0 && ch > 0)) {
+          cw = CANVAS_LOGICAL_W;
+          ch = CANVAS_LOGICAL_H;
+        }
+        canvasWrap.style.setProperty('--creation-aspect-w', String(cw));
+        canvasWrap.style.setProperty('--creation-aspect-h', String(ch));
+        canvasWrap.style.setProperty('--canvas-aspect-w', String(cw));
+        canvasWrap.style.setProperty('--canvas-aspect-h', String(ch));
+        canvasWrap.dataset.creationAspectLocked = '1';
+        return { w: cw, h: ch };
+      }
+
+      function clearCreationCanvasAspectLock() {
+        canvasWrap.removeAttribute('data-creation-aspect-locked');
+        canvasWrap.style.removeProperty('--creation-aspect-w');
+        canvasWrap.style.removeProperty('--creation-aspect-h');
       }
 
       // チャージ進行度とキャンバス実寸から描画ピクセルサイズを決定
@@ -3097,6 +3127,7 @@
       async function persistArtworkCanvasSnapshot(frozenSplashes) {
         try {
           await ensureSplatLoaded();
+          lockCreationCanvasAspect();
           const { w: logicalW, h: logicalH } = getStoredCanvasAspect();
           const list = Array.isArray(frozenSplashes) && frozenSplashes.length
             ? frozenSplashes
@@ -3116,6 +3147,12 @@
       const FRAME_BORDER_WIDTH = 20;
 
       function updateCanvasAspectVars() {
+        if (canvasWrap.classList.contains('is-framed') || canvasWrap.classList.contains('framing-active')) {
+          return;
+        }
+        if (canvasWrap.dataset.creationAspectLocked === '1') {
+          return;
+        }
         const cw = canvas.clientWidth || canvasWrap.clientWidth;
         const ch = canvas.clientHeight || canvasWrap.clientHeight;
         if (cw > 0 && ch > 0) {
@@ -3125,8 +3162,7 @@
       }
 
       function updateFramedArtSize() {
-        const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth || canvasWrap.clientWidth;
-        const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight || canvasWrap.clientHeight;
+        const { w: aspectW, h: aspectH } = getStoredCanvasAspect();
         if (!aspectW || !aspectH) return;
 
         const frameInset = 2 * (FRAME_MAT_PADDING + FRAME_BORDER_WIDTH);
@@ -3211,8 +3247,7 @@
         zenTimer = null;
         zenFadeTimer = null;
 
-        updateCanvasAspectVars();
-        updateFramedArtSize();
+        lockCreationCanvasAspect();
         canvasWrap.classList.add('is-framed');
 
         frameCtaOverlay.classList.add('visible', 'ready');
@@ -3226,7 +3261,12 @@
         frameProgressHint.textContent = '';
         bindFrameButtonClick();
 
-        requestAnimationFrame(resizeCanvas);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            updateFramedArtSize();
+            resizeCanvas();
+          });
+        });
       }
 
       function hideFrameCta() {
@@ -3296,6 +3336,7 @@
         frameProgress.textContent = '0 / 7';
 
         clearCssFrameFromCanvas();
+        clearCreationCanvasAspectLock();
         clearMainCanvasToWhite();
 
         wordInput.value = '';
@@ -3340,12 +3381,11 @@
           return;
         }
         const snapshotPromise = persistArtworkCanvasSnapshot(frozenSplashes);
-        updateCanvasAspectVars();
-        updateFramedArtSize();
         canvasWrap.classList.add('framing-active', 'is-framed');
 
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
+            updateFramedArtSize();
             museumFrame.classList.add('framing-animate');
             resizeCanvas();
           });
@@ -3447,8 +3487,10 @@
         } else if (artSurface && artSurface.clientWidth > 0 && artSurface.clientHeight > 0) {
           cw = artSurface.clientWidth;
           ch = artSurface.clientHeight;
-          wrap.style.setProperty('--canvas-aspect-w', String(cw));
-          wrap.style.setProperty('--canvas-aspect-h', String(ch));
+          if (canvasWrap.dataset.creationAspectLocked !== '1') {
+            wrap.style.setProperty('--canvas-aspect-w', String(cw));
+            wrap.style.setProperty('--canvas-aspect-h', String(ch));
+          }
         } else {
           cw = CANVAS_LOGICAL_W;
           ch = CANVAS_LOGICAL_H;
