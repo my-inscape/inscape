@@ -60,6 +60,43 @@
         calc(0.65rem + env(safe-area-inset-left));
     }
 
+    .cloud-sync-btn {
+      position: fixed;
+      right: calc(0.55rem + env(safe-area-inset-right));
+      bottom: calc(0.55rem + env(safe-area-inset-bottom));
+      z-index: 60;
+      padding: 0.28rem 0.42rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.2);
+      border-radius: 1px;
+      background: rgba(10, 10, 12, 0.55);
+      color: rgba(201, 169, 98, 0.55);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+      font-size: 0.42rem;
+      font-weight: 300;
+      letter-spacing: 0.28em;
+      text-indent: 0.28em;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+    }
+
+    .cloud-sync-btn:hover {
+      color: rgba(201, 169, 98, 0.82);
+      border-color: rgba(201, 169, 98, 0.38);
+      background: rgba(201, 169, 98, 0.08);
+    }
+
+    .cloud-sync-btn.is-linked {
+      color: rgba(232, 230, 226, 0.42);
+      border-color: rgba(232, 230, 226, 0.14);
+    }
+
+    .cloud-sync-btn:disabled {
+      opacity: 0.45;
+      cursor: wait;
+    }
+
     .site-nav {
       display: flex;
       align-items: stretch;
@@ -820,6 +857,11 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="inscape-cloud.js"></script>
 </head>
 <body>
   <div class="corridor-top">
@@ -836,6 +878,7 @@
   </div>
 
   <div id="gallery-container"></div>
+  <button type="button" class="cloud-sync-btn" id="cloudSyncBtn" aria-label="クラウドに保管">保管</button>
 
   <script>
     (function () {
@@ -1051,6 +1094,9 @@
       }
 
       function loadGalleryRaw() {
+        if (window.InscapeCloud && InscapeCloud.isReady()) {
+          return InscapeCloud.getGallery();
+        }
         try {
           const data = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
           return Array.isArray(data) ? data : [];
@@ -1060,8 +1106,13 @@
       }
 
       function saveGalleryRaw(gallery) {
+        const list = Array.isArray(gallery) ? gallery : [];
+        if (window.InscapeCloud && InscapeCloud.isReady()) {
+          InscapeCloud.setGallery(list);
+          return;
+        }
         try {
-          localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+          localStorage.setItem(GALLERY_KEY, JSON.stringify(list));
         } catch (err) {
           console.warn('ギャラリー保存に失敗:', err);
         }
@@ -1421,7 +1472,7 @@
         const items = [];
 
         try {
-          const data = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
+          const data = loadGalleryRaw();
           if (Array.isArray(data)) {
             data.forEach((entry, index) => {
               if (!entry) return;
@@ -2140,10 +2191,56 @@
         });
       }
 
+      function updateCloudSyncButton() {
+        const btn = document.getElementById('cloudSyncBtn');
+        if (!btn) return;
+        if (window.InscapeCloud && InscapeCloud.isUsingCloud() && InscapeCloud.isGoogleLinked()) {
+          btn.textContent = '保管済';
+          btn.classList.add('is-linked');
+          btn.setAttribute('aria-label', 'Googleアカウントに保管済み');
+        } else {
+          btn.textContent = '保管';
+          btn.classList.remove('is-linked');
+          btn.setAttribute('aria-label', 'クラウドに保管');
+        }
+      }
+
+      function bindCloudSyncButton() {
+        const btn = document.getElementById('cloudSyncBtn');
+        if (!btn) return;
+        btn.addEventListener('click', async () => {
+          if (!window.InscapeCloud) return;
+          btn.disabled = true;
+          try {
+            if (!InscapeCloud.isReady()) {
+              await InscapeCloud.init();
+            }
+            await InscapeCloud.linkWithGoogle();
+            updateCloudSyncButton();
+          } catch (err) {
+            console.warn('Google 紐付けに失敗:', err);
+            alert('保管の設定に失敗しました。しばらくしてからお試しください。');
+          } finally {
+            btn.disabled = false;
+          }
+        });
+        updateCloudSyncButton();
+      }
+
       window.addEventListener('DOMContentLoaded', () => {
         bindSavePreview();
         bindImageModal();
-        loadSplatImage()
+        bindCloudSyncButton();
+        const boot = window.InscapeCloud
+          ? InscapeCloud.init().catch((err) => {
+            console.warn('クラウド初期化:', err);
+          })
+          : Promise.resolve();
+        boot
+          .then(() => {
+            updateCloudSyncButton();
+            return loadSplatImage();
+          })
           .then(() => loadFabricImage())
           .then(renderGallery)
           .catch(() => {

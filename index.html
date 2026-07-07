@@ -13,6 +13,11 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>INSCAPE</title>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+  <script src="firebase-config.js"></script>
+  <script src="inscape-cloud.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -2125,8 +2130,42 @@
         return getDiaryDayKey(new Date(n));
       }
 
+      function readGalleryStore() {
+        if (window.InscapeCloud && InscapeCloud.isReady()) return InscapeCloud.getGallery();
+        try {
+          const raw = localStorage.getItem(GALLERY_KEY);
+          const data = raw ? JSON.parse(raw) : [];
+          return Array.isArray(data) ? data : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function writeGalleryStore(gallery) {
+        const list = Array.isArray(gallery) ? gallery : [];
+        if (window.InscapeCloud && InscapeCloud.isReady()) {
+          InscapeCloud.setGallery(list);
+          return;
+        }
+        try {
+          localStorage.setItem(GALLERY_KEY, JSON.stringify(list));
+        } catch (err) {
+          console.warn('ギャラリー保存に失敗:', err);
+        }
+      }
+
       function hasPostedToday() {
         try {
+          if (window.InscapeCloud && InscapeCloud.isReady()) {
+            const ds = InscapeCloud.getDailyState();
+            if (ds.lastExplosionAt) {
+              return getDiaryDayKeyFromTimestamp(ds.lastExplosionAt) === getDiaryDayKey();
+            }
+            if (ds.diaryDayKey) {
+              return normalizeDiaryDayKey(ds.diaryDayKey) === getDiaryDayKey();
+            }
+            return false;
+          }
           const atRaw = localStorage.getItem(LAST_EXPLOSION_AT_KEY);
           if (atRaw) {
             const at = Number(atRaw);
@@ -2142,9 +2181,19 @@
 
       function lockDiaryForToday() {
         const now = Date.now();
+        const dayKey = getDiaryDayKey(new Date(now));
         try {
+          if (window.InscapeCloud && InscapeCloud.isReady()) {
+            const prev = InscapeCloud.getDailyState();
+            InscapeCloud.setDailyState({
+              lastExplosionAt: now,
+              diaryDayKey: dayKey,
+              completionWhisperIndex: prev.completionWhisperIndex
+            });
+            return;
+          }
           localStorage.setItem(LAST_EXPLOSION_AT_KEY, String(now));
-          localStorage.setItem(LAST_DIARY_DATE_KEY, getDiaryDayKey(new Date(now)));
+          localStorage.setItem(LAST_DIARY_DATE_KEY, dayKey);
         } catch (err) {
           console.warn('日記ロックの保存に失敗:', err);
         }
@@ -2160,10 +2209,27 @@
 
       function loadStoredCompletionWhisper() {
         try {
+          if (window.InscapeCloud && InscapeCloud.isReady()) {
+            const ds = InscapeCloud.getDailyState();
+            const dayOk = ds.diaryDayKey
+              ? normalizeDiaryDayKey(ds.diaryDayKey) === getDiaryDayKey()
+              : (ds.lastExplosionAt ? getDiaryDayKeyFromTimestamp(ds.lastExplosionAt) === getDiaryDayKey() : false);
+            if (!dayOk) return null;
+            const idx = ds.completionWhisperIndex;
+            if (Number.isInteger(idx) && idx >= 0 && idx < COMPLETION_WHISPERS.length) {
+              return COMPLETION_WHISPERS[idx];
+            }
+            return null;
+          }
           const raw = localStorage.getItem(COMPLETION_WHISPER_KEY);
           if (!raw) return null;
           const data = JSON.parse(raw);
-          if (!data || !data.text) return null;
+          if (!data) return null;
+          if (Number.isInteger(data.index) && data.index >= 0 && data.index < COMPLETION_WHISPERS.length) {
+            if (normalizeDiaryDayKey(data.dayKey) !== getDiaryDayKey()) return null;
+            return COMPLETION_WHISPERS[data.index];
+          }
+          if (!data.text) return null;
           if (normalizeDiaryDayKey(data.dayKey) !== getDiaryDayKey()) return null;
           return String(data.text);
         } catch {
@@ -2172,10 +2238,23 @@
       }
 
       function storeCompletionWhisper(text) {
+        const dayKey = getDiaryDayKey();
+        let index = COMPLETION_WHISPERS.indexOf(text);
+        if (index < 0) index = Math.floor(Math.random() * COMPLETION_WHISPERS.length);
         try {
+          if (window.InscapeCloud && InscapeCloud.isReady()) {
+            const prev = InscapeCloud.getDailyState();
+            InscapeCloud.setDailyState({
+              lastExplosionAt: prev.lastExplosionAt,
+              diaryDayKey: dayKey,
+              completionWhisperIndex: index
+            });
+            return;
+          }
           localStorage.setItem(COMPLETION_WHISPER_KEY, JSON.stringify({
-            dayKey: getDiaryDayKey(),
-            text: String(text || '')
+            dayKey,
+            index,
+            text: COMPLETION_WHISPERS[index]
           }));
         } catch (err) {
           console.warn('完了メッセージの保存に失敗:', err);
@@ -2229,9 +2308,13 @@
           diaryUnlockTimer = null;
           if (!hasPostedToday()) {
             hideCompletionWhisper();
-            try {
-              localStorage.removeItem(COMPLETION_WHISPER_KEY);
-            } catch (_) {}
+            if (window.InscapeCloud && InscapeCloud.isReady()) {
+              InscapeCloud.clearDailyWhisperIndex();
+            } else {
+              try {
+                localStorage.removeItem(COMPLETION_WHISPER_KEY);
+              } catch (_) {}
+            }
             applyDailyLockUI();
             updateUIState();
           }
@@ -2754,13 +2837,11 @@
 
       function migrateGalleryStorage() {
         try {
-          const raw = localStorage.getItem(GALLERY_KEY);
-          if (!raw) return;
-          const data = JSON.parse(raw);
-          if (!Array.isArray(data)) return;
+          const data = readGalleryStore();
+          if (!Array.isArray(data) || !data.length) return;
           const recipeOnly = data.filter(entry => entry && Array.isArray(entry.splats));
           if (recipeOnly.length !== data.length) {
-            localStorage.setItem(GALLERY_KEY, JSON.stringify(recipeOnly));
+            writeGalleryStore(recipeOnly);
           }
         } catch (_) {}
       }
@@ -2855,7 +2936,7 @@
       function artworkExistsInGallery(wordsHash) {
         if (!wordsHash) return false;
         try {
-          const gallery = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
+          const gallery = readGalleryStore();
           if (!Array.isArray(gallery)) return false;
           return gallery.some((entry) => entry && entry.wordsHash === wordsHash);
         } catch {
@@ -2892,12 +2973,12 @@
       function updateGallerySnapshotByWordsHash(wordsHash, snapshot) {
         if (!wordsHash || !snapshot || !snapshot.artworkImageDataUrl) return;
         try {
-          let gallery = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
+          let gallery = readGalleryStore();
           if (!Array.isArray(gallery)) return;
           const idx = gallery.findIndex((entry) => entry && entry.wordsHash === wordsHash);
           if (idx < 0) return;
           gallery[idx] = { ...gallery[idx], ...snapshot };
-          localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+          writeGalleryStore(gallery);
         } catch (err) {
           console.warn('回廊スナップショットの更新に失敗:', err);
         }
@@ -2916,12 +2997,7 @@
           : await persistArtworkCanvasSnapshot();
         const { period, periodStart, periodEnd } = computeArtworkPeriodFromSplashes(splashes);
 
-        let gallery = [];
-        try {
-          gallery = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
-        } catch {
-          gallery = [];
-        }
+        let gallery = readGalleryStore();
         if (!Array.isArray(gallery)) gallery = [];
 
         const entry = {
@@ -2940,14 +3016,14 @@
 
         gallery.push(entry);
         try {
-          localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+          writeGalleryStore(gallery);
         } catch (err) {
           console.warn('回廊保存失敗（画像付き）:', err);
           delete entry.artworkImageDataUrl;
           delete entry.snapshotPixelW;
           delete entry.snapshotPixelH;
           try {
-            localStorage.setItem(GALLERY_KEY, JSON.stringify(gallery));
+            writeGalleryStore(gallery);
           } catch (err2) {
             console.warn('回廊保存失敗:', err2);
           }
@@ -3231,9 +3307,14 @@
 
       function loadSplashes() {
         try {
-          const raw = localStorage.getItem(STORAGE_KEY);
-          if (!raw) return [];
-          const data = JSON.parse(raw);
+          let data;
+          if (window.InscapeCloud && InscapeCloud.isReady()) {
+            data = InscapeCloud.getSplashes();
+          } else {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            data = raw ? JSON.parse(raw) : [];
+          }
+          if (!Array.isArray(data)) return [];
           const now = Date.now();
           return data
             .filter(s => now - s.timestamp < RETENTION_MS)
@@ -3244,6 +3325,10 @@
 
       function saveSplashes() {
         const data = splashes.map(({ drip, ...rest }) => rest);
+        if (window.InscapeCloud && InscapeCloud.isReady()) {
+          InscapeCloud.setSplashes(data);
+          return;
+        }
         localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
       }
 
@@ -4283,6 +4368,13 @@
         resizeCanvas();
       });
 
+      async function bootApp() {
+        try {
+          await window.InscapeCloud.init({ whisperList: COMPLETION_WHISPERS });
+        } catch (err) {
+          console.warn('クラウド初期化:', err);
+        }
+
       migrateHistoriesToRecipes();
       migrateGalleryStorage();
       splashes = loadSplashes();
@@ -4309,6 +4401,18 @@
 
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) return;
+        if (window.InscapeCloud && InscapeCloud.isUsingCloud()) {
+          InscapeCloud.refreshFromCloud().then(() => {
+            applyDailyLockUI();
+            if (hasPostedToday()) restoreCompletionWhisperIfNeeded();
+            else hideCompletionWhisper();
+            updateUIState();
+          }).catch(() => {
+            applyDailyLockUI();
+            updateUIState();
+          });
+          return;
+        }
         applyDailyLockUI();
         if (hasPostedToday()) {
           restoreCompletionWhisperIfNeeded();
@@ -4320,6 +4424,9 @@
 
       document.addEventListener('touchstart', () => { ensureAudio(); }, { once: true });
       document.addEventListener('click', () => { ensureAudio(); }, { once: true });
+      }
+
+      bootApp();
     })();
   </script>
 </body>
