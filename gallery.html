@@ -301,7 +301,7 @@
       height: 100% !important;
       max-width: none !important;
       max-height: none !important;
-      object-fit: contain;
+      object-fit: fill;
       object-position: center;
       margin: 0 auto !important;
       padding: 0 !important;
@@ -1342,11 +1342,27 @@
         c.globalCompositeOperation = 'source-over';
       }
 
-      function syncSnapshotAspect(surface, img) {
-        const w = img.naturalWidth || 0;
-        const h = img.naturalHeight || 0;
-        if (!surface || !w || !h || h <= w) return;
+      function applyArtworkSurfaceAspect(surface, item, img) {
+        if (!surface) return;
+        let w = item && item.canvasW > 0 ? Math.round(item.canvasW) : 0;
+        let h = item && item.canvasH > 0 ? Math.round(item.canvasH) : 0;
+        if ((!w || !h) && item && item.snapshotPixelW > 0 && item.snapshotPixelH > 0) {
+          w = Math.round(item.snapshotPixelW);
+          h = Math.round(item.snapshotPixelH);
+        }
+        if ((!w || !h) && img && img.naturalWidth > 0 && img.naturalHeight > 0) {
+          w = img.naturalWidth;
+          h = img.naturalHeight;
+        }
+        if (!w || !h) {
+          w = DEFAULT_CANVAS_W;
+          h = DEFAULT_CANVAS_H;
+        }
         surface.style.aspectRatio = `${w} / ${h}`;
+      }
+
+      function syncSnapshotAspect(surface, item, img) {
+        applyArtworkSurfaceAspect(surface, item, img);
       }
 
       function mountArtworkSurface(surface, item) {
@@ -1360,16 +1376,18 @@
           img.src = item.artworkImageDataUrl;
           img.alt = '';
           img.draggable = false;
+          applyArtworkSurfaceAspect(surface, item, img);
           if (img.complete) {
-            syncSnapshotAspect(surface, img);
+            syncSnapshotAspect(surface, item, img);
           } else {
-            img.addEventListener('load', () => syncSnapshotAspect(surface, img), { once: true });
+            img.addEventListener('load', () => syncSnapshotAspect(surface, item, img), { once: true });
           }
           surface.appendChild(img);
           artEl = img;
         } else {
           const artCanvas = document.createElement('canvas');
           artCanvas.className = 'gallery-art-canvas';
+          applyArtworkSurfaceAspect(surface, item);
           renderRecipeToCanvas(artCanvas, getSplatsFromItem(item), item);
           surface.appendChild(artCanvas);
           artEl = artCanvas;

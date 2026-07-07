@@ -2622,9 +2622,27 @@
       function fillCanvasBackground() {
         const w = canvas.clientWidth;
         const h = canvas.clientHeight;
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = CANVAS_BG;
-        ctx.fillRect(0, 0, w, h);
+        fillCanvasBackgroundOnCtx(ctx, w, h);
+      }
+
+      function fillCanvasBackgroundOnCtx(c, w, h) {
+        c.globalCompositeOperation = 'source-over';
+        c.fillStyle = CANVAS_BG;
+        c.fillRect(0, 0, w, h);
+      }
+
+      function getStoredCanvasAspect() {
+        const aspectW = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w'));
+        const aspectH = parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h'));
+        if (aspectW > 0 && aspectH > 0) {
+          return { w: Math.round(aspectW), h: Math.round(aspectH) };
+        }
+        const cw = Math.round(canvas.clientWidth);
+        const ch = Math.round(canvas.clientHeight);
+        if (cw > 0 && ch > 0) {
+          return { w: cw, h: ch };
+        }
+        return { w: CANVAS_LOGICAL_W, h: CANVAS_LOGICAL_H };
       }
 
       // チャージ進行度とキャンバス実寸から描画ピクセルサイズを決定
@@ -2984,7 +3002,7 @@
 
           const snapshot = (prefetchedSnapshot && prefetchedSnapshot.artworkImageDataUrl)
             ? prefetchedSnapshot
-            : await persistArtworkCanvasSnapshot();
+            : await persistArtworkCanvasSnapshot(saveSplashes);
           const { period, periodStart, periodEnd } = computeArtworkPeriodFromSplashes(saveSplashes);
 
           let gallery = readGalleryStore();
@@ -3041,26 +3059,53 @@
         }
       }
 
-      async function persistArtworkCanvasSnapshot() {
-        try {
-          redrawCanvas();
-          const pixelW = canvas.width;
-          const pixelH = canvas.height;
-          const logicalW = Math.round(canvas.clientWidth) || CANVAS_LOGICAL_W;
-          const logicalH = Math.round(canvas.clientHeight) || CANVAS_LOGICAL_H;
-          if (pixelW < 1 || pixelH < 1) return null;
+      async function renderArtworkSnapshotDataUrl(splashList, logicalW, logicalH, fabricImage) {
+        const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+        const pixelW = Math.round(logicalW * dpr);
+        const pixelH = Math.round(logicalH * dpr);
+        const out = document.createElement('canvas');
+        out.width = pixelW;
+        out.height = pixelH;
+        const octx = out.getContext('2d');
+        octx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
+        fillCanvasBackgroundOnCtx(octx, logicalW, logicalH);
+        const list = Array.isArray(splashList) ? splashList : [];
+        list.forEach((splash) => {
+          drawSplatter(splash, logicalW, logicalH, undefined, octx);
+          drawDrip(splash, logicalW, logicalH, octx);
+        });
+
+        if (fabricImage && fabricImage.naturalWidth > 0) {
+          octx.save();
+          octx.globalAlpha = 0.35;
+          octx.globalCompositeOperation = 'multiply';
+          octx.drawImage(fabricImage, 0, 0, logicalW, logicalH);
+          octx.restore();
+        }
+
+        const artworkImageDataUrl = out.toDataURL('image/png');
+        return {
+          artworkImageDataUrl,
+          canvasW: logicalW,
+          canvasH: logicalH,
+          snapshotPixelW: pixelW,
+          snapshotPixelH: pixelH
+        };
+      }
+
+      async function persistArtworkCanvasSnapshot(frozenSplashes) {
+        try {
+          await ensureSplatLoaded();
+          const { w: logicalW, h: logicalH } = getStoredCanvasAspect();
+          const list = Array.isArray(frozenSplashes) && frozenSplashes.length
+            ? frozenSplashes
+            : splashes;
           const fabricImage = await loadFabricImage();
-          const dataUrl = captureCompositeArtworkDataUrl(pixelW, pixelH, fabricImage);
-          if (!dataUrl || dataUrl === 'data:,') return null;
+          const result = await renderArtworkSnapshotDataUrl(list, logicalW, logicalH, fabricImage);
+          if (!result.artworkImageDataUrl || result.artworkImageDataUrl === 'data:,') return null;
           refreshCanvasExportSnapshot();
-          return {
-            artworkImageDataUrl: dataUrl,
-            canvasW: logicalW,
-            canvasH: logicalH,
-            snapshotPixelW: pixelW,
-            snapshotPixelH: pixelH
-          };
+          return result;
         } catch (err) {
           console.warn('作品スナップショットの保存に失敗:', err);
           return null;
@@ -3294,7 +3339,7 @@
           frameProgress.textContent = '保存データが不足しています';
           return;
         }
-        const snapshotPromise = persistArtworkCanvasSnapshot();
+        const snapshotPromise = persistArtworkCanvasSnapshot(frozenSplashes);
         updateCanvasAspectVars();
         updateFramedArtSize();
         canvasWrap.classList.add('framing-active', 'is-framed');
@@ -3382,8 +3427,23 @@
         if (isFramed) {
           const styledW = parseFloat(wrap.style.getPropertyValue('--framed-art-w'));
           const styledH = parseFloat(wrap.style.getPropertyValue('--framed-art-h'));
-          cw = styledW || (artSurface && artSurface.clientWidth) || wrap.clientWidth;
-          ch = styledH || (artSurface && artSurface.clientHeight) || wrap.clientHeight;
+          if (styledW > 0 && styledH > 0) {
+            cw = styledW;
+            ch = styledH;
+          } else {
+            const aspect = getStoredCanvasAspect();
+            const frameInset = 2 * (FRAME_MAT_PADDING + FRAME_BORDER_WIDTH);
+            const availW = Math.max(1, wrap.clientWidth - frameInset);
+            const availH = Math.max(1, wrap.clientHeight - frameInset);
+            let artW = availW;
+            let artH = (artW * aspect.h) / aspect.w;
+            if (artH > availH) {
+              artH = availH;
+              artW = (artH * aspect.w) / aspect.h;
+            }
+            cw = artW;
+            ch = artH;
+          }
         } else if (artSurface && artSurface.clientWidth > 0 && artSurface.clientHeight > 0) {
           cw = artSurface.clientWidth;
           ch = artSurface.clientHeight;
@@ -3997,7 +4057,7 @@
         c.globalCompositeOperation = 'source-over';
       }
 
-      function drawDrip(splash, w, h) {
+      function drawDrip(splash, w, h, targetCtx) {
         if (!splash.drip || splash.drip.length <= 0.5) return;
         const stamp = getSplashStamp(splash);
         if (!stamp) return;
@@ -4010,18 +4070,19 @@
         const dripH = drip.length;
         const dripW = drip.width;
         const color = normalizeSplashHex(splash.color1 || splash.color);
+        const c = targetCtx || ctx;
 
-        ctx.save();
-        ctx.translate(originX, originY);
-        ctx.globalAlpha = (splash.opacity ?? 1) * 0.88;
-        ctx.globalCompositeOperation = 'multiply';
-        ctx.drawImage(stamp, -dripW / 2, 0, dripW, dripH);
-        ctx.globalCompositeOperation = 'source-over';
-        ctx.globalAlpha = (splash.opacity ?? 1) * 0.55;
-        ctx.fillStyle = color || '#1a2e40';
-        ctx.fillRect(-dripW * 0.35, dripH * 0.85, dripW * 0.7, dripH * 0.15);
-        ctx.restore();
-        ctx.globalCompositeOperation = 'source-over';
+        c.save();
+        c.translate(originX, originY);
+        c.globalAlpha = (splash.opacity ?? 1) * 0.88;
+        c.globalCompositeOperation = 'multiply';
+        c.drawImage(stamp, -dripW / 2, 0, dripW, dripH);
+        c.globalCompositeOperation = 'source-over';
+        c.globalAlpha = (splash.opacity ?? 1) * 0.55;
+        c.fillStyle = color || '#1a2e40';
+        c.fillRect(-dripW * 0.35, dripH * 0.85, dripW * 0.7, dripH * 0.15);
+        c.restore();
+        c.globalCompositeOperation = 'source-over';
       }
 
       function redrawCanvas() {
