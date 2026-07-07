@@ -1629,6 +1629,7 @@
       const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
       const GALLERY_RETENTION_MS = RETENTION_MS;
       const FRAME_ENTRIES_REQUIRED = 7;
+      const DISABLE_DAILY_DIARY_LOCK = true;
       const ZEN_IDLE_MS = 5000;
       const ZEN_FADE_MS = 2000;
       const CANVAS_LOGICAL_W = 270;
@@ -2136,44 +2137,96 @@
         const tryWrite = (entries) => {
           localStorage.setItem(GALLERY_KEY, JSON.stringify(entries));
         };
+        const isQuotaError = (err) => err && (err.name === 'QuotaExceededError' || err.code === 22 || err.code === 1014);
+        const stripEntryImage = (entry) => {
+          if (!entry || typeof entry !== 'object') return entry;
+          const copy = { ...entry };
+          delete copy.artworkImageDataUrl;
+          delete copy.snapshotPixelW;
+          delete copy.snapshotPixelH;
+          return copy;
+        };
+
         try {
           tryWrite(list);
           return true;
         } catch (err) {
-          const isQuota = err && (err.name === 'QuotaExceededError' || err.code === 22 || err.code === 1014);
-          if (!isQuota) {
+          if (!isQuotaError(err)) {
             console.warn('ギャラリー保存に失敗:', err);
             return false;
           }
+        }
+
+        const lastIdx = list.length - 1;
+        if (lastIdx >= 0 && list[lastIdx] && list[lastIdx].artworkImageDataUrl) {
           try {
-            const lighter = list.map((entry) => {
-              if (!entry || typeof entry !== 'object') return entry;
-              const copy = { ...entry };
-              delete copy.artworkImageDataUrl;
-              delete copy.snapshotPixelW;
-              delete copy.snapshotPixelH;
-              return copy;
-            });
-            tryWrite(lighter);
+            const newestTrimmed = list.map((entry, idx) => (
+              idx === lastIdx ? stripEntryImage(entry) : entry
+            ));
+            tryWrite(newestTrimmed);
+            list.splice(0, list.length, ...newestTrimmed);
             return true;
-          } catch (err2) {
-            console.warn('ギャラリー保存に失敗（容量不足）:', err2);
-            return false;
+          } catch (err) {
+            if (!isQuotaError(err)) {
+              console.warn('ギャラリー保存に失敗:', err);
+              return false;
+            }
           }
+        }
+
+        try {
+          const lighter = list.map(stripEntryImage);
+          tryWrite(lighter);
+          list.splice(0, list.length, ...lighter);
+          return true;
+        } catch (err2) {
+          console.warn('ギャラリー保存に失敗（容量不足）:', err2);
+          return false;
         }
       }
 
-      function buildArtworkCycleKey() {
-        const words = getWeekWordsFromStorage();
-        const stamp = splashes
+      function cloneSplashesForGallerySave(source) {
+        if (!Array.isArray(source)) return [];
+        return source.map(({ drip, ...rest }) => ({ ...rest }));
+      }
+
+      function buildArtworkCycleKeyFromSplashes(splashList) {
+        const ordered = (Array.isArray(splashList) ? splashList : [])
           .slice()
-          .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+          .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        const words = ordered
+          .map((s) => String(s.word || '').trim())
+          .filter(Boolean)
+          .slice(0, MAX_ENTRIES);
+        const stamp = ordered
           .map((s) => `${s.timestamp || 0}|${s.nx}|${s.ny}|${s.color || s.color1 || ''}`)
           .join('\u241f');
         return `${hashWeekWords(words)}\u241e${stamp}`;
       }
 
+      function mergeGalleryEntry(existing, incoming) {
+        const merged = { ...existing, ...incoming };
+        if (!incoming.artworkImageDataUrl && existing.artworkImageDataUrl) {
+          merged.artworkImageDataUrl = existing.artworkImageDataUrl;
+          merged.snapshotPixelW = existing.snapshotPixelW;
+          merged.snapshotPixelH = existing.snapshotPixelH;
+        }
+        if ((!Array.isArray(incoming.splats) || !incoming.splats.length) && Array.isArray(existing.splats) && existing.splats.length) {
+          merged.splats = existing.splats;
+        }
+        if ((!Array.isArray(incoming.history) || !incoming.history.length) && Array.isArray(existing.history) && existing.history.length) {
+          merged.history = existing.history;
+        }
+        merged.id = existing.id || incoming.id;
+        return merged;
+      }
+
+      function buildArtworkCycleKey() {
+        return buildArtworkCycleKeyFromSplashes(splashes);
+      }
+
       function hasPostedToday() {
+        if (DISABLE_DAILY_DIARY_LOCK) return false;
         try {
           const atRaw = localStorage.getItem(LAST_EXPLOSION_AT_KEY);
           if (atRaw) {
@@ -2189,6 +2242,7 @@
       }
 
       function lockDiaryForToday() {
+        if (DISABLE_DAILY_DIARY_LOCK) return;
         const now = Date.now();
         const dayKey = getDiaryDayKey(new Date(now));
         try {
@@ -2908,14 +2962,20 @@
         }
       }
 
-      async function saveRecipeToGallery(prefetchedSnapshot) {
-        if (splashes.length < FRAME_ENTRIES_REQUIRED) return;
+      async function saveRecipeToGallery(prefetchedSnapshot, frozenSplashes) {
+        const saveSplashes = Array.isArray(frozenSplashes) && frozenSplashes.length
+          ? frozenSplashes
+          : cloneSplashesForGallerySave(splashes);
+        if (saveSplashes.length < FRAME_ENTRIES_REQUIRED) {
+          console.warn('回廊保存: スプラッシュが不足しています', saveSplashes.length);
+          return false;
+        }
 
         try {
-          const cycleKey = buildArtworkCycleKey();
+          const cycleKey = buildArtworkCycleKeyFromSplashes(saveSplashes);
           syncHistoriesFromSplashes();
-          const splatsRecipes = splashes.map(({ drip, ...rest }) => rest);
-          const history = splashes.map((s) => ({
+          const splatsRecipes = saveSplashes;
+          const history = saveSplashes.map((s) => ({
             word: s.word || '',
             color: normalizeSplashHex(s.color1 || s.color),
             date: formatDate(s.timestamp),
@@ -2925,13 +2985,22 @@
           const snapshot = (prefetchedSnapshot && prefetchedSnapshot.artworkImageDataUrl)
             ? prefetchedSnapshot
             : await persistArtworkCanvasSnapshot();
-          const { period, periodStart, periodEnd } = computeArtworkPeriodFromSplashes(splashes);
+          const { period, periodStart, periodEnd } = computeArtworkPeriodFromSplashes(saveSplashes);
 
           let gallery = readGalleryStore();
           if (!Array.isArray(gallery)) gallery = [];
 
-          const wordsHash = hashWeekWords(getWeekWordsFromStorage());
+          const wordsHash = hashWeekWords(
+            saveSplashes
+              .slice()
+              .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
+              .map((s) => String(s.word || '').trim())
+              .filter(Boolean)
+              .slice(0, MAX_ENTRIES)
+          );
+
           const entry = {
+            id: `art_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`,
             splats: splatsRecipes,
             history,
             period,
@@ -2943,17 +3012,16 @@
             canvasW: snapshot && snapshot.canvasW ? snapshot.canvasW : (parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth),
             canvasH: snapshot && snapshot.canvasH ? snapshot.canvasH : (parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight),
             snapshotPixelW: snapshot && snapshot.snapshotPixelW ? snapshot.snapshotPixelW : undefined,
-            snapshotPixelH: snapshot && snapshot.snapshotPixelH ? snapshot.snapshotPixelH : undefined,
-            artworkImageDataUrl: snapshot ? snapshot.artworkImageDataUrl : undefined
+            snapshotPixelH: snapshot && snapshot.snapshotPixelH ? snapshot.snapshotPixelH : undefined
           };
+          if (snapshot && snapshot.artworkImageDataUrl) {
+            entry.artworkImageDataUrl = snapshot.artworkImageDataUrl;
+          }
 
-          const existingIdx = gallery.findIndex((item) => {
-            if (!item) return false;
-            if (item.cycleKey === cycleKey) return true;
-            return item.wordsHash === wordsHash;
-          });
+          const existingIdx = gallery.findIndex((item) => item && item.cycleKey === cycleKey);
           if (existingIdx >= 0) {
-            gallery[existingIdx] = { ...gallery[existingIdx], ...entry };
+            entry.id = gallery[existingIdx].id || entry.id;
+            gallery[existingIdx] = mergeGalleryEntry(gallery[existingIdx], entry);
           } else {
             gallery.push(entry);
           }
@@ -2962,19 +3030,14 @@
             gallery = gallery.slice(-GALLERY_MAX);
           }
 
-          if (!writeGalleryStore(gallery) && entry.artworkImageDataUrl) {
-            delete entry.artworkImageDataUrl;
-            delete entry.snapshotPixelW;
-            delete entry.snapshotPixelH;
-            if (existingIdx >= 0) {
-              gallery[existingIdx] = { ...gallery[existingIdx], ...entry };
-            } else if (gallery[gallery.length - 1]) {
-              gallery[gallery.length - 1] = { ...gallery[gallery.length - 1], ...entry };
-            }
-            writeGalleryStore(gallery);
+          const saved = writeGalleryStore(gallery);
+          if (!saved) {
+            console.warn('回廊への保存に失敗しました');
           }
+          return saved;
         } catch (err) {
           console.warn('回廊レシピ保存に失敗:', err);
+          return false;
         }
       }
 
@@ -3053,11 +3116,17 @@
         });
       }
 
-      function showFrameCompleteDialog() {
+      function showFrameCompleteDialog(gallerySaved) {
         return new Promise(resolve => {
           if (!frameCompleteDialog || !frameCompleteOk) {
             resolve();
             return;
+          }
+          const messageEl = frameCompleteDialog.querySelector('p');
+          if (messageEl) {
+            messageEl.textContent = gallerySaved === false
+              ? '回廊への保存に失敗しました。もう一度お試しください'
+              : '作品を感情の回廊に大切に飾りました';
           }
           const close = () => {
             frameCompleteDialog.classList.remove('open');
@@ -3217,6 +3286,14 @@
         frameBtn.setAttribute('aria-disabled', 'true');
         frameProgress.textContent = '額装中...';
         hideFrameCta();
+        const frozenSplashes = cloneSplashesForGallerySave(splashes);
+        if (frozenSplashes.length < FRAME_ENTRIES_REQUIRED) {
+          frameProcessing = false;
+          frameBtn.classList.remove('processing');
+          frameBtn.removeAttribute('aria-disabled');
+          frameProgress.textContent = '保存データが不足しています';
+          return;
+        }
         const snapshotPromise = persistArtworkCanvasSnapshot();
         updateCanvasAspectVars();
         updateFramedArtSize();
@@ -3229,18 +3306,30 @@
           });
         });
 
+        let gallerySaved = false;
+
         waitForFrameAnimation(museumFrame, 1500).then(async () => {
           try {
             const snapshot = await snapshotPromise;
-            await saveRecipeToGallery(snapshot);
+            gallerySaved = await saveRecipeToGallery(snapshot, frozenSplashes);
           } catch (err) {
             console.warn('額装保存処理:', err);
           }
-          frameProgress.textContent = '額装完了';
-          return showFrameCompleteDialog();
+          frameProgress.textContent = gallerySaved ? '額装完了' : '保存に失敗しました';
+          return showFrameCompleteDialog(gallerySaved);
         }).then(() => {
           if (!frameProcessing) return;
-          restartAppCycle();
+          if (gallerySaved !== false) {
+            restartAppCycle();
+          } else {
+            framingCompleted = false;
+            frameBtn.classList.remove('processing');
+            frameBtn.classList.add('ready');
+            frameBtn.removeAttribute('aria-disabled');
+            frameCtaOverlay.classList.add('visible', 'ready');
+            frameCtaOverlay.setAttribute('aria-hidden', 'false');
+            bindFrameButtonClick();
+          }
           frameProcessing = false;
           frameBtn.classList.remove('processing');
         });
