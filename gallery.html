@@ -63,7 +63,7 @@
     .cloud-sync-wrap {
       position: fixed;
       right: calc(0.25rem + env(safe-area-inset-right));
-      bottom: calc(0.35rem + env(safe-area-inset-bottom));
+      bottom: calc(5.85rem + env(safe-area-inset-bottom));
       top: auto;
       z-index: 10100;
       padding: 0.65rem;
@@ -129,7 +129,7 @@
     .cloud-sync-status {
       position: fixed;
       right: calc(0.55rem + env(safe-area-inset-right));
-      bottom: calc(4.85rem + env(safe-area-inset-bottom));
+      bottom: calc(10.35rem + env(safe-area-inset-bottom));
       top: auto;
       z-index: 10099;
       max-width: min(72vw, 14rem);
@@ -271,7 +271,7 @@
       overflow-x: auto;
       overflow-y: hidden;
       gap: 80px;
-      padding: 20px 5vw calc(1.5rem + env(safe-area-inset-bottom, 0px));
+      padding: 20px 5vw calc(7.5rem + env(safe-area-inset-bottom, 0px));
       width: 100%;
       align-items: center;
       scroll-behavior: smooth;
@@ -1318,20 +1318,20 @@
       }
 
       function loadSplatImage() {
-        return new Promise((resolve, reject) => {
-          splatImg.onload = () => {
-            if (splatImg.naturalWidth > 0) {
-              splatReady = true;
-              resolve();
-            } else {
-              reject(new Error('splat.png invalid'));
-            }
-          };
-          splatImg.onerror = () => reject(new Error('splat.png load failed'));
-          splatImg.src = SPLAT_IMAGE;
-          if (splatImg.complete && splatImg.naturalWidth > 0) {
-            splatReady = true;
+        return new Promise((resolve) => {
+          const finish = (ok) => {
+            splatReady = !!ok;
             resolve();
+          };
+
+          splatImg.onload = () => finish(splatImg.naturalWidth > 0);
+          splatImg.onerror = () => {
+            console.warn('splat.png が見つかりません。代替描画を使います。');
+            finish(false);
+          };
+          splatImg.src = SPLAT_IMAGE;
+          if (splatImg.complete) {
+            finish(splatImg.naturalWidth > 0);
           }
         });
       }
@@ -1409,25 +1409,61 @@
         targetCtx.restore();
       }
 
-      function createColorStamp(color) {
-        if (!splatReady || !splatImg.naturalWidth) return null;
+      function createProceduralStamp(color) {
         if (stampCache[color]) return stampCache[color];
 
-        const w = splatImg.naturalWidth;
-        const h = splatImg.naturalHeight;
+        const size = 128;
         const work = document.createElement('canvas');
-        work.width = w;
-        work.height = h;
+        work.width = size;
+        work.height = size;
         const wctx = work.getContext('2d');
+        const cx = size / 2;
 
-        wctx.fillStyle = color;
-        wctx.fillRect(0, 0, w, h);
-        wctx.globalCompositeOperation = 'screen';
-        wctx.drawImage(splatImg, 0, 0);
-        wctx.globalCompositeOperation = 'source-over';
+        const core = wctx.createRadialGradient(cx, cx, 0, cx, cx, cx * 0.92);
+        core.addColorStop(0, color);
+        core.addColorStop(0.42, color);
+        core.addColorStop(0.78, 'rgba(0, 0, 0, 0)');
+        wctx.fillStyle = core;
+        wctx.fillRect(0, 0, size, size);
+
+        for (let i = 0; i < 6; i++) {
+          const angle = (i / 6) * Math.PI * 2 + 0.35;
+          const dist = size * (0.18 + (i % 3) * 0.06);
+          const bx = cx + Math.cos(angle) * dist;
+          const by = cx + Math.sin(angle) * dist;
+          const blob = wctx.createRadialGradient(bx, by, 0, bx, by, size * 0.22);
+          blob.addColorStop(0, color);
+          blob.addColorStop(1, 'rgba(0, 0, 0, 0)');
+          wctx.fillStyle = blob;
+          wctx.fillRect(0, 0, size, size);
+        }
 
         stampCache[color] = work;
         return work;
+      }
+
+      function createColorStamp(color) {
+        if (stampCache[color]) return stampCache[color];
+
+        if (splatReady && splatImg.naturalWidth) {
+          const w = splatImg.naturalWidth;
+          const h = splatImg.naturalHeight;
+          const work = document.createElement('canvas');
+          work.width = w;
+          work.height = h;
+          const wctx = work.getContext('2d');
+
+          wctx.fillStyle = color;
+          wctx.fillRect(0, 0, w, h);
+          wctx.globalCompositeOperation = 'screen';
+          wctx.drawImage(splatImg, 0, 0);
+          wctx.globalCompositeOperation = 'source-over';
+
+          stampCache[color] = work;
+          return work;
+        }
+
+        return createProceduralStamp(color);
       }
 
       function drawSplatterStamp(c, stamp, size, alpha, pattern) {
@@ -2453,9 +2489,12 @@
           })
           .then(() => loadFabricImage())
           .then(renderGallery)
-          .catch(() => {
+          .catch((err) => {
+            console.warn('回廊の初期化に失敗:', err);
             const galleryContainer = document.getElementById('gallery-container');
-            galleryContainer.innerHTML = '<p class="no-data">splat.png を読み込めませんでした。index.html と同じフォルダに置いてください。</p>';
+            if (galleryContainer) {
+              galleryContainer.innerHTML = '<p class="no-data">回廊を読み込めませんでした。ページを再読み込みしてください。</p>';
+            }
           });
       });
     })();
