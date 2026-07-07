@@ -1004,6 +1004,10 @@
       background-size: auto, auto, cover;
     }
 
+    .museum-frame-sculpted.frame-reset-instant {
+      transition: none !important;
+    }
+
     /* 通常時：キャンバス単体が闇に浮かぶ微かな落ち影のみ */
     .canvas-wrap:not(.is-framed):not(.framing-active) #mainCanvas {
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
@@ -3329,11 +3333,38 @@
       }
 
       function clearMainCanvasToWhite() {
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
+        const dpr = window.devicePixelRatio || 1;
+        const w = canvas.width > 0 ? canvas.width / dpr : (canvas.clientWidth || CANVAS_LOGICAL_W);
+        const h = canvas.height > 0 ? canvas.height / dpr : (canvas.clientHeight || CANVAS_LOGICAL_H);
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         ctx.globalCompositeOperation = 'source-over';
-        ctx.fillStyle = '#ffffff';
+        ctx.fillStyle = CANVAS_BG;
         ctx.fillRect(0, 0, w, h);
+      }
+
+      function resetCanvasDisplayStyles() {
+        canvas.style.removeProperty('width');
+        canvas.style.removeProperty('height');
+        shockCanvas.style.removeProperty('width');
+        shockCanvas.style.removeProperty('height');
+      }
+
+      function forceCanvasToLogicalBlank() {
+        const dpr = window.devicePixelRatio || 1;
+        const cw = CANVAS_LOGICAL_W;
+        const ch = CANVAS_LOGICAL_H;
+        canvas.width = Math.round(cw * dpr);
+        canvas.height = Math.round(ch * dpr);
+        canvas.style.width = `${cw}px`;
+        canvas.style.height = `${ch}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        shockCanvas.width = Math.round(cw * dpr);
+        shockCanvas.height = Math.round(ch * dpr);
+        shockCanvas.style.width = `${cw}px`;
+        shockCanvas.style.height = `${ch}px`;
+        shockCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        shockCtx.clearRect(0, 0, shockCanvas.width, shockCanvas.height);
+        fillCanvasBackgroundOnCtx(ctx, cw, ch);
       }
 
       function restartAppCycle() {
@@ -3360,7 +3391,6 @@
 
         clearCssFrameFromCanvas();
         clearCreationCanvasAspectLock();
-        clearMainCanvasToWhite();
 
         wordInput.value = '';
         updateUIState();
@@ -3368,11 +3398,22 @@
       }
 
       function clearCssFrameFromCanvas() {
+        const sculpted = museumFrame.querySelector('.museum-frame-sculpted');
+        if (sculpted) sculpted.classList.add('frame-reset-instant');
+
         museumFrame.classList.remove('framing-animate');
         canvasWrap.classList.remove('framing-active', 'is-framed');
         canvasWrap.style.removeProperty('--framed-art-w');
         canvasWrap.style.removeProperty('--framed-art-h');
-        requestAnimationFrame(resizeCanvas);
+        resetCanvasDisplayStyles();
+        forceCanvasToLogicalBlank();
+
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => {
+            resizeCanvas();
+            if (sculpted) sculpted.classList.remove('frame-reset-instant');
+          });
+        });
       }
 
       function bindFrameButtonClick() {
