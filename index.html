@@ -967,6 +967,7 @@
     .museum-frame.framing-animate .art-surface {
       width: var(--framed-art-w);
       height: var(--framed-art-h);
+      aspect-ratio: auto;
       flex-shrink: 0;
       padding: 0;
       margin: 0;
@@ -1006,6 +1007,14 @@
     /* 通常時：キャンバス単体が闇に浮かぶ微かな落ち影のみ */
     .canvas-wrap:not(.is-framed):not(.framing-active) #mainCanvas {
       box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+    }
+
+    .canvas-wrap.is-framed #mainCanvas,
+    .canvas-wrap.framing-active #mainCanvas,
+    .canvas-wrap.is-framed .shock-overlay,
+    .canvas-wrap.framing-active .shock-overlay {
+      width: 100% !important;
+      height: 100% !important;
     }
 
     /* 額装時：額縁の奥に嵌まった布地の陰影 */
@@ -2619,9 +2628,23 @@
         }
       }
 
+      function isCanvasFramedDisplay() {
+        return canvasWrap.classList.contains('is-framed')
+          || canvasWrap.classList.contains('framing-active')
+          || museumFrame.classList.contains('framing-animate');
+      }
+
+      function getCanvasLogicalSize() {
+        if (isCanvasFramedDisplay()) {
+          return getStoredCanvasAspect();
+        }
+        const w = canvas.clientWidth || CANVAS_LOGICAL_W;
+        const h = canvas.clientHeight || CANVAS_LOGICAL_H;
+        return { w, h };
+      }
+
       function fillCanvasBackground() {
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
+        const { w, h } = getCanvasLogicalSize();
         fillCanvasBackgroundOnCtx(ctx, w, h);
       }
 
@@ -3465,25 +3488,9 @@
         let cw;
         let ch;
         if (isFramed) {
-          const styledW = parseFloat(wrap.style.getPropertyValue('--framed-art-w'));
-          const styledH = parseFloat(wrap.style.getPropertyValue('--framed-art-h'));
-          if (styledW > 0 && styledH > 0) {
-            cw = styledW;
-            ch = styledH;
-          } else {
-            const aspect = getStoredCanvasAspect();
-            const frameInset = 2 * (FRAME_MAT_PADDING + FRAME_BORDER_WIDTH);
-            const availW = Math.max(1, wrap.clientWidth - frameInset);
-            const availH = Math.max(1, wrap.clientHeight - frameInset);
-            let artW = availW;
-            let artH = (artW * aspect.h) / aspect.w;
-            if (artH > availH) {
-              artH = availH;
-              artW = (artH * aspect.w) / aspect.h;
-            }
-            cw = artW;
-            ch = artH;
-          }
+          const aspect = getStoredCanvasAspect();
+          cw = aspect.w;
+          ch = aspect.h;
         } else if (artSurface && artSurface.clientWidth > 0 && artSurface.clientHeight > 0) {
           cw = artSurface.clientWidth;
           ch = artSurface.clientHeight;
@@ -3505,13 +3512,23 @@
 
         canvas.width = cw * dpr;
         canvas.height = ch * dpr;
-        canvas.style.width = cw + 'px';
-        canvas.style.height = ch + 'px';
+        if (isFramed) {
+          canvas.style.width = '100%';
+          canvas.style.height = '100%';
+        } else {
+          canvas.style.width = cw + 'px';
+          canvas.style.height = ch + 'px';
+        }
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         shockCanvas.width = cw * dpr;
         shockCanvas.height = ch * dpr;
-        shockCanvas.style.width = cw + 'px';
-        shockCanvas.style.height = ch + 'px';
+        if (isFramed) {
+          shockCanvas.style.width = '100%';
+          shockCanvas.style.height = '100%';
+        } else {
+          shockCanvas.style.width = cw + 'px';
+          shockCanvas.style.height = ch + 'px';
+        }
         shockCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         redrawCanvas();
         drawShockwaves();
@@ -4128,8 +4145,7 @@
       }
 
       function redrawCanvas() {
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
+        const { w, h } = getCanvasLogicalSize();
         fillCanvasBackground();
         splashes.forEach(s => {
           drawSplatter(s, w, h);
@@ -4329,8 +4345,9 @@
 
       function getCanvasLocalCoordsFromClient(clientX, clientY) {
         const rect = canvas.getBoundingClientRect();
-        const scaleX = rect.width > 0 ? canvas.clientWidth / rect.width : 1;
-        const scaleY = rect.height > 0 ? canvas.clientHeight / rect.height : 1;
+        const logical = getCanvasLogicalSize();
+        const scaleX = rect.width > 0 ? logical.w / rect.width : 1;
+        const scaleY = rect.height > 0 ? logical.h / rect.height : 1;
         return {
           x: (clientX - rect.left) * scaleX,
           y: (clientY - rect.top) * scaleY,
