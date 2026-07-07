@@ -60,120 +60,6 @@
         calc(0.65rem + env(safe-area-inset-left));
     }
 
-    .cloud-sync-wrap {
-      position: fixed;
-      right: calc(0.25rem + env(safe-area-inset-right));
-      bottom: calc(5.85rem + env(safe-area-inset-bottom));
-      top: auto;
-      z-index: 10100;
-      padding: 0.65rem;
-      margin: 0;
-      touch-action: manipulation;
-    }
-
-    .cloud-sync-btn {
-      position: relative;
-      display: block;
-      min-width: 3.25rem;
-      min-height: 3.25rem;
-      padding: 0.55rem 0.65rem;
-      border: 0.5px solid rgba(201, 169, 98, 0.32);
-      border-radius: 3px;
-      background: rgba(10, 10, 12, 0.88);
-      color: rgba(201, 169, 98, 0.82);
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
-      font-size: 0.68rem;
-      font-weight: 300;
-      letter-spacing: 0.14em;
-      text-indent: 0.14em;
-      line-height: 1.2;
-      cursor: pointer;
-      touch-action: manipulation;
-      -webkit-tap-highlight-color: rgba(201, 169, 98, 0.22);
-      user-select: none;
-      -webkit-user-select: none;
-      transform: translateZ(0);
-      box-shadow:
-        0 2px 16px rgba(0, 0, 0, 0.45),
-        0 0 0 1px rgba(255, 255, 255, 0.03) inset;
-      transition: color 0.25s ease, border-color 0.25s ease, background 0.25s ease, transform 0.12s ease, box-shadow 0.12s ease;
-    }
-
-    .cloud-sync-btn:active:not(:disabled),
-    .cloud-sync-btn.is-pressed {
-      transform: translateZ(0) scale(0.94);
-      background: rgba(201, 169, 98, 0.18);
-      box-shadow: 0 1px 8px rgba(0, 0, 0, 0.35);
-    }
-
-    .cloud-sync-btn.is-cloud {
-      border-color: rgba(201, 169, 98, 0.42);
-      color: rgba(201, 169, 98, 0.88);
-    }
-
-    .cloud-sync-btn.is-syncing {
-      color: rgba(232, 230, 226, 0.55);
-      pointer-events: none;
-    }
-
-    .cloud-sync-btn.is-linked {
-      color: rgba(232, 230, 226, 0.55);
-      border-color: rgba(232, 230, 226, 0.2);
-      min-width: 3.1rem;
-    }
-
-    .cloud-sync-btn.is-unconfigured {
-      opacity: 0.72;
-    }
-
-    .cloud-sync-status {
-      position: fixed;
-      right: calc(0.55rem + env(safe-area-inset-right));
-      bottom: calc(10.35rem + env(safe-area-inset-bottom));
-      top: auto;
-      z-index: 10099;
-      max-width: min(72vw, 14rem);
-      padding: 0.55rem 0.7rem;
-      border: 0.5px solid rgba(201, 169, 98, 0.22);
-      border-radius: 2px;
-      background: rgba(8, 8, 10, 0.92);
-      color: rgba(232, 230, 226, 0.72);
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
-      font-size: 0.58rem;
-      font-weight: 300;
-      letter-spacing: 0.06em;
-      line-height: 1.55;
-      text-align: right;
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(6px);
-      transition: opacity 0.35s ease, visibility 0.35s ease, transform 0.35s ease;
-      pointer-events: none;
-    }
-
-    .cloud-sync-status.visible {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0);
-    }
-
-    @media (max-width: 480px) {
-      .cloud-sync-wrap {
-        padding: 0.75rem;
-      }
-
-      .cloud-sync-btn {
-        min-width: 3.5rem;
-        min-height: 3.5rem;
-        font-size: 0.72rem;
-      }
-
-      .cloud-sync-status {
-        font-size: 0.62rem;
-        max-width: min(78vw, 15rem);
-      }
-    }
-
     .site-nav {
       display: flex;
       align-items: stretch;
@@ -271,7 +157,7 @@
       overflow-x: auto;
       overflow-y: hidden;
       gap: 80px;
-      padding: 20px 5vw calc(7.5rem + env(safe-area-inset-bottom, 0px));
+      padding: 20px 5vw calc(1.5rem + env(safe-area-inset-bottom, 0px));
       width: 100%;
       align-items: center;
       scroll-behavior: smooth;
@@ -934,11 +820,6 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
-  <script src="firebase-config.js"></script>
-  <script src="inscape-cloud.js"></script>
 </head>
 <body>
   <div class="corridor-top">
@@ -955,10 +836,6 @@
   </div>
 
   <div id="gallery-container"></div>
-  <div class="cloud-sync-wrap">
-    <button type="button" class="cloud-sync-btn" id="cloudSyncBtn" aria-label="クラウドに保管">保管</button>
-  </div>
-  <p class="cloud-sync-status" id="cloudSyncStatus" aria-live="polite"></p>
 
   <script>
     (function () {
@@ -1174,14 +1051,6 @@
       }
 
       function loadGalleryRaw() {
-        if (window.InscapeCloud && InscapeCloud.isReady && InscapeCloud.isReady()) {
-          try {
-            const cloudData = InscapeCloud.getGallery();
-            if (Array.isArray(cloudData)) return cloudData;
-          } catch (err) {
-            console.warn('クラウドの回廊データ読み込みに失敗:', err);
-          }
-        }
         try {
           const data = JSON.parse(localStorage.getItem(GALLERY_KEY)) || [];
           return Array.isArray(data) ? data : [];
@@ -1192,10 +1061,6 @@
 
       function saveGalleryRaw(gallery) {
         const list = Array.isArray(gallery) ? gallery : [];
-        if (window.InscapeCloud && InscapeCloud.isReady()) {
-          InscapeCloud.setGallery(list);
-          return;
-        }
         try {
           localStorage.setItem(GALLERY_KEY, JSON.stringify(list));
         } catch (err) {
@@ -1323,33 +1188,20 @@
       }
 
       function loadSplatImage() {
-        return new Promise((resolve) => {
-          let settled = false;
-          const finish = (ok) => {
-            if (settled) return;
-            settled = true;
-            splatReady = !!ok;
-            resolve();
+        return new Promise((resolve, reject) => {
+          splatImg.onload = () => {
+            if (splatImg.naturalWidth > 0) {
+              splatReady = true;
+              resolve();
+            } else {
+              reject(new Error('splat.png invalid'));
+            }
           };
-
-          const timer = setTimeout(() => {
-            console.warn('splat.png の読み込みがタイムアウトしました。代替描画を使います。');
-            finish(false);
-          }, 5000);
-
-          const done = (ok) => {
-            clearTimeout(timer);
-            finish(ok);
-          };
-
-          splatImg.onload = () => done(splatImg.naturalWidth > 0);
-          splatImg.onerror = () => {
-            console.warn('splat.png が見つかりません。代替描画を使います。');
-            done(false);
-          };
+          splatImg.onerror = () => reject(new Error('splat.png load failed'));
           splatImg.src = SPLAT_IMAGE;
-          if (splatImg.complete) {
-            done(splatImg.naturalWidth > 0);
+          if (splatImg.complete && splatImg.naturalWidth > 0) {
+            splatReady = true;
+            resolve();
           }
         });
       }
@@ -1427,61 +1279,25 @@
         targetCtx.restore();
       }
 
-      function createProceduralStamp(color) {
+      function createColorStamp(color) {
+        if (!splatReady || !splatImg.naturalWidth) return null;
         if (stampCache[color]) return stampCache[color];
 
-        const size = 128;
+        const w = splatImg.naturalWidth;
+        const h = splatImg.naturalHeight;
         const work = document.createElement('canvas');
-        work.width = size;
-        work.height = size;
+        work.width = w;
+        work.height = h;
         const wctx = work.getContext('2d');
-        const cx = size / 2;
 
-        const core = wctx.createRadialGradient(cx, cx, 0, cx, cx, cx * 0.92);
-        core.addColorStop(0, color);
-        core.addColorStop(0.42, color);
-        core.addColorStop(0.78, 'rgba(0, 0, 0, 0)');
-        wctx.fillStyle = core;
-        wctx.fillRect(0, 0, size, size);
-
-        for (let i = 0; i < 6; i++) {
-          const angle = (i / 6) * Math.PI * 2 + 0.35;
-          const dist = size * (0.18 + (i % 3) * 0.06);
-          const bx = cx + Math.cos(angle) * dist;
-          const by = cx + Math.sin(angle) * dist;
-          const blob = wctx.createRadialGradient(bx, by, 0, bx, by, size * 0.22);
-          blob.addColorStop(0, color);
-          blob.addColorStop(1, 'rgba(0, 0, 0, 0)');
-          wctx.fillStyle = blob;
-          wctx.fillRect(0, 0, size, size);
-        }
+        wctx.fillStyle = color;
+        wctx.fillRect(0, 0, w, h);
+        wctx.globalCompositeOperation = 'screen';
+        wctx.drawImage(splatImg, 0, 0);
+        wctx.globalCompositeOperation = 'source-over';
 
         stampCache[color] = work;
         return work;
-      }
-
-      function createColorStamp(color) {
-        if (stampCache[color]) return stampCache[color];
-
-        if (splatReady && splatImg.naturalWidth) {
-          const w = splatImg.naturalWidth;
-          const h = splatImg.naturalHeight;
-          const work = document.createElement('canvas');
-          work.width = w;
-          work.height = h;
-          const wctx = work.getContext('2d');
-
-          wctx.fillStyle = color;
-          wctx.fillRect(0, 0, w, h);
-          wctx.globalCompositeOperation = 'screen';
-          wctx.drawImage(splatImg, 0, 0);
-          wctx.globalCompositeOperation = 'source-over';
-
-          stampCache[color] = work;
-          return work;
-        }
-
-        return createProceduralStamp(color);
       }
 
       function drawSplatterStamp(c, stamp, size, alpha, pattern) {
@@ -2231,70 +2047,23 @@
 
       function renderGallery() {
         const galleryContainer = document.getElementById('gallery-container');
-        if (!galleryContainer) return;
+        const galleryData = loadGallery();
 
-        let galleryData = [];
-        try {
-          galleryData = loadGallery();
-        } catch (err) {
-          console.warn('回廊データの読み込みに失敗:', err);
-          galleryContainer.innerHTML = '<p class="no-data">回廊データを読み込めませんでした。</p>';
-          return;
-        }
-
-        if (!Array.isArray(galleryData) || galleryData.length === 0) {
+        if (galleryData.length === 0) {
           galleryContainer.innerHTML = '<p class="no-data">まだ額装された完成作品がありません。7つの言葉を紡ぎ、作品が完成するとここに飾られます。</p>';
           return;
         }
 
         galleryContainer.innerHTML = '';
         const displayItems = galleryData.slice().reverse();
-        let rendered = 0;
         displayItems.forEach((item) => {
-          try {
-            const artwork = createFramedArtwork(item);
-            artwork.addEventListener('click', (e) => {
-              if (e.target.closest('.save-art-btn')) return;
-              openArtworkModal(artwork, item);
-            });
-            galleryContainer.appendChild(artwork);
-            rendered += 1;
-          } catch (err) {
-            console.warn('作品の表示に失敗:', err, item);
-          }
+          const artwork = createFramedArtwork(item);
+          artwork.addEventListener('click', (e) => {
+            if (e.target.closest('.save-art-btn')) return;
+            openArtworkModal(artwork, item);
+          });
+          galleryContainer.appendChild(artwork);
         });
-
-        if (rendered === 0) {
-          galleryContainer.innerHTML = '<p class="no-data">作品データはありますが、表示できませんでした。ページを再読み込みしてください。</p>';
-        }
-      }
-
-      function bootGalleryView() {
-        return loadSplatImage()
-          .then(() => loadFabricImage())
-          .then(renderGallery);
-      }
-
-      function afterCloudReady() {
-        updateCloudSyncButton();
-        if (!window.InscapeCloud) return;
-
-        const status = InscapeCloud.getCloudStatus ? InscapeCloud.getCloudStatus() : null;
-        if (!status || !status.configured) {
-          showCloudStatusMessage('いまは端末内に保存されています', 3600);
-        } else if (InscapeCloud.isUsingCloud && InscapeCloud.isUsingCloud()) {
-          showCloudStatusMessage('雲に同期されています', 3200);
-        }
-
-        try {
-          if (sessionStorage.getItem('inscape_google_link_pending') === '1'
-            && InscapeCloud.isGoogleLinked && InscapeCloud.isGoogleLinked()) {
-            sessionStorage.removeItem('inscape_google_link_pending');
-            showCloudStatusMessage('Googleに保管しました');
-          }
-        } catch (_) {}
-
-        renderGallery();
       }
 
       function bindSavePreview() {
@@ -2372,182 +2141,16 @@
         });
       }
 
-      let cloudStatusTimer = null;
-
-      function showCloudStatusMessage(message, durationMs) {
-        const el = document.getElementById('cloudSyncStatus');
-        if (!el || !message) return;
-        el.textContent = message;
-        el.classList.add('visible');
-        if (cloudStatusTimer) clearTimeout(cloudStatusTimer);
-        cloudStatusTimer = setTimeout(() => {
-          el.classList.remove('visible');
-        }, durationMs || 3200);
-      }
-
-      function updateCloudSyncButton() {
-        const btn = document.getElementById('cloudSyncBtn');
-        if (!btn || !window.InscapeCloud) return;
-
-        btn.classList.remove('is-linked', 'is-cloud', 'is-syncing', 'is-unconfigured');
-        btn.disabled = false;
-
-        const status = InscapeCloud.getCloudStatus ? InscapeCloud.getCloudStatus() : null;
-        if (!status || !status.configured) {
-          btn.textContent = '保管';
-          btn.classList.add('is-unconfigured');
-          btn.setAttribute('aria-label', 'クラウド保管（準備中）');
-          return;
-        }
-
-        if (status.linked) {
-          btn.textContent = '保管済';
-          btn.classList.add('is-linked');
-          btn.setAttribute('aria-label', 'Googleアカウントに保管済み');
-          return;
-        }
-
-        if (status.mode === 'cloud') {
-          btn.textContent = '保管';
-          btn.classList.add('is-cloud');
-          btn.setAttribute('aria-label', 'クラウド同期中。タップでGoogleに保管');
-          return;
-        }
-
-        btn.textContent = '保管';
-        btn.setAttribute('aria-label', 'クラウドに保管');
-      }
-
-      async function handleCloudSyncTap() {
-        const btn = document.getElementById('cloudSyncBtn');
-        if (!btn || !window.InscapeCloud || btn.disabled) return;
-
-        if (!InscapeCloud.isConfigured || !InscapeCloud.isConfigured()) {
-          showCloudStatusMessage('クラウドは準備中です（後日ご利用可能）', 4500);
-          try {
-            if (navigator.vibrate) navigator.vibrate(12);
-          } catch (_) {}
-          return;
-        }
-
-        btn.disabled = true;
-        btn.classList.add('is-syncing');
-        btn.textContent = '…';
-        showCloudStatusMessage('接続しています…', 5000);
-
-        let result = null;
-        try {
-          if (!InscapeCloud.isReady()) {
-            await InscapeCloud.init();
-            updateCloudSyncButton();
-            if (InscapeCloud.isUsingCloud && InscapeCloud.isUsingCloud()) {
-              showCloudStatusMessage('雲に同期しました');
-            }
-          }
-
-          if (InscapeCloud.isGoogleLinked && InscapeCloud.isGoogleLinked()) {
-            showCloudStatusMessage('すでに保管済みです');
-            updateCloudSyncButton();
-            return;
-          }
-
-          result = await InscapeCloud.linkWithGoogle();
-          if (result && result.redirecting) {
-            showCloudStatusMessage('Googleへ移動します…', 6000);
-            return;
-          }
-
-          updateCloudSyncButton();
-          showCloudStatusMessage('Googleに保管しました');
-        } catch (err) {
-          console.warn('Google 紐付けに失敗:', err);
-          const code = err && err.code ? String(err.code) : '';
-          if (code.includes('popup') || code.includes('cancel')) {
-            showCloudStatusMessage('ログインがキャンセルされました');
-          } else {
-            showCloudStatusMessage('保管に失敗しました');
-          }
-          updateCloudSyncButton();
-        } finally {
-          btn.disabled = false;
-          btn.classList.remove('is-syncing');
-          if (!(result && result.redirecting)) {
-            updateCloudSyncButton();
-          }
-        }
-      }
-
-      function bindCloudSyncButton() {
-        const btn = document.getElementById('cloudSyncBtn');
-        if (!btn) return;
-        let lastTouchAt = 0;
-        let handling = false;
-
-        function onPressStart() {
-          btn.classList.add('is-pressed');
-        }
-
-        function onPressEnd() {
-          btn.classList.remove('is-pressed');
-        }
-
-        function runTap(e) {
-          if (e) {
-            e.preventDefault();
-            e.stopPropagation();
-          }
-          if (handling) return;
-          handling = true;
-          handleCloudSyncTap().finally(() => {
-            handling = false;
-          });
-        }
-
-        btn.addEventListener('pointerdown', (e) => {
-          if (e.pointerType === 'mouse' && e.button !== 0) return;
-          onPressStart();
-        }, { passive: true });
-
-        btn.addEventListener('pointerup', onPressEnd, { passive: true });
-        btn.addEventListener('pointercancel', onPressEnd, { passive: true });
-        btn.addEventListener('pointerleave', onPressEnd, { passive: true });
-
-        btn.addEventListener('touchend', (e) => {
-          lastTouchAt = Date.now();
-          runTap(e);
-        }, { passive: false });
-
-        btn.addEventListener('click', (e) => {
-          if (Date.now() - lastTouchAt < 450) return;
-          runTap(e);
-        });
-
-        updateCloudSyncButton();
-      }
-
       window.addEventListener('DOMContentLoaded', () => {
         bindSavePreview();
         bindImageModal();
-        bindCloudSyncButton();
-        updateCloudSyncButton();
-
-        const cloudBoot = window.InscapeCloud
-          ? InscapeCloud.init().catch((err) => {
-            console.warn('クラウド初期化:', err);
-          })
-          : Promise.resolve();
-
-        cloudBoot.then(() => {
-          afterCloudReady();
-        });
-
-        bootGalleryView().catch((err) => {
-          console.warn('回廊の初期化に失敗:', err);
-          const galleryContainer = document.getElementById('gallery-container');
-          if (galleryContainer && !galleryContainer.children.length) {
-            galleryContainer.innerHTML = '<p class="no-data">回廊を読み込めませんでした。ページを再読み込みしてください。</p>';
-          }
-        });
+        loadSplatImage()
+          .then(() => loadFabricImage())
+          .then(renderGallery)
+          .catch(() => {
+            const galleryContainer = document.getElementById('gallery-container');
+            galleryContainer.innerHTML = '<p class="no-data">splat.png を読み込めませんでした。index.html と同じフォルダに置いてください。</p>';
+          });
       });
     })();
   </script>
