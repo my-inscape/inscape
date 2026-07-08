@@ -12,7 +12,7 @@
   <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
-  <title>今日の私の色 — INSCAPE</title>
+  <title>標 — INSCAPE</title>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -69,7 +69,7 @@
       margin-bottom: 1.75rem;
     }
 
-      .site-nav-link {
+    .site-nav-link {
       flex: 1 1 0;
       min-width: 2.6rem;
       max-width: 4.6rem;
@@ -715,16 +715,16 @@
       <nav class="site-nav" aria-label="ナビゲーション">
         <a class="site-nav-link" href="index.html">キャンバス</a>
         <a class="site-nav-link" href="gallery.html">感情の回廊</a>
-        <a class="site-nav-link is-current" href="mycolors.html" aria-current="page">今日の私の色</a>
-        <a class="site-nav-link" href="shirushi.html">標</a>
+        <a class="site-nav-link" href="mycolors.html">今日の私の色</a>
+        <a class="site-nav-link is-current" href="shirushi.html" aria-current="page">標</a>
       </nav>
-      <h1 class="page-title">今日の私の色</h1>
-      <p class="page-subtitle">My Colors</p>
+      <h1 class="page-title">標</h1>
+      <p class="page-subtitle">Milestone</p>
     </header>
 
     <main class="catalog-scroll">
       <div class="colors-grid" id="colorsGrid" aria-label="感情の色の図録"></div>
-      <p class="empty-state" id="emptyState">まだ色の記録がありません。<br>キャンバスで言葉を紡ぐと、ここに静かに蓄えられます。</p>
+      <p class="empty-state" id="emptyState">まだ標はありません。<br>あとから何度でも見返したいと思った日に<br>標を付けると、ここに並びます。</p>
     </main>
   </div>
 
@@ -1106,11 +1106,13 @@
 
       function getCatalogEntries() {
         try {
+          const marked = new Set(loadShirushiKeys());
           const entries = dedupeColorEntries(loadAllDiaries())
+            .filter((entry) => marked.has(entryKey(entry)))
             .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
           return entries.reverse();
         } catch (err) {
-          console.warn('カタログデータの取得に失敗:', err);
+          console.warn('標カタログの取得に失敗:', err);
           return [];
         }
       }
@@ -1175,8 +1177,12 @@
 
       function handleShirushiToggle() {
         if (!bubbleEntry) return;
-        toggleShirushi(bubbleEntry);
+        const nowOn = toggleShirushi(bubbleEntry);
         updateShirushiButton(bubbleEntry);
+        if (!nowOn) {
+          closeEmotionBubble();
+          renderCatalog();
+        }
       }
 
       function loadSplatImage() {
