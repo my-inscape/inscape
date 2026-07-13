@@ -174,34 +174,6 @@
       letter-spacing: 0.1em;
     }
 
-    #wordInput.word-sucking {
-      color: transparent;
-      caret-color: transparent;
-    }
-
-    .word-suck-ghost {
-      position: fixed;
-      z-index: 56;
-      pointer-events: none;
-      padding: 0.85rem 0.5rem;
-      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", "Yu Gothic", serif;
-      font-size: 0.88rem;
-      font-weight: 300;
-      letter-spacing: 0.12em;
-      line-height: 1.65;
-      color: var(--text);
-      white-space: pre-wrap;
-      word-break: break-word;
-      overflow: hidden;
-      opacity: 1;
-      transform: translate(0, 0) scale(1);
-      transform-origin: center center;
-      transition:
-        transform 1.5s cubic-bezier(0.45, 0.05, 0.2, 1),
-        opacity 1.5s cubic-bezier(0.4, 0, 0.6, 1);
-      will-change: transform, opacity;
-    }
-
     #wordInput:hover:not(:disabled) {
       border-color: rgba(255, 255, 255, 0.14);
       box-shadow: 0 0 24px rgba(184, 160, 122, 0.06);
@@ -617,55 +589,6 @@
       border-radius: 50%;
       border: 0.5px solid rgba(255, 255, 255, 0.45);
       background: var(--picked-color, #3d4f5f);
-    }
-
-    .bh-fx-canvas {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: 55;
-    }
-
-    .paint-ball {
-      position: fixed;
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 60;
-      will-change: transform, left, top, opacity;
-      background:
-        radial-gradient(circle at 30% 24%, rgba(255, 255, 255, 0.65) 0%, rgba(255, 255, 255, 0) 40%),
-        radial-gradient(circle at 70% 80%, rgba(0, 0, 0, 0.5) 0%, rgba(0, 0, 0, 0) 50%),
-        radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--ball-color, #3d4f5f) 80%, white) 0%, var(--ball-color, #3d4f5f) 55%, color-mix(in srgb, var(--ball-color, #3d4f5f) 50%, black) 100%);
-      box-shadow:
-        inset 0 3px 7px rgba(255, 255, 255, 0.35),
-        inset 0 -5px 10px rgba(0, 0, 0, 0.4),
-        0 8px 24px rgba(0, 0, 0, 0.45),
-        0 0 20px color-mix(in srgb, var(--ball-color, #3d4f5f) 40%, transparent);
-    }
-
-    .paint-ball.glow {
-      animation: ballGlow 0.2s ease-out forwards;
-    }
-
-    .paint-ball.crystallize {
-      animation: ballCrystallize 0.22s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
-    }
-
-    @keyframes ballGlow {
-      from { filter: brightness(1.4); }
-      to   { filter: brightness(1); }
-    }
-
-    @keyframes ballCrystallize {
-      0%   { transform: scale(0); opacity: 0; filter: brightness(2.2); }
-      55%  { transform: scale(1.22); opacity: 1; filter: brightness(1.6); }
-      100% { transform: scale(1); opacity: 1; filter: brightness(1); }
-    }
-
-    .condense-text {
-      display: none;
     }
 
     .wheel-overlay {
@@ -2090,7 +2013,6 @@
       let pourState = { active: false, tilt: 0, pourT: 0, rafId: null };
       let audioCtx = null;
       let noiseBuffer = null;
-      let activeSuckSound = null;
       let shockwaves = [];
       let tapRipples = [];
       let ambientLoopId = null;
@@ -2250,6 +2172,7 @@
         if (isDiarySubmitting || isCanvasInteractionLocked()) return;
         // 長押し開始（ユーザー操作）: iOSジャイロ許可を取り、ボトルに振動を伝える
         if (typeof requestBottleMotionPermission === 'function') requestBottleMotionPermission();
+        ensureAudio();  // このユーザー操作でAudioContextを解禁 → フリック時の水滴音が確実に鳴る
         if (typeof exciteBottle === 'function') exciteBottle((Math.random() * 2 - 1) * 0.9, 0.4);
         resetChargeState();
         chargeState.active = true;
@@ -4398,38 +4321,6 @@
 
       function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
       function easeInExpo(t) { return t <= 0 ? 0 : Math.pow(2, 10 * t - 10); }
-      function easeInCubic(t) { return t * t * t; }
-      function easeSlowSpiral(t) { return t * t * (3 - 2 * t); }
-
-      // 85%距離までゆっくり → 残り15%で指数関数的に急加速
-      function easeBlackHolePull(t) {
-        const distSlow = 0.85;
-        const timeSlowEnd = 0.68;
-        if (t <= timeSlowEnd) {
-          const u = t / timeSlowEnd;
-          return distSlow * easeSlowSpiral(u);
-        }
-        const u = (t - timeSlowEnd) / (1 - timeSlowEnd);
-        return distSlow + (1 - distSlow) * easeInExpo(u);
-      }
-
-      // 初速爆発 → 着弾直前のタメ → スナップ着弾
-      function easeFlightBurst(t) {
-        if (t <= 0.07) {
-          const u = t / 0.07;
-          return 0.58 * u;
-        }
-        if (t <= 0.84) {
-          const u = (t - 0.07) / 0.77;
-          return 0.58 + 0.30 * (1 - Math.pow(1 - u, 0.42));
-        }
-        const u = (t - 0.84) / 0.16;
-        if (u < 0.42) {
-          return 0.88 + 0.035 * (u / 0.42);
-        }
-        const snap = (u - 0.42) / 0.58;
-        return 0.915 + 0.085 * easeInExpo(snap);
-      }
 
       function ensureAudio() {
         try {
@@ -4450,222 +4341,64 @@
         return noiseBuffer;
       }
 
-      function startSuckSound(durationMs) {
+      // ── 水滴がガラス瓶の中に落ちる静かな効果音（Web Audioで合成） ──
+      //   外部音源ファイルに依存せず、file://・GitHub Pages・オフラインでも確実に鳴る。
+      //    user gesture（長押し/フリック）内で ensureAudio() 済みなので Autoplay 制限も回避。
+      function playWaterDrop() {
         const ctx = ensureAudio();
         if (!ctx) return;
-        stopSuckSound(true);
 
         const now = ctx.currentTime;
-        const dur = durationMs / 1000;
+        const master = ctx.createGain();
+        master.gain.value = 0.9;
+        master.connect(ctx.destination);
 
-        const src = ctx.createBufferSource();
-        src.buffer = getNoiseBuffer(ctx);
-        src.loop = true;
+        // (1) “ポチョン”の核: 水滴特有の、素早く上昇するサイン波のピッチ
+        const drop = ctx.createOscillator();
+        drop.type = 'sine';
+        drop.frequency.setValueAtTime(540, now);
+        drop.frequency.exponentialRampToValueAtTime(1240, now + 0.11);
+        const dropGain = ctx.createGain();
+        dropGain.gain.setValueAtTime(0.0001, now);
+        dropGain.gain.exponentialRampToValueAtTime(0.24, now + 0.012);
+        dropGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
+        drop.connect(dropGain);
+        dropGain.connect(master);
 
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'lowpass';
-        filter.frequency.setValueAtTime(160, now);
-        filter.frequency.exponentialRampToValueAtTime(520, now + dur * 0.92);
-        filter.Q.setValueAtTime(0.8, now);
-        filter.Q.linearRampToValueAtTime(1.2, now + dur * 0.85);
-
-        const sub = ctx.createOscillator();
-        sub.type = 'sine';
-        sub.frequency.setValueAtTime(38, now);
-        sub.frequency.linearRampToValueAtTime(58, now + dur * 0.88);
-        const subGain = ctx.createGain();
-        subGain.gain.setValueAtTime(0.0001, now);
-        subGain.gain.exponentialRampToValueAtTime(0.045, now + dur * 0.75);
-
-        const gain = ctx.createGain();
-        gain.gain.setValueAtTime(0.0001, now);
-        gain.gain.exponentialRampToValueAtTime(0.07, now + dur * 0.35);
-        gain.gain.exponentialRampToValueAtTime(0.13, now + dur * 0.88);
-
-        src.connect(filter);
-        filter.connect(gain);
-        gain.connect(ctx.destination);
-        sub.connect(subGain);
-        subGain.connect(ctx.destination);
-        src.start(now);
-        sub.start(now);
-
-        activeSuckSound = { src, gain, filter, sub, subGain, ctx };
-      }
-
-      function stopSuckSound(silent) {
-        if (!activeSuckSound) return;
-        const { src, gain, sub, subGain, ctx } = activeSuckSound;
-        const now = ctx.currentTime;
-        try {
-          gain.gain.cancelScheduledValues(now);
-          gain.gain.setValueAtTime(Math.max(gain.gain.value, 0.0001), now);
-          gain.gain.exponentialRampToValueAtTime(0.0001, now + (silent ? 0.05 : 0.07));
-          subGain.gain.cancelScheduledValues(now);
-          subGain.gain.setValueAtTime(Math.max(subGain.gain.value, 0.0001), now);
-          subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
-          src.stop(now + 0.09);
-          sub.stop(now + 0.09);
-        } catch (_) {}
-        activeSuckSound = null;
-      }
-
-      function playLaunchWhoosh() {
-        const ctx = ensureAudio();
-        if (!ctx) return;
-        stopSuckSound(false);
-
-        const now = ctx.currentTime;
-
-        const wind = ctx.createBufferSource();
-        wind.buffer = getNoiseBuffer(ctx);
-        const windLp = ctx.createBiquadFilter();
-        windLp.type = 'lowpass';
-        windLp.frequency.setValueAtTime(340, now);
-        windLp.frequency.exponentialRampToValueAtTime(72, now + 0.3);
-        windLp.Q.value = 0.85;
-        const windGain = ctx.createGain();
-        windGain.gain.setValueAtTime(0.0001, now);
-        windGain.gain.linearRampToValueAtTime(0.16, now + 0.022);
-        windGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
-
+        // (2) ガラス瓶内の余韻: 低めのサイン波を短く重ね“中に落ちた”空間を演出
         const body = ctx.createOscillator();
         body.type = 'sine';
-        body.frequency.setValueAtTime(98, now);
-        body.frequency.exponentialRampToValueAtTime(38, now + 0.26);
+        body.frequency.setValueAtTime(300, now);
+        body.frequency.exponentialRampToValueAtTime(228, now + 0.24);
         const bodyGain = ctx.createGain();
         bodyGain.gain.setValueAtTime(0.0001, now);
-        bodyGain.gain.linearRampToValueAtTime(0.14, now + 0.028);
-        bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
-
-        const friction = ctx.createBufferSource();
-        friction.buffer = getNoiseBuffer(ctx);
-        const frictionBp = ctx.createBiquadFilter();
-        frictionBp.type = 'bandpass';
-        frictionBp.frequency.setValueAtTime(210, now);
-        frictionBp.frequency.exponentialRampToValueAtTime(58, now + 0.28);
-        frictionBp.Q.value = 1.15;
-        const frictionGain = ctx.createGain();
-        frictionGain.gain.setValueAtTime(0.0001, now);
-        frictionGain.gain.linearRampToValueAtTime(0.1, now + 0.018);
-        frictionGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.32);
-
-        wind.connect(windLp);
-        windLp.connect(windGain);
-        windGain.connect(ctx.destination);
+        bodyGain.gain.exponentialRampToValueAtTime(0.10, now + 0.02);
+        bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
         body.connect(bodyGain);
-        bodyGain.connect(ctx.destination);
-        friction.connect(frictionBp);
-        frictionBp.connect(frictionGain);
-        frictionGain.connect(ctx.destination);
+        bodyGain.connect(master);
 
-        wind.start(now);
-        wind.stop(now + 0.38);
-        body.start(now);
-        body.stop(now + 0.36);
-        friction.start(now);
-        friction.stop(now + 0.34);
-      }
+        // (3) 着水の一瞬の“ピチッ”: ごく短い高域ノイズで水面のきらめきを添える
+        const tick = ctx.createBufferSource();
+        tick.buffer = getNoiseBuffer(ctx);
+        const tickBp = ctx.createBiquadFilter();
+        tickBp.type = 'bandpass';
+        tickBp.frequency.value = 2600;
+        tickBp.Q.value = 0.9;
+        const tickGain = ctx.createGain();
+        tickGain.gain.setValueAtTime(0.06, now);
+        tickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
+        tick.connect(tickBp);
+        tickBp.connect(tickGain);
+        tickGain.connect(master);
 
-      function playImpactSplash() {
-        const ctx = ensureAudio();
-        if (!ctx) return;
-
-        const now = ctx.currentTime;
-
-        const impact = ctx.createOscillator();
-        impact.type = 'sine';
-        impact.frequency.setValueAtTime(68, now);
-        impact.frequency.exponentialRampToValueAtTime(20, now + 0.24);
-
-        const impactGain = ctx.createGain();
-        impactGain.gain.setValueAtTime(0.72, now);
-        impactGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
-
-        const subThud = ctx.createOscillator();
-        subThud.type = 'triangle';
-        subThud.frequency.setValueAtTime(44, now);
-        subThud.frequency.exponentialRampToValueAtTime(16, now + 0.2);
-
-        const subGain = ctx.createGain();
-        subGain.gain.setValueAtTime(0.52, now);
-        subGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42);
-
-        const mass = ctx.createBufferSource();
-        mass.buffer = getNoiseBuffer(ctx);
-        const massLp = ctx.createBiquadFilter();
-        massLp.type = 'lowpass';
-        massLp.frequency.setValueAtTime(380, now);
-        massLp.frequency.exponentialRampToValueAtTime(85, now + 0.28);
-        massLp.Q.value = 0.6;
-        const massGain = ctx.createGain();
-        massGain.gain.setValueAtTime(0.0001, now);
-        massGain.gain.linearRampToValueAtTime(0.42, now + 0.007);
-        massGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
-
-        const viscous = ctx.createBufferSource();
-        viscous.buffer = getNoiseBuffer(ctx);
-        const viscousBp = ctx.createBiquadFilter();
-        viscousBp.type = 'bandpass';
-        viscousBp.frequency.setValueAtTime(280, now);
-        viscousBp.frequency.exponentialRampToValueAtTime(75, now + 0.22);
-        viscousBp.Q.value = 0.75;
-        const viscousGain = ctx.createGain();
-        viscousGain.gain.setValueAtTime(0.0001, now);
-        viscousGain.gain.linearRampToValueAtTime(0.32, now + 0.01);
-        viscousGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.34);
-
-        const rumble = ctx.createBufferSource();
-        rumble.buffer = getNoiseBuffer(ctx);
-        const rumbleLp = ctx.createBiquadFilter();
-        rumbleLp.type = 'lowpass';
-        rumbleLp.frequency.value = 140;
-        const rumbleGain = ctx.createGain();
-        rumbleGain.gain.setValueAtTime(0.28, now);
-        rumbleGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.55);
-
-        impact.connect(impactGain);
-        impactGain.connect(ctx.destination);
-        subThud.connect(subGain);
-        subGain.connect(ctx.destination);
-        mass.connect(massLp);
-        massLp.connect(massGain);
-        massGain.connect(ctx.destination);
-        viscous.connect(viscousBp);
-        viscousBp.connect(viscousGain);
-        viscousGain.connect(ctx.destination);
-        rumble.connect(rumbleLp);
-        rumbleLp.connect(rumbleGain);
-        rumbleGain.connect(ctx.destination);
-
-        impact.start(now);
-        impact.stop(now + 0.52);
-        subThud.start(now);
-        subThud.stop(now + 0.44);
-        mass.start(now);
-        mass.stop(now + 0.42);
-        viscous.start(now + 0.012);
-        viscous.stop(now + 0.36);
-        rumble.start(now);
-        rumble.stop(now + 0.58);
+        drop.start(now); drop.stop(now + 0.3);
+        body.start(now); body.stop(now + 0.38);
+        tick.start(now); tick.stop(now + 0.06);
       }
 
       function hexToRgb(hex) {
         const n = parseInt(hex.replace('#', ''), 16);
         return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
-      }
-
-      function createPaintBallEl(startX, startY, color, size) {
-        const half = size / 2;
-        const ball = document.createElement('div');
-        ball.className = 'paint-ball';
-        ball.style.setProperty('--ball-color', color);
-        ball.style.width = size + 'px';
-        ball.style.height = size + 'px';
-        ball.style.left = (startX - half) + 'px';
-        ball.style.top = (startY - half) + 'px';
-        document.body.appendChild(ball);
-        return ball;
       }
 
       function wrapTextLines(tctx, text, maxWidth, letterSpacing) {
@@ -4689,242 +4422,6 @@
           if (line) lines.push(line);
         });
         return lines;
-      }
-
-      function sampleTextParticles(word, inputRect, color) {
-        const style = getComputedStyle(wordInput);
-        const fontSize = parseFloat(style.fontSize);
-        const fontFamily = style.fontFamily;
-        const fontWeight = style.fontWeight;
-        const letterSpacing = parseFloat(style.letterSpacing) || fontSize * 0.12;
-        const font = `${fontWeight} ${fontSize}px ${fontFamily}`;
-        const lineHeight = fontSize * 1.65;
-
-        const w = Math.max(1, Math.ceil(inputRect.width));
-        const h = Math.max(1, Math.ceil(inputRect.height));
-        const padX = fontSize * 0.55;
-        const padTop = fontSize * 0.85;
-        const maxLineWidth = w - padX * 2;
-
-        const tc = document.createElement('canvas');
-        tc.width = w;
-        tc.height = h;
-        const tctx = tc.getContext('2d');
-        tctx.font = font;
-        tctx.fillStyle = '#ffffff';
-        tctx.textBaseline = 'top';
-
-        const lines = wrapTextLines(tctx, word, maxLineWidth, letterSpacing);
-        let y = padTop;
-        for (const line of lines) {
-          let x = padX;
-          for (const ch of line) {
-            tctx.fillText(ch, x, y);
-            x += tctx.measureText(ch).width + letterSpacing;
-          }
-          y += lineHeight;
-        }
-
-        const data = tctx.getImageData(0, 0, w, h).data;
-        const rgb = hexToRgb(color);
-        const particles = [];
-        const step = word.length > 800 ? 5 : word.length > 200 ? 4 : word.length > 50 ? 3 : 2;
-
-        for (let py = 0; py < h; py += step) {
-          for (let px = 0; px < w; px += step) {
-            const i = (py * w + px) * 4;
-            if (data[i + 3] > 100) {
-              const ox = inputRect.left + px + Math.random() * step;
-              const oy = inputRect.top + py + Math.random() * step;
-              const startAngle = Math.atan2(oy - (inputRect.top + h * 0.5), ox - (inputRect.left + w * 0.5));
-              particles.push({
-                ox,
-                oy,
-                x: ox,
-                y: oy,
-                size: 1 + Math.random() * 2.2,
-                delay: Math.random() * 0.38,
-                startAngle,
-                burstOffset: Math.random() * Math.PI * 2,
-                burstMag: 0.3 + Math.random() * 0.55,
-                spin: (Math.random() > 0.5 ? 1 : -1) * (2 + Math.random() * 2.2),
-                rgb,
-                alpha: 1
-              });
-            }
-          }
-        }
-
-        const maxParticles = word.length > 2000 ? 1200 : 900;
-        if (particles.length > maxParticles) {
-          for (let i = particles.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [particles[i], particles[j]] = [particles[j], particles[i]];
-          }
-          particles.length = maxParticles;
-        }
-
-        return particles;
-      }
-
-      function animateWordSuckIn(word, onComplete) {
-        const inputRect = wordInput.getBoundingClientRect();
-        const pickerEl = getColorPickerElement();
-        const indicatorRect = pickerEl.getBoundingClientRect();
-        const targetX = indicatorRect.left + indicatorRect.width / 2;
-        const targetY = indicatorRect.top + indicatorRect.height / 2;
-        const startCX = inputRect.left + inputRect.width / 2;
-        const startCY = inputRect.top + inputRect.height / 2;
-        const dx = targetX - startCX;
-        const dy = targetY - startCY;
-
-        const ghost = document.createElement('div');
-        ghost.className = 'word-suck-ghost';
-        ghost.textContent = word;
-        ghost.style.left = inputRect.left + 'px';
-        ghost.style.top = inputRect.top + 'px';
-        ghost.style.width = inputRect.width + 'px';
-        ghost.style.height = inputRect.height + 'px';
-        document.body.appendChild(ghost);
-
-        wordInput.classList.add('word-sucking');
-
-        requestAnimationFrame(() => {
-          requestAnimationFrame(() => {
-            ghost.style.transform = `translate(${dx}px, ${dy}px) scale(0.5)`;
-            ghost.style.opacity = '0';
-          });
-        });
-
-        setTimeout(() => {
-          ghost.remove();
-          wordInput.classList.remove('word-sucking');
-          wordInput.value = '';
-          updateUIState();
-          if (onComplete) onComplete();
-        }, 1500);
-      }
-
-      function animateBlackHoleCondense(word, color, onComplete) {
-        const inputRect = wordInput.getBoundingClientRect();
-        const pickerEl = getColorPickerElement();
-        const indicatorRect = pickerEl.getBoundingClientRect();
-        const targetX = indicatorRect.left + indicatorRect.width / 2;
-        const targetY = indicatorRect.top + indicatorRect.height / 2;
-
-        const particles = sampleTextParticles(word, inputRect, color);
-        if (!particles.length) {
-          onComplete(targetX, targetY, null);
-          return;
-        }
-
-        const fxCanvas = document.createElement('canvas');
-        fxCanvas.className = 'bh-fx-canvas';
-        fxCanvas.width = window.innerWidth * (window.devicePixelRatio || 1);
-        fxCanvas.height = window.innerHeight * (window.devicePixelRatio || 1);
-        fxCanvas.style.width = window.innerWidth + 'px';
-        fxCanvas.style.height = window.innerHeight + 'px';
-        document.body.appendChild(fxCanvas);
-
-        const fxCtx = fxCanvas.getContext('2d');
-        const dpr = window.devicePixelRatio || 1;
-        fxCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
-
-        const BURST_MS = 520;
-        const SUCK_MS = 2450;
-        const FUSE_MS = 380;
-        const TOTAL_MS = BURST_MS + SUCK_MS + FUSE_MS;
-        const start = performance.now();
-        let ballEl = null;
-
-        startSuckSound(TOTAL_MS);
-
-        function drawVortex(intensity) {
-          if (intensity <= 0) return;
-          const grad = fxCtx.createRadialGradient(targetX, targetY, 0, targetX, targetY, 42 * intensity);
-          grad.addColorStop(0, `rgba(0, 0, 0, ${0.35 * intensity})`);
-          grad.addColorStop(0.45, `rgba(0, 0, 0, ${0.12 * intensity})`);
-          grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
-          fxCtx.fillStyle = grad;
-          fxCtx.beginPath();
-          fxCtx.arc(targetX, targetY, 42 * intensity, 0, Math.PI * 2);
-          fxCtx.fill();
-        }
-
-        function tick(now) {
-          const elapsed = now - start;
-          fxCtx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-
-          if (elapsed < BURST_MS) {
-            const t = elapsed / BURST_MS;
-            const burst = Math.sin(t * Math.PI) * 10;
-            particles.forEach(p => {
-              p.x = p.ox + Math.cos(p.startAngle + p.burstOffset) * burst * p.burstMag;
-              p.y = p.oy + Math.sin(p.startAngle + p.burstOffset) * burst * p.burstMag;
-              p.alpha = 1;
-            });
-            drawVortex(t * 0.18);
-          } else if (elapsed < BURST_MS + SUCK_MS) {
-            const suckT = (elapsed - BURST_MS) / SUCK_MS;
-            const vortexStrength = Math.min(1, suckT * 0.75);
-            drawVortex(vortexStrength);
-
-            particles.forEach(p => {
-              const localT = Math.max(0, Math.min(1, (suckT - p.delay) / (1 - p.delay * 0.45)));
-              const e = easeBlackHolePull(localT);
-              const startR = Math.hypot(p.ox - targetX, p.oy - targetY);
-              const r = startR * (1 - e);
-              const theta = p.startAngle + p.spin * Math.PI * 3.2 * e;
-              p.x = targetX + r * Math.cos(theta);
-              p.y = targetY + r * Math.sin(theta);
-              p.alpha = 0.6 + 0.4 * (1 - e * 0.25);
-              p.size = Math.max(0.6, p.size * (1 - e * 0.28));
-            });
-          } else if (elapsed < TOTAL_MS) {
-            const fuseT = (elapsed - BURST_MS - SUCK_MS) / FUSE_MS;
-            const e = easeInCubic(fuseT);
-            drawVortex(1 - fuseT * 0.6);
-
-            particles.forEach(p => {
-              p.x = targetX + (p.x - targetX) * (1 - e);
-              p.y = targetY + (p.y - targetY) * (1 - e);
-              p.alpha = 1 - e;
-              p.size = Math.max(0.3, p.size * (1 - e));
-            });
-
-            if (!ballEl && fuseT > 0.55) {
-              ballEl = createPaintBallEl(targetX, targetY, color, 38);
-              ballEl.classList.add('crystallize');
-              ballEl.style.opacity = '1';
-            }
-          } else {
-            fxCanvas.remove();
-            if (!ballEl) {
-              ballEl = createPaintBallEl(targetX, targetY, color, 38);
-              ballEl.classList.add('crystallize');
-            }
-            onComplete(targetX, targetY, ballEl);
-            return;
-          }
-
-          particles.forEach(p => {
-            if (p.alpha <= 0.02) return;
-            const { r, g, b } = p.rgb;
-            fxCtx.globalAlpha = p.alpha;
-            fxCtx.fillStyle = `rgb(${r}, ${g}, ${b})`;
-            fxCtx.shadowColor = `rgba(${r}, ${g}, ${b}, 0.85)`;
-            fxCtx.shadowBlur = 4;
-            fxCtx.beginPath();
-            fxCtx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-            fxCtx.fill();
-          });
-          fxCtx.shadowBlur = 0;
-          fxCtx.globalAlpha = 1;
-
-          requestAnimationFrame(tick);
-        }
-
-        requestAnimationFrame(tick);
       }
 
       function drawSplatterStamp(c, stamp, size, alpha, pattern) {
@@ -6942,106 +6439,6 @@
         }
       }
 
-      function playBeep() {
-        playImpactSplash();
-      }
-
-      function vibrate() {
-        if (navigator.vibrate) navigator.vibrate(50);
-      }
-
-      // ── 激突アニメーション（インクスタンプが拡大） ──
-      function animateSplash(splash, w, h, onComplete) {
-        let frame = 0;
-        const maxFrames = 52;
-
-        function tick() {
-          frame++;
-          const t = frame / maxFrames;
-          const scale = easeOutCubic(Math.min(1, t * 1.15));
-
-          fillCanvasBackground();
-          splashes.forEach(s => {
-            if (s !== splash) {
-              drawSplatter(s, w, h);
-              drawDrip(s, w, h);
-            }
-          });
-          drawSplatter(splash, w, h, scale);
-          clearAndDrawOverlays();
-
-          if (frame < maxFrames) {
-            requestAnimationFrame(tick);
-          } else {
-            redrawCanvas();
-            if (onComplete) onComplete();
-          }
-        }
-
-        requestAnimationFrame(tick);
-      }
-
-      function launchPaintBall(startX, startY, targetX, targetY, color, onImpact, existingBall) {
-        const size = 38;
-        const half = size / 2;
-        const ball = existingBall || createPaintBallEl(startX, startY, color, size);
-
-        function startFlight(fast) {
-          ball.style.transform = 'scale(1)';
-          playLaunchWhoosh();
-          const duration = fast ? 300 : 680;
-          const startTime = performance.now();
-          let prevE = 0;
-
-          function fly(now) {
-            const t = Math.min(1, (now - startTime) / duration);
-            const e = fast ? easeFlightBurst(t) : easeOutCubic(t);
-            const x = startX + (targetX - startX) * e;
-            const y = startY + (targetY - startY) * e - Math.sin(t * Math.PI) * 75;
-            const velocity = Math.max(0, e - prevE);
-            prevE = e;
-
-            ball.style.transition = 'none';
-            ball.style.left = (x - half) + 'px';
-            ball.style.top = (y - half) + 'px';
-            const stretch = fast ? Math.min(1.45, 1 + velocity * 5.5) : 1;
-            const squash = fast ? Math.max(0.78, 2 - stretch) : 1;
-            ball.style.transform = `scale(${1 + t * 0.2}) scaleX(${stretch}) scaleY(${squash})`;
-
-            if (t < 1) {
-              requestAnimationFrame(fly);
-            } else {
-              ball.style.transition = 'transform 0.07s ease-out, opacity 0.07s ease-out';
-              ball.style.transform = 'scale(2)';
-              ball.style.opacity = '0';
-              setTimeout(() => {
-                ball.remove();
-                onImpact();
-              }, 70);
-            }
-          }
-
-          requestAnimationFrame(fly);
-        }
-
-        if (existingBall) {
-          setTimeout(() => startFlight(true), 480);
-          return;
-        }
-
-        ball.style.transform = 'scale(0.12)';
-        ball.style.opacity = '0';
-        ball.classList.add('glow');
-
-        requestAnimationFrame(() => {
-          ball.style.transition = 'transform 0.13s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.1s ease';
-          ball.style.transform = 'scale(1.14)';
-          ball.style.opacity = '1';
-        });
-
-        setTimeout(() => startFlight(false), 120);
-      }
-
       function clampTapPosition(x, y, w, h, splashMeta) {
         const half = getSplashMetaHalfExtent(splashMeta);
         const pad = Math.max(8, half * 0.2);
@@ -7065,8 +6462,8 @@
 
         const { w, h } = getCanvasLogicalSize();
 
-        vibrate();
-        playBeep();
+        // 感情（色）をボトルへ預けた瞬間: 水滴がガラス瓶に落ちる静かな効果音
+        playWaterDrop();
 
         const startGrowth = () => {
           const record = addFlowerDayRecord(savedWord, pickedColor, payload);
