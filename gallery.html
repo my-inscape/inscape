@@ -153,11 +153,11 @@
       display: flex;
       flex-direction: row;
       flex-wrap: nowrap;
-      flex: 0 0 auto;
+      flex: 1 1 auto;
       overflow-x: auto;
       overflow-y: hidden;
-      gap: 80px;
-      padding: 20px 5vw calc(1.5rem + env(safe-area-inset-bottom, 0px));
+      gap: clamp(56px, 9vw, 110px);
+      padding: 24px 8vw calc(2rem + env(safe-area-inset-bottom, 0px));
       width: 100%;
       align-items: center;
       scroll-behavior: smooth;
@@ -175,6 +175,121 @@
     #gallery-container::-webkit-scrollbar-thumb {
       background: rgba(201, 169, 98, 0.35);
       border-radius: 3px;
+    }
+
+    /* ===== 詳細モード（縦スクロール・単一作品） ===== */
+    .detail-view {
+      position: fixed;
+      inset: 0;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      overflow-y: auto;
+      overflow-x: hidden;
+      -webkit-overflow-scrolling: touch;
+      padding: clamp(64px, 10vh, 110px) 5vw calc(6rem + env(safe-area-inset-bottom, 0px));
+      background:
+        radial-gradient(ellipse 90% 55% at 50% -8%, rgba(201, 169, 98, 0.08) 0%, transparent 50%),
+        radial-gradient(ellipse 70% 45% at 50% 108%, rgba(255, 255, 255, 0.02) 0%, transparent 45%),
+        #050505;
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(12px);
+      transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s linear 0.5s;
+    }
+
+    .detail-view.active {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+      transition: opacity 0.5s ease, transform 0.5s ease, visibility 0s;
+    }
+
+    .detail-back-btn {
+      position: fixed;
+      top: calc(1rem + env(safe-area-inset-top, 0px));
+      left: calc(1rem + env(safe-area-inset-left, 0px));
+      z-index: 52;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4em;
+      padding: 0.55rem 1.1rem;
+      font-family: "Yu Mincho", "Hiragino Mincho ProN", "Georgia", serif;
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      color: rgba(232, 230, 226, 0.72);
+      background: rgba(20, 20, 20, 0.55);
+      border: 0.5px solid rgba(201, 169, 98, 0.35);
+      border-radius: 999px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease;
+    }
+
+    .detail-back-btn:hover {
+      color: #f3e5ab;
+      border-color: rgba(201, 169, 98, 0.7);
+      background: rgba(30, 26, 16, 0.7);
+    }
+
+    #detail-stage {
+      width: 100%;
+      display: flex;
+      justify-content: center;
+    }
+
+    /* 詳細モードでは作品間の余白を活かし、ボトル/タイトルを大きめに */
+    .detail-view .gallery-item {
+      cursor: default;
+    }
+
+    body.detail-open #gallery-container {
+      pointer-events: none;
+    }
+
+    /* 一覧モードは額縁の真下にコンパクトに期間を出す */
+    .gallery-item--list .museum-wall-display {
+      gap: 0.9rem;
+      padding: 1.4rem 1rem 1.1rem;
+    }
+
+    .art-period-caption--list {
+      margin-top: 0.6rem;
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-indent: 0.2em;
+      opacity: 0.85;
+    }
+
+    /* 詳細モードの「作品を保存する」ボタン（細い白線＋ホバー発光のミニマル） */
+    .detail-save-btn {
+      align-self: center;
+      margin-top: clamp(6px, 2vh, 20px);
+      padding: 0.72rem 1.7rem;
+      font-family: "Yu Mincho", "Hiragino Mincho ProN", "Georgia", serif;
+      font-size: 12px;
+      font-weight: 300;
+      letter-spacing: 0.18em;
+      text-indent: 0.18em;
+      color: rgba(232, 230, 226, 0.72);
+      background: transparent;
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      border-radius: 999px;
+      cursor: pointer;
+      transition: color 0.4s ease, border-color 0.4s ease, box-shadow 0.4s ease, text-shadow 0.4s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .detail-save-btn:hover {
+      color: #ffffff;
+      border-color: rgba(255, 255, 255, 0.85);
+      text-shadow: 0 0 10px rgba(255, 255, 255, 0.55);
+      box-shadow: 0 0 20px rgba(255, 255, 255, 0.08);
+    }
+
+    .detail-save-btn:active {
+      transform: scale(0.98);
     }
 
     .gallery-item {
@@ -309,7 +424,13 @@
       z-index: 1;
       background: #f7f4eb;
       box-shadow: none;
-      opacity: 1;
+      opacity: 0;
+      animation: galleryArtFadeIn 0.9s ease forwards;
+    }
+
+    @keyframes galleryArtFadeIn {
+      from { opacity: 0; transform: scale(0.985); }
+      to { opacity: 1; transform: scale(1); }
     }
 
     .gallery-art-canvas {
@@ -349,7 +470,10 @@
 
     .museum-wall-display {
       position: relative;
-      display: inline-block;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: clamp(28px, 5vh, 56px);
       width: 100%;
       max-width: 100%;
       text-align: center;
@@ -377,6 +501,137 @@
     .museum-wall-display > * {
       position: relative;
       z-index: 1;
+    }
+
+    .gallery-item .museum-wall-display {
+      position: relative;
+    }
+
+    .gallery-bottle-wrap {
+      position: static;
+      align-self: center;
+      display: block;
+      width: 84px;
+      padding: 0;
+      border: none;
+      background: transparent;
+      z-index: 1;
+      cursor: pointer;
+      transition: transform 0.35s ease, filter 0.35s ease;
+      filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.55));
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .gallery-bottle-wrap:hover {
+      transform: scale(1.06) translateY(-3px);
+      filter: drop-shadow(0 12px 26px rgba(201, 169, 98, 0.35));
+    }
+
+    .gallery-bottle-img {
+      display: block;
+      width: 100%;
+      height: auto;
+      border-radius: 2px;
+    }
+
+    .bottle-album-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 60;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      background: rgba(3, 3, 5, 0.88);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.5s ease, visibility 0.5s ease;
+    }
+
+    .bottle-album-overlay.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .bottle-album-panel {
+      width: min(92vw, 340px);
+      max-height: 80vh;
+      overflow-y: auto;
+      padding: 1.25rem 1.1rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.28);
+      border-radius: 4px;
+      background: rgba(14, 15, 18, 0.92);
+    }
+
+    .bottle-album-title {
+      font-size: 0.55rem;
+      letter-spacing: 0.38em;
+      text-indent: 0.38em;
+      color: rgba(201, 169, 98, 0.62);
+      margin-bottom: 0.35rem;
+      text-align: center;
+    }
+
+    .bottle-album-sub {
+      font-size: 0.42rem;
+      letter-spacing: 0.18em;
+      color: rgba(232, 230, 226, 0.32);
+      text-align: center;
+      margin-bottom: 1rem;
+      line-height: 1.6;
+    }
+
+    .bottle-album-day {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.55rem 0;
+      border-bottom: 0.5px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .bottle-album-day:last-child {
+      border-bottom: none;
+    }
+
+    .bottle-album-swatch {
+      flex: 0 0 auto;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      margin-top: 0.15rem;
+      box-shadow: 0 0 8px rgba(0, 0, 0, 0.3);
+    }
+
+    .bottle-album-day-label {
+      font-size: 0.4rem;
+      letter-spacing: 0.2em;
+      color: rgba(201, 169, 98, 0.5);
+      margin-bottom: 0.2rem;
+    }
+
+    .bottle-album-word {
+      font-size: 0.52rem;
+      letter-spacing: 0.08em;
+      line-height: 1.65;
+      color: rgba(232, 230, 226, 0.72);
+    }
+
+    .bottle-album-close {
+      display: block;
+      width: 100%;
+      margin-top: 1rem;
+      padding: 0.5rem;
+      font-size: 0.44rem;
+      letter-spacing: 0.28em;
+      color: rgba(232, 230, 226, 0.55);
+      background: transparent;
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      border-radius: 2px;
+      cursor: pointer;
     }
 
     .gallery-item .museum-wall-display {
@@ -820,6 +1075,9 @@
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <!-- ボトルの本物のガラス質感を index.html と同一アルゴリズムで再現するための資産＆レンダラー -->
+  <script src="embedded-assets.js"></script>
+  <script src="bottle-render.js"></script>
 </head>
 <body>
   <div class="corridor-top">
@@ -838,6 +1096,11 @@
 
   <div id="gallery-container"></div>
 
+  <div id="detail-view" class="detail-view" aria-hidden="true" role="region" aria-label="作品詳細">
+    <button type="button" id="detailBackBtn" class="detail-back-btn" aria-label="回廊へ戻る">← 回廊へ戻る</button>
+    <div id="detail-stage"></div>
+  </div>
+
   <script>
     (function () {
       'use strict';
@@ -846,7 +1109,6 @@
       const INSCAPE_HISTORY_KEY = 'inscape_history';
       const HISTORY_KEY = 'histories';
       const SPLASHES_KEY = 'inscape_splashes';
-      const SPLAT_IMAGE = 'splat.png';
       const FABRIC_IMAGE = 'canvas-fabric.png';
       const CANVAS_BG = '#f7f4eb';
       const DEFAULT_CANVAS_W = 270;
@@ -855,10 +1117,8 @@
       const EXPORT_H = 1920;
       const MAX_WORD_ENTRIES = 7;
 
-      const splatImg = new Image();
       const fabricImg = new Image();
       const stampCache = {};
-      let splatReady = false;
       let fabricReady = false;
       let fabricLoadPromise = null;
       let savePreviewObjectUrl = null;
@@ -1188,25 +1448,6 @@
         };
       }
 
-      function loadSplatImage() {
-        return new Promise((resolve, reject) => {
-          splatImg.onload = () => {
-            if (splatImg.naturalWidth > 0) {
-              splatReady = true;
-              resolve();
-            } else {
-              reject(new Error('splat.png invalid'));
-            }
-          };
-          splatImg.onerror = () => reject(new Error('splat.png load failed'));
-          splatImg.src = SPLAT_IMAGE;
-          if (splatImg.complete && splatImg.naturalWidth > 0) {
-            splatReady = true;
-            resolve();
-          }
-        });
-      }
-
       function loadFabricImage() {
         if (fabricReady && fabricImg.naturalWidth > 0) return Promise.resolve(fabricImg);
         if (fabricLoadPromise) return fabricLoadPromise;
@@ -1280,25 +1521,9 @@
         targetCtx.restore();
       }
 
-      function createColorStamp(color) {
-        if (!splatReady || !splatImg.naturalWidth) return null;
-        if (stampCache[color]) return stampCache[color];
-
-        const w = splatImg.naturalWidth;
-        const h = splatImg.naturalHeight;
-        const work = document.createElement('canvas');
-        work.width = w;
-        work.height = h;
-        const wctx = work.getContext('2d');
-
-        wctx.fillStyle = color;
-        wctx.fillRect(0, 0, w, h);
-        wctx.globalCompositeOperation = 'screen';
-        wctx.drawImage(splatImg, 0, 0);
-        wctx.globalCompositeOperation = 'source-over';
-
-        stampCache[color] = work;
-        return work;
+      // splat.png は廃止。旧レシピ用スタンプは生成しない（完成作品は artworkImageDataUrl を使用）。
+      function createColorStamp() {
+        return null;
       }
 
       function drawSplatterStamp(c, stamp, size, alpha, pattern) {
@@ -1437,6 +1662,13 @@
         c.drawImage(off, 0, 0, targetW, targetH);
       }
 
+      // 有効な完成画像(Base64 PNG)を持つか判定。
+      // recipe描画は廃止済みのため、画像が無い項目は白い額縁になる。表示対象から除外する。
+      function hasValidArtworkImage(entry) {
+        const url = entry && entry.artworkImageDataUrl;
+        return typeof url === 'string' && url.indexOf('data:image') === 0 && url.length > 512;
+      }
+
       function loadGallery() {
         const items = [];
 
@@ -1445,8 +1677,9 @@
           if (Array.isArray(data)) {
             data.forEach((entry, index) => {
               if (!entry) return;
+              // 完成画像を持つ作品のみ表示（白紙フォールバックの空額縁を出さない）
+              if (!hasValidArtworkImage(entry)) return;
               const splats = getSplatsFromItem(entry);
-              if (!splats.length && !entry.artworkImageDataUrl) return;
               items.push({
                 ...entry,
                 splats,
@@ -1690,6 +1923,22 @@
       }
 
       function computeArtworkPeriodCaption(item) {
+        if (item.flowerDays) {
+          const periodText = (() => {
+            if (item.periodStart && item.periodEnd) {
+              return formatCompactPeriod(item.periodStart, item.periodEnd);
+            }
+            if (item.period) {
+              const parts = String(item.period).split(' - ').map((s) => s.trim());
+              if (parts.length === 2) return formatCompactPeriod(parts[0], parts[1]);
+              return compactDotDate(parts[0]);
+            }
+            return '';
+          })();
+          const flowerLabel = `${item.flowerDays}日間の感情が注がれた作品`;
+          return periodText ? `${flowerLabel} · ${periodText}` : flowerLabel;
+        }
+
         const splats = getSplatsFromItem(item);
         const daysFromSplats = collectArtworkDiaryDays(splats);
         if (daysFromSplats.length) {
@@ -1732,17 +1981,279 @@
         return fallback ? compactDotDate(formatDotDate(fallback)) : '';
       }
 
-      function createPeriodCaptionElement(item) {
+      // 作品の「7日間」の開始日・終了日を各作品のセッション情報から算出する。
+      // 返り値: { start:'YYYY.MM.DD', end:'YYYY.MM.DD' } または null
+      function computeArtworkPeriodRange(item) {
+        if (!item) return null;
+        const days = collectArtworkDiaryDays(getFlowerDaysFromItem(item));
+        if (days.length) {
+          return { start: formatDotDate(days[0]), end: formatDotDate(days[days.length - 1]) };
+        }
+        if (item.periodStart && item.periodEnd) {
+          return { start: normalizeGalleryDateKey(item.periodStart), end: normalizeGalleryDateKey(item.periodEnd) };
+        }
+        if (item.period) {
+          const parts = String(item.period).split(' - ').map((s) => s.trim());
+          if (parts.length === 2) return { start: normalizeGalleryDateKey(parts[0]), end: normalizeGalleryDateKey(parts[1]) };
+          const one = normalizeGalleryDateKey(parts[0]);
+          if (one) return { start: one, end: one };
+        }
+        if (item.completedAt) {
+          const d = getArtworkDiaryDay(item.completedAt);
+          if (d) return { start: formatDotDate(d), end: formatDotDate(d) };
+        }
+        const fb = parseHistoryEntryToDate({ date: item.date, timestamp: item.completedAt || 0 });
+        if (fb) return { start: formatDotDate(fb), end: formatDotDate(fb) };
+        return null;
+      }
+
+      // 作品に記録された日数（＝ボトルに注がれた感情の日数）
+      function getArtworkDayCount(item) {
+        const n = getFlowerDaysFromItem(item).length;
+        if (n > 0) return n;
+        if (item && item.flowerDays) return item.flowerDays;
+        return 7;
+      }
+
+      // detail=false: 一覧用の短い期間（例: 07.07 - 07.13）
+      // detail=true : 詳細用の文（例: 7日間の感情が注がれた作品（07.07 - 07.13））
+      function createPeriodCaptionElement(item, detail) {
         const caption = document.createElement('p');
-        caption.className = 'art-period-caption';
-        caption.textContent = computeArtworkPeriodCaption(item);
+        caption.className = 'art-period-caption' + (detail ? '' : ' art-period-caption--list');
+        const range = computeArtworkPeriodRange(item);
+        const shortPeriod = range ? formatCompactPeriod(range.start, range.end) : '';
+        if (detail) {
+          const n = getArtworkDayCount(item);
+          caption.textContent = shortPeriod
+            ? `${n}日間の感情が注がれた作品（${shortPeriod}）`
+            : `${n}日間の感情が注がれた作品`;
+        } else {
+          caption.textContent = shortPeriod;
+        }
         caption.setAttribute('aria-label', '作品の対象期間');
         return caption;
       }
 
-      function createFramedArtwork(item) {
+      function getFlowerDaysFromItem(item) {
+        const flower = item && item.flower;
+        if (!flower) return resolveArtworkHistory(item);
+        const days = [];
+        if (flower.center) {
+          days.push(mapHistoryEntry({
+            word: flower.center.word,
+            color: flower.center.color,
+            timestamp: flower.center.timestamp
+          }));
+        }
+        (flower.petals || []).forEach((p) => {
+          days.push(mapHistoryEntry({
+            word: p.word,
+            color: p.color,
+            timestamp: p.timestamp
+          }));
+        });
+        days.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        return days.length ? days : resolveArtworkHistory(item);
+      }
+
+      function openBottleAlbum(item) {
+        const overlay = document.getElementById('bottleAlbumOverlay');
+        const daysEl = document.getElementById('bottleAlbumDays');
+        if (!overlay || !daysEl || !item) return;
+        const days = getFlowerDaysFromItem(item);
+        daysEl.innerHTML = '';
+        days.forEach((entry, i) => {
+          const row = document.createElement('div');
+          row.className = 'bottle-album-day';
+          const swatch = document.createElement('div');
+          swatch.className = 'bottle-album-swatch';
+          swatch.style.background = entry.color || '#888';
+          const body = document.createElement('div');
+          const label = document.createElement('p');
+          label.className = 'bottle-album-day-label';
+          label.textContent = `Day ${i + 1}`;
+          const word = document.createElement('p');
+          word.className = 'bottle-album-word';
+          word.textContent = entry.word && entry.word.trim() ? entry.word : '—';
+          body.appendChild(label);
+          body.appendChild(word);
+          row.appendChild(swatch);
+          row.appendChild(body);
+          daysEl.appendChild(row);
+        });
+        overlay.classList.add('active');
+        overlay.setAttribute('aria-hidden', 'false');
+      }
+
+      function closeBottleAlbum() {
+        const overlay = document.getElementById('bottleAlbumOverlay');
+        if (overlay) {
+          overlay.classList.remove('active');
+          overlay.setAttribute('aria-hidden', 'true');
+        }
+      }
+
+      // 完成作品(artworkImageDataUrl)を INSCAPE_Artwork_[日付].png としてローカル保存
+      function downloadArtworkImage(item) {
+        const url = item && item.artworkImageDataUrl;
+        if (!url) return;
+        const range = computeArtworkPeriodRange(item);
+        const endStr = (range && range.end) ? range.end : formatDotDate(new Date());
+        const datePart = String(endStr).replace(/[^0-9]/g, ''); // YYYYMMDD
+        const a = document.createElement('a');
+        a.href = url;
+        // data URL の実MIMEに合わせて拡張子を決定（作品はJPEG保存へ変更済み）
+        const ext = /^data:image\/jpe?g/i.test(url) ? 'jpg' : 'png';
+        a.download = `INSCAPE_Artwork_${datePart || 'artwork'}.${ext}`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
+
+      // flower(center+petals)の7色から「感情のボトル」を再描画する。
+      // 保存画像(bottleImageDataUrl)が容量退避で剥がされた作品でも、色データからボトルを復元できる。
+      function renderMemoryBottleCanvas(colors) {
+        const dpr = Math.max(2, window.devicePixelRatio || 1);
+        const W = 150, H = 208;
+        const cv = document.createElement('canvas');
+        cv.width = Math.round(W * dpr);
+        cv.height = Math.round(H * dpr);
+        const c = cv.getContext('2d');
+        c.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        const cx = W / 2;
+        const neckW = 24, neckTop = 18;
+        const bodyR = 55;
+        const bodyCy = H - bodyR - 12;
+        const bodyCx = cx;
+        const neckBottom = bodyCy - bodyR * 0.6;
+        const nl = cx - neckW / 2, nr = cx + neckW / 2;
+
+        const tracePath = () => {
+          c.beginPath();
+          c.moveTo(nl, neckTop + 6);
+          c.quadraticCurveTo(nl, neckTop, nl + 6, neckTop);
+          c.lineTo(nr - 6, neckTop);
+          c.quadraticCurveTo(nr, neckTop, nr, neckTop + 6);
+          c.lineTo(nr, neckBottom);
+          c.quadraticCurveTo(nr + 6, bodyCy - bodyR * 0.72, bodyCx + bodyR, bodyCy);
+          c.arc(bodyCx, bodyCy, bodyR, 0, Math.PI, false);
+          c.quadraticCurveTo(nl - 6, bodyCy - bodyR * 0.72, nl, neckBottom);
+          c.closePath();
+        };
+
+        const list = Array.isArray(colors) ? colors.filter(Boolean) : [];
+        const N = list.length;
+        const liqTop = bodyCy - bodyR * 0.5;
+        const liqBot = bodyCy + bodyR;
+
+        c.save();
+        tracePath();
+        c.clip();
+        // ガラスの下地
+        c.fillStyle = 'rgba(255,255,255,0.04)';
+        c.fillRect(0, 0, W, H);
+        // 液体（最新色が上・古い色が下）
+        if (N) {
+          const g = c.createLinearGradient(0, liqTop, 0, liqBot);
+          for (let j = 0; j < N; j++) {
+            const col = list[N - 1 - j];
+            g.addColorStop(N === 1 ? 0 : j / (N - 1), col);
+          }
+          if (N === 1) g.addColorStop(1, list[0]);
+          c.fillStyle = g;
+          c.fillRect(0, liqTop, W, liqBot - liqTop);
+          // 水面のわずかな光
+          c.fillStyle = 'rgba(255,255,255,0.18)';
+          c.fillRect(0, liqTop, W, 1.5);
+        }
+        // 中央の縦ハイライト（ガラスの光）
+        const hl = c.createLinearGradient(cx - bodyR, 0, cx + bodyR, 0);
+        hl.addColorStop(0, 'rgba(255,255,255,0)');
+        hl.addColorStop(0.18, 'rgba(255,255,255,0.22)');
+        hl.addColorStop(0.32, 'rgba(255,255,255,0)');
+        hl.addColorStop(1, 'rgba(255,255,255,0)');
+        c.fillStyle = hl;
+        c.fillRect(0, 0, W, H);
+        c.restore();
+
+        // ガラスの外郭ライン
+        c.save();
+        tracePath();
+        c.lineWidth = 1.6;
+        c.strokeStyle = 'rgba(255,255,255,0.55)';
+        c.stroke();
+        c.restore();
+
+        return cv;
+      }
+
+      // item.flower(center+petals) から、index.html と同一の drops配列 [{color,opacity}] を作る。
+      // 時系列（古い→新しい）で並べる。ボトルは末尾(最新)を一番上に積む。
+      function getBottleDropsFromItem(item) {
+        const f = item && item.flower;
+        let drops = [];
+        if (f && f.center) {
+          drops = [f.center, ...(f.petals || [])].filter(Boolean).map((d) => ({
+            color: d.color, opacity: d.opacity, timestamp: d.timestamp || 0
+          }));
+        }
+        if (!drops.length) {
+          const days = getFlowerDaysFromItem(item);
+          drops = (days || []).map((d) => ({ color: d && d.color, opacity: undefined, timestamp: (d && d.timestamp) || 0 }));
+        }
+        drops.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+        return drops.filter((d) => d.color);
+      }
+
+      // 詳細ビューのボトル要素（タップで7日間の日記アルバムを開く）を生成。
+      // index.html と同一アルゴリズム(INSCAPE_BOTTLE)で flower の色から本物のガラス質感を再描画する。
+      // 保存画像が容量退避で消えた作品でも、色データから必ず高品質なボトルを復元できる。
+      function buildGalleryBottleEl(item) {
+        const drops = getBottleDropsFromItem(item);
+        if (!drops.length && !item.bottleImageDataUrl) return null;
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'gallery-bottle-wrap';
+        btn.setAttribute('aria-label', '一週間の記憶を見る');
+
+        if (window.INSCAPE_BOTTLE && drops.length) {
+          // 本物のガラスボトルを再描画（ガラス実体→内部陰影→液体→screen/overlayハイライト）
+          const cv = document.createElement('canvas');
+          cv.className = 'gallery-bottle-img';
+          cv.setAttribute('role', 'img');
+          cv.setAttribute('aria-label', '感情のボトル');
+          const seed = (item.flower && item.flower.seed) || 7;
+          const B = window.INSCAPE_BOTTLE;
+          const doRender = () => B.renderInto(cv, drops, seed, B.LOGICAL_W, B.LOGICAL_H);
+          B.load().then(doRender);
+          if (B.ready()) doRender();
+          btn.appendChild(cv);
+        } else if (item.bottleImageDataUrl) {
+          const img = document.createElement('img');
+          img.className = 'gallery-bottle-img';
+          img.src = item.bottleImageDataUrl;
+          img.alt = '感情のボトル';
+          btn.appendChild(img);
+        } else {
+          const colors = drops.map((d) => d.color);
+          const cv = renderMemoryBottleCanvas(colors);
+          cv.className = 'gallery-bottle-img';
+          btn.appendChild(cv);
+        }
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          openBottleAlbum(item);
+        });
+        return btn;
+      }
+
+      // detail=false: 一覧モード（額縁のみ / ボトル・タイトル非表示）
+      // detail=true : 詳細モード（額縁 -> ボトル -> タイトルの縦並び）
+      function createFramedArtwork(item, detail) {
         const artWrapper = document.createElement('div');
-        artWrapper.className = 'gallery-item';
+        artWrapper.className = 'gallery-item' + (detail ? ' gallery-item--detail' : ' gallery-item--list');
 
         const wallDisplay = document.createElement('div');
         wallDisplay.className = 'museum-wall-display';
@@ -1755,8 +2266,35 @@
 
         mountArtworkSurface(surface, item);
         sculpted.appendChild(surface);
+
+        // (1) 額縁アート本体（一覧・詳細とも表示）
         wallDisplay.appendChild(sculpted);
-        wallDisplay.appendChild(createPeriodCaptionElement(item));
+
+        if (detail) {
+          // (2) 使用したボトル（詳細モードのみ）— タップで7日間の日記。
+          // 保存画像が無くても flower の色から再描画するので、必ず表示＆タップ可能。
+          const bottleEl = buildGalleryBottleEl(item);
+          if (bottleEl) wallDisplay.appendChild(bottleEl);
+          // (3) 作品タイトルと期間（例: 7日間の感情が注がれた作品（07.07 - 07.13））
+          wallDisplay.appendChild(createPeriodCaptionElement(item, true));
+
+          // (4) 作品を保存（ダウンロード）ボタン
+          if (item.artworkImageDataUrl) {
+            const saveBtn = document.createElement('button');
+            saveBtn.type = 'button';
+            saveBtn.className = 'detail-save-btn';
+            saveBtn.textContent = '作品を保存する';
+            saveBtn.setAttribute('aria-label', '作品を端末に保存する');
+            saveBtn.addEventListener('click', (e) => {
+              e.stopPropagation();
+              downloadArtworkImage(item);
+            });
+            wallDisplay.appendChild(saveBtn);
+          }
+        } else {
+          // 一覧モードは額縁の真下に短い期間だけ（例: 07.07 - 07.13）
+          wallDisplay.appendChild(createPeriodCaptionElement(item, false));
+        }
 
         artWrapper.appendChild(wallDisplay);
         artWrapper._galleryItem = item;
@@ -2064,25 +2602,90 @@
         if (vaultOrbs) vaultOrbs.innerHTML = '';
       }
 
+      // 一覧に読み込んだ作品（storageRef.index -> item）を保持し、詳細/ディープリンクで参照する
+      let galleryItemsById = {};
+
+      function getDetailIdForItem(item) {
+        if (item && item.storageRef && typeof item.storageRef.index === 'number') {
+          return String(item.storageRef.index);
+        }
+        return null;
+      }
+
       function renderGallery() {
         const galleryContainer = document.getElementById('gallery-container');
         const galleryData = loadGallery();
+        galleryItemsById = {};
 
         if (galleryData.length === 0) {
-          galleryContainer.innerHTML = '<p class="no-data">まだ額装された完成作品がありません。7つの言葉を紡ぎ、作品が完成するとここに飾られます。</p>';
+          galleryContainer.innerHTML = '<p class="no-data">まだ額装された完成作品がありません。7日間の感情をボトルに預け、線画へ注いで完成させるとここに飾られます。</p>';
           return;
         }
 
         galleryContainer.innerHTML = '';
         const displayItems = galleryData.slice().reverse();
         displayItems.forEach((item) => {
-          const artwork = createFramedArtwork(item);
+          const id = getDetailIdForItem(item);
+          if (id !== null) galleryItemsById[id] = item;
+
+          // 一覧モードは「額縁のみ」（ボトル・タイトルは出さない）
+          const artwork = createFramedArtwork(item, false);
           artwork.addEventListener('click', (e) => {
             if (e.target.closest('.save-art-btn')) return;
-            openArtworkModal(artwork, item);
+            openDetail(item);
           });
           galleryContainer.appendChild(artwork);
         });
+
+        // 個別URL（?id=）で開かれた場合は該当作品の詳細を直接表示
+        const params = new URLSearchParams(location.search);
+        const requestedId = params.get('id');
+        if (requestedId !== null && galleryItemsById[requestedId]) {
+          openDetail(galleryItemsById[requestedId], { fromUrl: true });
+        }
+      }
+
+      // ===== 詳細モード（縦スクロール単一作品） =====
+      function openDetail(item, opts) {
+        const detailView = document.getElementById('detail-view');
+        const stage = document.getElementById('detail-stage');
+        if (!detailView || !stage || !item) return;
+
+        stage.innerHTML = '';
+        stage.appendChild(createFramedArtwork(item, true));
+
+        detailView.classList.add('active');
+        detailView.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('detail-open');
+        detailView.scrollTop = 0;
+
+        const id = getDetailIdForItem(item);
+        if (id !== null) {
+          const url = `${location.pathname}?id=${encodeURIComponent(id)}`;
+          if (opts && opts.fromUrl) {
+            history.replaceState({ detailId: id }, '', url);
+          } else {
+            history.pushState({ detailId: id }, '', url);
+          }
+        }
+      }
+
+      function closeDetail(opts) {
+        const detailView = document.getElementById('detail-view');
+        if (!detailView) return;
+        detailView.classList.remove('active');
+        detailView.setAttribute('aria-hidden', 'true');
+        document.body.classList.remove('detail-open');
+        const stage = document.getElementById('detail-stage');
+        if (stage) window.setTimeout(() => { if (!detailView.classList.contains('active')) stage.innerHTML = ''; }, 520);
+        if (!(opts && opts.fromPop)) {
+          history.pushState({}, '', location.pathname);
+        }
+      }
+
+      function isDetailOpen() {
+        const detailView = document.getElementById('detail-view');
+        return !!(detailView && detailView.classList.contains('active'));
       }
 
       function bindSavePreview() {
@@ -2149,6 +2752,11 @@
 
         document.addEventListener('keydown', (e) => {
           if (e.key !== 'Escape') return;
+          const bottleAlbum = document.getElementById('bottleAlbumOverlay');
+          if (bottleAlbum && bottleAlbum.classList.contains('active')) {
+            closeBottleAlbum();
+            return;
+          }
           const saveOverlay = document.getElementById('savePreviewOverlay');
           if (saveOverlay && saveOverlay.classList.contains('active')) {
             closeSavePreview();
@@ -2156,6 +2764,10 @@
           }
           if (imageModal.classList.contains('active')) {
             handleModalCloseRequest();
+            return;
+          }
+          if (isDetailOpen()) {
+            closeDetail();
           }
         });
       }
@@ -2163,13 +2775,38 @@
       window.addEventListener('DOMContentLoaded', () => {
         bindSavePreview();
         bindImageModal();
-        loadSplatImage()
-          .then(() => loadFabricImage())
-          .then(renderGallery)
-          .catch(() => {
-            const galleryContainer = document.getElementById('gallery-container');
-            galleryContainer.innerHTML = '<p class="no-data">splat.png を読み込めませんでした。index.html と同じフォルダに置いてください。</p>';
+        const bottleAlbumClose = document.getElementById('bottleAlbumClose');
+        const bottleAlbumOverlay = document.getElementById('bottleAlbumOverlay');
+        if (bottleAlbumClose) bottleAlbumClose.addEventListener('click', closeBottleAlbum);
+        if (bottleAlbumOverlay) {
+          bottleAlbumOverlay.addEventListener('click', (e) => {
+            if (e.target === bottleAlbumOverlay) closeBottleAlbum();
           });
+        }
+
+        // 「← 回廊へ戻る」ボタンで一覧モードへ復帰
+        const detailBackBtn = document.getElementById('detailBackBtn');
+        if (detailBackBtn) {
+          detailBackBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closeDetail();
+          });
+        }
+        // ブラウザの戻る/進むで一覧⇄詳細を同期
+        window.addEventListener('popstate', () => {
+          const params = new URLSearchParams(location.search);
+          const requestedId = params.get('id');
+          if (requestedId !== null && galleryItemsById[requestedId]) {
+            openDetail(galleryItemsById[requestedId], { fromUrl: true });
+          } else if (isDetailOpen()) {
+            closeDetail({ fromPop: true });
+          }
+        });
+
+        // アセットのロード完了を待たず、即座に LocalStorage の完成作品を描画する。
+        // 布テクスチャは補助的なので裏で読み込むだけ（描画はブロックしない）。
+        loadFabricImage().catch(() => {});
+        renderGallery();
       });
     })();
   </script>
@@ -2195,6 +2832,15 @@
       <div class="save-preview-image-wrap">
         <img id="savePreviewImage" alt="INSCAPE — 額装作品" draggable="false">
       </div>
+    </div>
+  </div>
+
+  <div class="bottle-album-overlay" id="bottleAlbumOverlay" aria-hidden="true" role="dialog" aria-label="一週間の記憶">
+    <div class="bottle-album-panel" id="bottleAlbumPanel">
+      <p class="bottle-album-title">一週間の記憶</p>
+      <p class="bottle-album-sub">ボトルに閉じ込められた、7日分の感情</p>
+      <div id="bottleAlbumDays"></div>
+      <button type="button" class="bottle-album-close" id="bottleAlbumClose">閉じる</button>
     </div>
   </div>
 </body>

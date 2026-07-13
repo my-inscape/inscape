@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
@@ -983,7 +983,7 @@
       background-size: cover;
       background-blend-mode: multiply;
       mix-blend-mode: multiply;
-      opacity: 0.35;
+      opacity: 0.24;
     }
 
     #mainCanvas,
@@ -1546,6 +1546,275 @@
       pointer-events: auto;
     }
 
+    /* ── 感情ボトル・注ぎ演出 ── */
+    .bottle-stage {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      padding: 0.25rem 0 0.35rem;
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+
+    .bottle-stage.is-hidden {
+      opacity: 0;
+      pointer-events: none;
+      transform: scale(0.96);
+      position: absolute;
+      visibility: hidden;
+    }
+
+    .bottle-canvas-wrap {
+      position: relative;
+      width: min(72vw, 258px);
+      aspect-ratio: 9 / 16;
+      max-height: min(60vh, 460px);
+    }
+
+    #bottleCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      border-radius: 2px;
+    }
+
+    .bottle-hint {
+      margin-top: 0.55rem;
+      font-size: 0.48rem;
+      letter-spacing: 0.28em;
+      text-indent: 0.28em;
+      color: rgba(232, 230, 226, 0.38);
+      text-align: center;
+      min-height: 1.2em;
+    }
+
+    .canvas-wrap.is-bottle-mode {
+      display: none !important;
+    }
+
+    .canvas-select-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 48;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1.5rem;
+      background: rgba(3, 3, 5, 0.82);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.8s ease, visibility 0.8s ease;
+    }
+
+    .canvas-select-overlay.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .canvas-select-title {
+      font-size: 0.58rem;
+      letter-spacing: 0.42em;
+      text-indent: 0.42em;
+      color: rgba(232, 230, 226, 0.62);
+      margin-bottom: 1.4rem;
+    }
+
+    .canvas-select-sub {
+      font-size: 0.44rem;
+      letter-spacing: 0.2em;
+      color: rgba(232, 230, 226, 0.32);
+      margin-bottom: 1.1rem;
+      text-align: center;
+      line-height: 1.7;
+    }
+
+    .canvas-card-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.85rem;
+      width: min(88vw, 380px);
+      max-height: 62vh;
+      overflow-y: auto;
+      padding: 0.3rem 0.3rem 0.6rem;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .canvas-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.7rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.2);
+      border-radius: 4px;
+      background: rgba(16, 17, 20, 0.72);
+      cursor: pointer;
+      transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease, background 0.35s ease;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .canvas-card:hover,
+    .canvas-card:focus-visible {
+      border-color: rgba(201, 169, 98, 0.5);
+      box-shadow: 0 0 26px rgba(201, 169, 98, 0.12);
+      transform: translateY(-2px);
+      outline: none;
+    }
+
+    .canvas-card.is-selected {
+      border-color: rgba(222, 205, 150, 0.85);
+      background: rgba(30, 28, 22, 0.82);
+      box-shadow: 0 0 34px rgba(222, 205, 150, 0.28);
+    }
+
+    .canvas-card-thumb {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* 透過線画(黒線)を反転して「うっすら白い繊細な線」で表示 */
+    .canvas-card-thumb img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: invert(1) brightness(1.05) opacity(0.42);
+      transition: filter 0.4s ease, transform 0.4s ease;
+    }
+
+    .canvas-card:hover .canvas-card-thumb img,
+    .canvas-card:focus-visible .canvas-card-thumb img {
+      filter: invert(1) brightness(1.6) opacity(0.8) drop-shadow(0 0 6px rgba(230, 220, 190, 0.55));
+      transform: scale(1.03);
+    }
+
+    .canvas-card.is-selected .canvas-card-thumb img {
+      filter: invert(1) brightness(1.9) opacity(0.98) drop-shadow(0 0 10px rgba(235, 225, 195, 0.75));
+    }
+
+    .canvas-card-label {
+      font-size: 0.44rem;
+      letter-spacing: 0.28em;
+      color: rgba(201, 169, 98, 0.5);
+    }
+
+    .canvas-card.is-selected .canvas-card-label {
+      color: rgba(230, 220, 190, 0.9);
+    }
+
+    .canvas-confirm-btn {
+      margin-top: 1.3rem;
+      padding: 0.7rem 2.2rem;
+      font-size: 0.5rem;
+      letter-spacing: 0.34em;
+      text-indent: 0.34em;
+      color: rgba(16, 16, 18, 0.9);
+      background: linear-gradient(135deg, rgba(222, 205, 150, 0.95), rgba(201, 169, 98, 0.95));
+      border: none;
+      border-radius: 2px;
+      cursor: pointer;
+      transition: opacity 0.35s ease, box-shadow 0.35s ease, transform 0.2s ease;
+      box-shadow: 0 0 24px rgba(201, 169, 98, 0.2);
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .canvas-confirm-btn:hover:not(:disabled) {
+      box-shadow: 0 0 32px rgba(222, 205, 150, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .canvas-confirm-btn:disabled {
+      opacity: 0.28;
+      cursor: default;
+      box-shadow: none;
+      filter: grayscale(0.5);
+    }
+
+    .pour-stage {
+      position: fixed;
+      inset: 0;
+      z-index: 47;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 0.75rem 1rem;
+      background: rgba(3, 3, 5, 0.9);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.7s ease, visibility 0.7s ease;
+    }
+
+    .pour-stage.visible {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .pour-hint {
+      font-size: 0.5rem;
+      letter-spacing: 0.3em;
+      text-indent: 0.3em;
+      color: rgba(232, 230, 226, 0.5);
+      margin-bottom: 0.85rem;
+      text-align: center;
+      animation: pourHintPulse 2.4s ease-in-out infinite;
+    }
+
+    @keyframes pourHintPulse {
+      0%, 100% { opacity: 0.45; }
+      50% { opacity: 0.85; }
+    }
+
+    .pour-scene {
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      gap: 0.5rem;
+      width: 100%;
+      max-width: 340px;
+      touch-action: none;
+    }
+
+    .pour-bottle-wrap {
+      flex: 0 0 auto;
+      width: min(32vw, 110px);
+      aspect-ratio: 9 / 16;
+      transform-origin: 50% 85%;
+      transition: transform 0.12s ease-out;
+    }
+
+    #pourBottleCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .pour-art-wrap {
+      flex: 1 1 auto;
+      max-width: min(42vw, 160px);
+      aspect-ratio: 9 / 16;
+    }
+
+    #pourArtCanvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      background: var(--canvas-bg);
+      border-radius: 1px;
+    }
+
   </style>
 </head>
 <body>
@@ -1556,15 +1825,15 @@
       <button type="button" class="frame-btn" id="frameBtn" aria-label="作品を額装する">
         <span class="frame-btn-main">完成</span>
         <span class="frame-btn-en">Frame the Artwork</span>
-        <span class="frame-btn-progress" id="frameProgress">0 / 7</span>
+        <span class="frame-btn-progress" id="frameProgress"></span>
       </button>
     </div>
 
     <div class="frame-modal" id="frameModal" aria-hidden="true">
       <div class="frame-modal-inner">
-        <p class="frame-modal-title">七つの言葉の色 — 額装完了</p>
+        <p class="frame-modal-title">作品 — 額装完了</p>
         <div class="frame-preview-wrap">
-          <img id="framePreview" alt="額装された作品">
+          <img id="framePreview" alt="額装された花">
         </div>
         <div class="frame-modal-actions">
           <button type="button" class="frame-action-btn primary" id="frameDownload">PNGで保存</button>
@@ -1586,7 +1855,14 @@
       </header>
 
       <div class="top-area">
-        <div class="canvas-wrap" id="canvasWrap">
+        <div class="bottle-stage" id="bottleStage" aria-label="感情のボトル">
+          <div class="bottle-canvas-wrap">
+            <canvas id="bottleCanvas" width="180" height="320" aria-hidden="false"></canvas>
+          </div>
+          <p class="bottle-hint" id="bottleHint">感情をボトルに預けています</p>
+        </div>
+
+        <div class="canvas-wrap is-bottle-mode" id="canvasWrap">
           <div class="museum-frame" id="museumFrame">
             <div class="museum-frame-sculpted">
               <div class="art-surface">
@@ -1608,7 +1884,7 @@
 
       <div class="emotion-palette zen-target" id="emotionPalette">
         <div class="emotion-palette-spheres" id="emotionPaletteSpheres" role="listbox" aria-label="感情の八色"></div>
-        <p class="emotion-palette-hint">長押しで感情を育て、上へフリックして落とす</p>
+        <p class="emotion-palette-hint">長押しで色を育て、上へフリックしてボトルに預ける</p>
       </div>
 
       <footer class="controls zen-target" id="controlsFooter">
@@ -1624,8 +1900,28 @@
       </div>
     </div>
 
+    <div class="canvas-select-overlay" id="canvasSelectOverlay" aria-hidden="true">
+      <p class="canvas-select-title">線画を選ぶ</p>
+      <p class="canvas-select-sub">一週間の感情を、この線画へ注ぎ込みます</p>
+      <div class="canvas-card-grid" id="canvasCardGrid"></div>
+      <button type="button" class="canvas-confirm-btn" id="canvasConfirmBtn" disabled>このデザインにする</button>
+    </div>
+
+    <div class="pour-stage" id="pourStage" aria-hidden="true">
+      <p class="pour-hint" id="pourHint">ボトルを傾けて、感情を注いでください</p>
+      <div class="pour-scene" id="pourScene">
+        <div class="pour-bottle-wrap" id="pourBottleWrap">
+          <canvas id="pourBottleCanvas" width="110" height="196"></canvas>
+        </div>
+        <div class="pour-art-wrap">
+          <canvas id="pourArtCanvas" width="160" height="284"></canvas>
+        </div>
+      </div>
+    </div>
+
   </div>
 
+  <script src="embedded-assets.js"></script>
   <script>
     (function () {
       'use strict';
@@ -1638,11 +1934,32 @@
       const LAST_DIARY_DATE_KEY = 'inscape_last_diary_date_v2';
       const LAST_EXPLOSION_AT_KEY = 'inscape_last_explosion_at';
       const COMPLETION_WHISPER_KEY = 'inscape_completion_whisper_v1';
-      const MAX_ENTRIES = 7;
+      const FLOWER_KEY = 'inscape_flower_v2';
+      const BOTTLE_PHASES = { DEPOSIT: 'deposit', SELECT: 'select', POUR: 'pour', COMPLETE: 'complete' };
+      // 7枚の透過線画（最終アートの土台）。id で選択データを保持する。
+      const LINEART_TEMPLATES = [
+        { id: 'line-1', label: '線画 01', src: 'lineart1.png' },
+        { id: 'line-2', label: '線画 02', src: 'lineart2.png' },
+        { id: 'line-3', label: '線画 03', src: 'lineart3.png' },
+        { id: 'line-4', label: '線画 04', src: 'lineart4.png' },
+        { id: 'line-5', label: '線画 05', src: 'lineart5.png' },
+        { id: 'line-6', label: '線画 06', src: 'lineart6.png' },
+        { id: 'line-7', label: '線画 07', src: 'lineart7.png' }
+      ];
+      const CANVAS_TEMPLATES = LINEART_TEMPLATES.reduce((m, t, i) => {
+        m[t.id] = { id: t.id, label: t.label, src: t.src, seedOffset: i };
+        return m;
+      }, {});
+      // 旧データ互換: 'flow-01' は最初の線画にフォールバック
+      CANVAS_TEMPLATES['flow-01'] = CANVAS_TEMPLATES['line-1'];
+      const BOTTLE_LOGICAL_W = 180;
+      const BOTTLE_LOGICAL_H = 320;
+      const FLOWER_MIN_DAYS = 7;
+      const FLOWER_MAX_DAYS = 7;
+      const MAX_ENTRIES = 10;
       const GALLERY_MAX = 28;
       const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
       const GALLERY_RETENTION_MS = RETENTION_MS;
-      const FRAME_ENTRIES_REQUIRED = 7;
       const DISABLE_DAILY_DIARY_LOCK = true;
       const ZEN_IDLE_MS = 5000;
       const ZEN_FADE_MS = 2000;
@@ -1731,6 +2048,22 @@
       const frameCompleteDialog = document.getElementById('frameCompleteDialog');
       const frameCompleteOk = document.getElementById('frameCompleteOk');
       const completionWhisper = document.getElementById('completionWhisper');
+      const bottleStage = document.getElementById('bottleStage');
+      const bottleCanvas = document.getElementById('bottleCanvas');
+      const bottleCtx = bottleCanvas.getContext('2d');
+      const bottleHint = document.getElementById('bottleHint');
+      const canvasSelectOverlay = document.getElementById('canvasSelectOverlay');
+      const canvasCardGrid = document.getElementById('canvasCardGrid');
+      const canvasConfirmBtn = document.getElementById('canvasConfirmBtn');
+      let pendingCanvasId = null;
+      const pourStage = document.getElementById('pourStage');
+      const pourScene = document.getElementById('pourScene');
+      const pourBottleWrap = document.getElementById('pourBottleWrap');
+      const pourBottleCanvas = document.getElementById('pourBottleCanvas');
+      const pourBottleCtx = pourBottleCanvas.getContext('2d');
+      const pourArtCanvas = document.getElementById('pourArtCanvas');
+      const pourArtCtx = pourArtCanvas.getContext('2d');
+      const pourHint = document.getElementById('pourHint');
       const inputWrap = document.getElementById('inputWrap');
       const controlsFooter = document.getElementById('controlsFooter');
       const appEl = document.querySelector('.app');
@@ -1751,6 +2084,10 @@
       };
       let colorSyncLock = false;
       let splashes = [];
+      let currentFlower = null;
+      let flowerAnim = { active: false, kind: 'none', progress: 1, index: -1 };
+      let bottleAnim = { active: false, progress: 0, layerIndex: -1 };
+      let pourState = { active: false, tilt: 0, pourT: 0, rafId: null };
       let audioCtx = null;
       let noiseBuffer = null;
       let activeSuckSound = null;
@@ -2020,6 +2357,78 @@
         return words.map((w) => String(w).trim()).join('\u241e');
       }
 
+      function mulberry32(a) {
+        return function rng() {
+          a |= 0;
+          a = (a + 0x6D2B79F5) | 0;
+          let t = Math.imul(a ^ (a >>> 15), 1 | a);
+          t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+          return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+        };
+      }
+
+      function flowerRgb(hex) {
+        const rgb = hexToRgb(hex);
+        return rgb || { r: 26, g: 46, b: 64 };
+      }
+
+      function rgbaFromHex(hex, alpha) {
+        const { r, g, b } = flowerRgb(hex);
+        return `rgba(${r},${g},${b},${alpha})`;
+      }
+
+      function lightenHex(hex, amt) {
+        const { r, g, b } = flowerRgb(hex);
+        const mix = (c) => Math.round(c + (255 - c) * amt);
+        return rgbToHex(mix(r), mix(g), mix(b));
+      }
+
+      function darkenHex(hex, amt) {
+        const { r, g, b } = flowerRgb(hex);
+        const mix = (c) => Math.round(c * (1 - amt));
+        return rgbToHex(mix(r), mix(g), mix(b));
+      }
+
+      // 彩度を amt(0〜1程度) だけ引き上げる（グレー軸から離す）
+      function saturateHex(hex, amt) {
+        const { r, g, b } = flowerRgb(hex);
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        const push = (c) => Math.round(Math.max(0, Math.min(255, lum + (c - lum) * (1 + amt))));
+        return rgbToHex(push(r), push(g), push(b));
+      }
+
+      // 同系色のまま「深い色」を作る（黒/グレーを混ぜない）。
+      // 色相を保持し、明度を落として彩度をわずかに下げる＝青→ネイビー, ピンク→ワインレッド。
+      function deepenHex(hex, amt) {
+        const { r, g, b } = flowerRgb(hex);
+        const rr = r / 255, gg = g / 255, bb = b / 255;
+        const max = Math.max(rr, gg, bb), min = Math.min(rr, gg, bb);
+        let hh = 0, ss = 0; let ll = (max + min) / 2;
+        if (max !== min) {
+          const dd = max - min;
+          ss = ll > 0.5 ? dd / (2 - max - min) : dd / (max + min);
+          if (max === rr) hh = (gg - bb) / dd + (gg < bb ? 6 : 0);
+          else if (max === gg) hh = (bb - rr) / dd + 2;
+          else hh = (rr - gg) / dd + 4;
+          hh /= 6;
+        }
+        ll = Math.max(0.06, ll * (1 - amt));
+        ss = Math.max(0.28, ss * (1 - amt * 0.18)); // 低明度でも彩度が痩せて灰色化しないよう下限を確保
+        const q = ll < 0.5 ? ll * (1 + ss) : ll + ss - ll * ss;
+        const p = 2 * ll - q;
+        const hue2rgb = (p, q, t) => {
+          if (t < 0) t += 1; if (t > 1) t -= 1;
+          if (t < 1 / 6) return p + (q - p) * 6 * t;
+          if (t < 1 / 2) return q;
+          if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+          return p;
+        };
+        const R = Math.round(hue2rgb(p, q, hh + 1 / 3) * 255);
+        const G = Math.round(hue2rgb(p, q, hh) * 255);
+        const B = Math.round(hue2rgb(p, q, hh - 1 / 3) * 255);
+        return rgbToHex(R, G, B);
+      }
+
       function getWeekWordsFromStorage() {
         const fromSplashes = splashes
           .slice()
@@ -2080,7 +2489,7 @@
       }
 
       function hasReachedSplashLimit() {
-        return splashes.length >= MAX_ENTRIES;
+        return isFlowerComplete(currentFlower);
       }
 
       function pickBalancedSplashPosition(w, h, splashMeta, slotIndex) {
@@ -2146,57 +2555,76 @@
         }
       }
 
-      function writeGalleryStore(gallery) {
+      // 容量超過時も「今保存した作品(protectId)の画像だけは絶対に捨てない」退避戦略。
+      // 退避の優先度: ①全ボトル画像 → ②保護対象以外の作品画像(古い順) → ③保護対象以外のエントリ丸ごと(古い順)。
+      function writeGalleryStore(gallery, protectId) {
         const list = Array.isArray(gallery) ? gallery : [];
         const tryWrite = (entries) => {
           localStorage.setItem(GALLERY_KEY, JSON.stringify(entries));
         };
         const isQuotaError = (err) => err && (err.name === 'QuotaExceededError' || err.code === 22 || err.code === 1014);
-        const stripEntryImage = (entry) => {
-          if (!entry || typeof entry !== 'object') return entry;
-          const copy = { ...entry };
-          delete copy.artworkImageDataUrl;
-          delete copy.snapshotPixelW;
-          delete copy.snapshotPixelH;
-          return copy;
-        };
 
+        // まずは全量をそのまま保存
         try {
           tryWrite(list);
           return true;
         } catch (err) {
           if (!isQuotaError(err)) {
-            console.warn('ギャラリー保存に失敗:', err);
+            console.error('■ 保存エラー発生: ギャラリー書き込みに失敗:', err);
             return false;
           }
         }
+        console.warn('[gallery-save] LocalStorage容量超過を検知。最新作品を守りつつ退避処理を実行します。');
 
-        const lastIdx = list.length - 1;
-        if (lastIdx >= 0 && list[lastIdx] && list[lastIdx].artworkImageDataUrl) {
-          try {
-            const newestTrimmed = list.map((entry, idx) => (
-              idx === lastIdx ? stripEntryImage(entry) : entry
-            ));
-            tryWrite(newestTrimmed);
-            list.splice(0, list.length, ...newestTrimmed);
-            return true;
-          } catch (err) {
-            if (!isQuotaError(err)) {
-              console.warn('ギャラリー保存に失敗:', err);
-              return false;
-            }
+        const work = list.map((e) => ({ ...e }));
+        const isProtected = (e) => protectId != null && e && e.id === protectId;
+        // 書き込みトライ: true=成功 / false=まだQuota / 'fatal'=Quota以外の致命的失敗
+        const attempt = () => {
+          try { tryWrite(work); return true; }
+          catch (e) {
+            if (!isQuotaError(e)) { console.error('■ 保存エラー発生:', e); return 'fatal'; }
+            return false;
           }
+        };
+        const commit = () => { list.splice(0, list.length, ...work); return true; };
+
+        // ① 補助データであるボトル画像を「保護対象以外」から削除（gallery側はflowerから再描画可能）
+        work.forEach((e) => {
+          if (isProtected(e)) return;
+          delete e.bottleImageDataUrl; delete e.bottleW; delete e.bottleH;
+        });
+        let r = attempt();
+        if (r === true) return commit();
+        if (r === 'fatal') return false;
+
+        // ② 保護対象以外の「作品画像」を古い順に削除
+        for (let i = 0; i < work.length; i++) {
+          if (isProtected(work[i]) || !work[i].artworkImageDataUrl) continue;
+          delete work[i].artworkImageDataUrl;
+          delete work[i].snapshotPixelW;
+          delete work[i].snapshotPixelH;
+          r = attempt();
+          if (r === true) return commit();
+          if (r === 'fatal') return false;
         }
 
-        try {
-          const lighter = list.map(stripEntryImage);
-          tryWrite(lighter);
-          list.splice(0, list.length, ...lighter);
-          return true;
-        } catch (err2) {
-          console.warn('ギャラリー保存に失敗（容量不足）:', err2);
-          return false;
+        // ③ 保護対象以外のエントリを古い順に丸ごと削除
+        while (work.length > 1) {
+          const removeIdx = work.findIndex((e) => !isProtected(e));
+          if (removeIdx < 0) break;
+          work.splice(removeIdx, 1);
+          r = attempt();
+          if (r === true) return commit();
+          if (r === 'fatal') return false;
         }
+
+        // ④ ここまでで入らなければ、保護対象のボトル画像も削除（作品画像は死守）
+        work.forEach((e) => { delete e.bottleImageDataUrl; delete e.bottleW; delete e.bottleH; });
+        r = attempt();
+        if (r === true) return commit();
+
+        console.error('■ 保存エラー発生: 容量を確保できず、作品画像を永続化できませんでした。');
+        return false;
       }
 
       function cloneSplashesForGallerySave(source) {
@@ -2435,16 +2863,314 @@
         }
       }
 
-      const SPLAT_IMAGE = 'splat.png';
       const FABRIC_IMAGE = 'canvas-fabric.png';
+      const BOTTLE_IMAGE = 'bottle.png';
+      // file:// 環境では PNG を canvas に描くと汚染(taint)され toDataURL() が失敗する。
+      // embedded-assets.js に埋め込んだ Base64 データURI（同一オリジン扱い）を優先し、汚染を根絶する。
+      function assetSrc(name) {
+        const e = (typeof window !== 'undefined') && window.EMBEDDED_ASSETS;
+        return (e && e[name]) ? e[name] : name;
+      }
       const CANVAS_BG = '#f7f4eb';
       const splatImg = new Image();
       const fabricImg = new Image();
+      const bottleImg = new Image();
       const stampCache = {};
       let splatReady = false;
-      let splatLoadPromise = null;
       let fabricReady = false;
       let fabricLoadPromise = null;
+      let bottleReady = false;
+      let bottleLoadPromise = null;
+      let bottleMaskCanvas = null;
+      let bottleCrop = null;
+      // bottle.png の実測: 本体は画像内で以下の割合を占める（余白が多いのでクロップ必須）
+      const BOTTLE_CROP_FRACTIONS = { sx: 0.376, sy: 0.12, sw: 0.247, sh: 0.805 };
+      // インクを溜める「胴体(丸み)」領域（描画矩形=首を含むボトル全体に対する縦割合）。
+      // 首(ネック)にはインクを入れない: bodyTop は肩が終わり胴体が始まる位置。
+      const BOTTLE_BODY_TOP_FRAC = 0.34;   // これより上（首・肩）は常に空気
+      const BOTTLE_BODY_BOTTOM_FRAC = 0.955; // 瓶底の少し内側
+      const BOTTLE_AIR_GAP_FRAC = 0.18;    // 7日目でも胴体上部に残す空気層(胴体高さ比)
+
+      // 7枚の線画PNG(主線)＋塗りつぶしシルエットマスクPNGを初期化時に一度だけ読み込み（id -> Image）
+      const lineartImgs = {};
+      const lineartMaskImgs = {};
+      // 各線画の「絵柄の実バウンディングボックス」(不透明画素の外接矩形, 画像ピクセル座標)。
+      // PNGごとにバラバラな透明余白を無視し、キャンバス上の見た目サイズを揃えるために使う。
+      const lineartBBox = {};
+      let lineartLoadPromise = null;
+      function loadLineartImages() {
+        if (lineartLoadPromise) return lineartLoadPromise;
+        const jobs = [];
+        LINEART_TEMPLATES.forEach((t) => {
+          jobs.push(new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => { lineartImgs[t.id] = img; resolve(); };
+            img.onerror = () => resolve();
+            img.src = assetSrc(t.src);
+          }));
+          jobs.push(new Promise((resolve) => {
+            const m = new Image();
+            m.onload = () => { lineartMaskImgs[t.id] = m; resolve(); };
+            m.onerror = () => resolve(); // マスクPNGが無い線画はロード後に実行時生成する
+            m.src = assetSrc(t.src.replace(/\.png$/i, '-mask.png'));
+          }));
+        });
+        lineartLoadPromise = Promise.all(jobs).then(() => {
+          // マスクPNGが存在しない線画（例: line-4）は、主線画像からシルエットマスクを実行時生成する。
+          // 埋め込みデータURIは同一オリジン扱いのため getImageData が使え、汚染も発生しない。
+          LINEART_TEMPLATES.forEach((t) => {
+            const mask = lineartMaskImgs[t.id];
+            const okMask = mask && ((mask.naturalWidth || 0) > 0 || (mask.width || 0) > 0);
+            const img = lineartImgs[t.id];
+            if (!okMask && img && img.naturalWidth > 0) {
+              try {
+                lineartMaskImgs[t.id] = buildRuntimeSilhouetteMask(img);
+              } catch (err) {
+                console.warn('マスク実行時生成に失敗:', t.id, err);
+              }
+            }
+            // 絵柄の実バウンディングボックスを算出（透明余白を除いた見た目サイズ正規化用）
+            if (img && img.naturalWidth > 0 && !lineartBBox[t.id]) {
+              try {
+                lineartBBox[t.id] = computeLineartContentBBox(img);
+              } catch (err) {
+                console.warn('線画bbox算出に失敗:', t.id, err);
+              }
+            }
+          });
+        });
+        return lineartLoadPromise;
+      }
+
+      // 線画画像の「不透明な絵柄部分」の外接矩形を返す（画像ピクセル座標）。
+      // 透明余白のみを除去するため alpha 闾値で判定する。失敗時は全面を返す。
+      function computeLineartContentBBox(img) {
+        const W = img.naturalWidth, H = img.naturalHeight;
+        const cv = document.createElement('canvas');
+        cv.width = W; cv.height = H;
+        const ctx = cv.getContext('2d');
+        ctx.drawImage(img, 0, 0, W, H);
+        const data = ctx.getImageData(0, 0, W, H).data;
+        let minX = W, minY = H, maxX = -1, maxY = -1;
+        for (let y = 0; y < H; y++) {
+          for (let x = 0; x < W; x++) {
+            if (data[(y * W + x) * 4 + 3] > 24) {
+              if (x < minX) minX = x;
+              if (x > maxX) maxX = x;
+              if (y < minY) minY = y;
+              if (y > maxY) maxY = y;
+            }
+          }
+        }
+        if (maxX < minX || maxY < minY) return { x: 0, y: 0, w: W, h: H };
+        return { x: minX, y: minY, w: (maxX - minX + 1), h: (maxY - minY + 1) };
+      }
+
+      // 選択線画の絵柄を、キャンバス(w×h)内の一定サイズ枠へ正規化して収める描画矩形を返す。
+      // どの線画も「絵柄部分」が同じ占有率(TARGET)・中央配置になり、見た目サイズが揃う。
+      // 返り値 {dx,dy,dW,dH} は drawImage(img/mask, dx, dy, dW, dH) 用（画像全体の配置）。
+      function getLineartDrawRect(flower, w, h) {
+        const tpl = resolveLineartTpl(flower);
+        const img = tpl && lineartImgs[tpl.id];
+        const iw = img ? (img.naturalWidth || img.width) : 0;
+        const ih = img ? (img.naturalHeight || img.height) : 0;
+        if (!iw || !ih) return { dx: 0, dy: 0, dW: w, dH: h };
+        const bb = (tpl && lineartBBox[tpl.id]) || { x: 0, y: 0, w: iw, h: ih };
+        const TARGET = 0.80; // 絵柄がキャンバスに占める最大割合（上下左右に均等な余白を確保）
+        const scale = Math.min((w * TARGET) / bb.w, (h * TARGET) / bb.h);
+        const dW = iw * scale, dH = ih * scale;
+        // 絵柄bboxの中心をキャンバス中心へ合わせる
+        const cxImg = bb.x + bb.w / 2, cyImg = bb.y + bb.h / 2;
+        const dx = w / 2 - cxImg * scale;
+        const dy = h / 2 - cyImg * scale;
+        return { dx, dy, dW, dH };
+      }
+
+      // 主線画像(透過PNG)から「塗りつぶしシルエットマスク」canvasを生成する。
+      // ダークな主線を壁として外周から flood fill し、外側でない領域＝内部を白不透明にする。
+      function buildRuntimeSilhouetteMask(img) {
+        const W = img.naturalWidth, H = img.naturalHeight;
+        const src = document.createElement('canvas');
+        src.width = W; src.height = H;
+        const sctx = src.getContext('2d');
+        sctx.drawImage(img, 0, 0, W, H);
+        const data = sctx.getImageData(0, 0, W, H).data;
+        const N = W * H;
+
+        // 1) 壁（線）= 不透明かつ暗い画素
+        const wall = new Uint8Array(N);
+        for (let i = 0; i < N; i++) {
+          const a = data[i * 4 + 3];
+          const lum = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
+          if (a > 40 && lum < 150) wall[i] = 1;
+        }
+        // 2) 壁を半径Rで膨張（線の隙間を塞ぐ）
+        const R = 4;
+        const wallD = new Uint8Array(N);
+        for (let y = 0; y < H; y++) {
+          for (let x = 0; x < W; x++) {
+            if (!wall[y * W + x]) continue;
+            for (let dy = -R; dy <= R; dy++) {
+              const ny = y + dy; if (ny < 0 || ny >= H) continue;
+              for (let dx = -R; dx <= R; dx++) {
+                const nx = x + dx; if (nx < 0 || nx >= W) continue;
+                wallD[ny * W + nx] = 1;
+              }
+            }
+          }
+        }
+        // 3) 外周から flood fill（壁は通れない）→ outside
+        const outside = new Uint8Array(N);
+        const stack = new Int32Array(N);
+        let sp = 0;
+        const push = (idx) => { if (!outside[idx] && !wallD[idx]) { outside[idx] = 1; stack[sp++] = idx; } };
+        for (let x = 0; x < W; x++) { push(x); push((H - 1) * W + x); }
+        for (let y = 0; y < H; y++) { push(y * W); push(y * W + (W - 1)); }
+        while (sp > 0) {
+          const idx = stack[--sp];
+          const x = idx % W, y = (idx / W) | 0;
+          if (x + 1 < W) push(idx + 1);
+          if (x - 1 >= 0) push(idx - 1);
+          if (y + 1 < H) push(idx + W);
+          if (y - 1 >= 0) push(idx - W);
+        }
+        // 4) outside でない画素 = シルエット内部 → 白不透明
+        const out = document.createElement('canvas');
+        out.width = W; out.height = H;
+        const octx = out.getContext('2d');
+        const outImg = octx.createImageData(W, H);
+        const od = outImg.data;
+        for (let i = 0; i < N; i++) {
+          if (!outside[i]) {
+            od[i * 4] = 255; od[i * 4 + 1] = 255; od[i * 4 + 2] = 255; od[i * 4 + 3] = 255;
+          }
+        }
+        octx.putImageData(outImg, 0, 0);
+        return out;
+      }
+      function resolveLineartTpl(flower) {
+        const id = (flower && flower.selectedCanvasId) || 'line-1';
+        return CANVAS_TEMPLATES[id] || CANVAS_TEMPLATES['line-1'];
+      }
+      // 選択された線画(主線)のImage
+      function getSelectedLineartImg(flower) {
+        const tpl = resolveLineartTpl(flower);
+        const img = tpl && lineartImgs[tpl.id];
+        return img && img.naturalWidth > 0 ? img : null;
+      }
+      // 選択された線画の塗りつぶしシルエットマスクのImage
+      function getSelectedLineartMask(flower) {
+        const tpl = resolveLineartTpl(flower);
+        const m = tpl && lineartMaskImgs[tpl.id];
+        // Image（naturalWidth）と 実行時生成の canvas（width）の両対応
+        const ok = m && ((m.naturalWidth || 0) > 0 || (m.width || 0) > 0);
+        return ok ? m : null;
+      }
+
+      function loadBottleImage() {
+        if (bottleReady && bottleImg.naturalWidth > 0) return Promise.resolve(bottleImg);
+        if (bottleLoadPromise) return bottleLoadPromise;
+        bottleLoadPromise = new Promise((resolve) => {
+          const finish = (ok) => {
+            bottleLoadPromise = null;
+            if (ok) {
+              bottleReady = true;
+              // まず実測フラクションからデフォルトのクロップを設定（getImageDataが使えなくても正しいサイズ）
+              const iw = bottleImg.naturalWidth, ih = bottleImg.naturalHeight;
+              bottleCrop = {
+                sx: Math.round(iw * BOTTLE_CROP_FRACTIONS.sx),
+                sy: Math.round(ih * BOTTLE_CROP_FRACTIONS.sy),
+                sw: Math.round(iw * BOTTLE_CROP_FRACTIONS.sw),
+                sh: Math.round(ih * BOTTLE_CROP_FRACTIONS.sh)
+              };
+              buildBottleMask();
+              resolve(bottleImg);
+            }
+            else resolve(null);
+          };
+          bottleImg.onload = () => finish(bottleImg.naturalWidth > 0);
+          bottleImg.onerror = () => finish(false);
+          bottleImg.src = assetSrc(BOTTLE_IMAGE);
+          if (bottleImg.complete) finish(bottleImg.naturalWidth > 0);
+        });
+        return bottleLoadPromise;
+      }
+
+      // 瓶PNGから「内側だけ」のマスクを生成（外側の輪郭でクリップ）。
+      // 背景が透過ならalphaで、白背景でも輪郭のfloodで内側を判定する堅牢版。
+      function buildBottleMask() {
+        try {
+          const iw = bottleImg.naturalWidth, ih = bottleImg.naturalHeight;
+          if (!iw || !ih) return;
+          const src = document.createElement('canvas');
+          src.width = iw; src.height = ih;
+          const sctx = src.getContext('2d', { willReadFrequently: true });
+          sctx.drawImage(bottleImg, 0, 0);
+          const data = sctx.getImageData(0, 0, iw, ih);
+          const px = data.data;
+          const inside = new Uint8Array(iw * ih); // 1 = 瓶(内側/ガラス), 0 = 外側背景
+          // 背景判定: 四隅の色/透明度を基準に、"背景に近い" 画素を外側とする
+          const corner = [0, (iw - 1) * 4, (ih - 1) * iw * 4, (ih * iw - 1) * 4];
+          let bgA = 0, bgR = 0, bgG = 0, bgB = 0;
+          corner.forEach((o) => { bgA += px[o + 3]; bgR += px[o]; bgG += px[o + 1]; bgB += px[o + 2]; });
+          bgA /= 4; bgR /= 4; bgG /= 4; bgB /= 4;
+          const transparentBg = bgA < 40;
+          const isBg = (o) => {
+            const a = px[o + 3];
+            if (transparentBg) return a < 40;
+            // 白(または背景色)に近く不透明なら背景
+            const dr = px[o] - bgR, dg = px[o + 1] - bgG, db = px[o + 2] - bgB;
+            return a > 40 && (dr * dr + dg * dg + db * db) < 900;
+          };
+          // 外周からflood fillして"到達できる背景"をマーク。到達しなければ瓶内側。
+          const visited = new Uint8Array(iw * ih);
+          const stack = [];
+          const pushIf = (x, y) => {
+            if (x < 0 || y < 0 || x >= iw || y >= ih) return;
+            const idx = y * iw + x;
+            if (visited[idx]) return;
+            visited[idx] = 1;
+            if (isBg(idx * 4)) stack.push(idx);
+          };
+          for (let x = 0; x < iw; x++) { pushIf(x, 0); pushIf(x, ih - 1); }
+          for (let y = 0; y < ih; y++) { pushIf(0, y); pushIf(iw - 1, y); }
+          while (stack.length) {
+            const idx = stack.pop();
+            const x = idx % iw, y = (idx / iw) | 0;
+            pushIf(x + 1, y); pushIf(x - 1, y); pushIf(x, y + 1); pushIf(x, y - 1);
+          }
+          // visited かつ 背景 = 外側。それ以外 = 瓶。同時にバウンディングボックスを算出。
+          const full = document.createElement('canvas');
+          full.width = iw; full.height = ih;
+          const fctx = full.getContext('2d');
+          const out = fctx.createImageData(iw, ih);
+          let minX = iw, minY = ih, maxX = 0, maxY = 0, any = false;
+          for (let i = 0; i < iw * ih; i++) {
+            const outside = visited[i] && isBg(i * 4);
+            out.data[i * 4 + 3] = outside ? 0 : 255;
+            if (!outside) {
+              const x = i % iw, y = (i / iw) | 0;
+              if (x < minX) minX = x; if (x > maxX) maxX = x;
+              if (y < minY) minY = y; if (y > maxY) maxY = y;
+              any = true;
+            }
+          }
+          fctx.putImageData(out, 0, 0);
+          if (!any) { bottleMaskCanvas = full; bottleCrop = { sx: 0, sy: 0, sw: iw, sh: ih }; return; }
+          const pad = Math.round(Math.min(iw, ih) * 0.01);
+          const sx = Math.max(0, minX - pad), sy = Math.max(0, minY - pad);
+          const sw = Math.min(iw - sx, maxX - minX + 1 + pad * 2);
+          const sh = Math.min(ih - sy, maxY - minY + 1 + pad * 2);
+          const mask = document.createElement('canvas');
+          mask.width = sw; mask.height = sh;
+          mask.getContext('2d').drawImage(full, sx, sy, sw, sh, 0, 0, sw, sh);
+          bottleMaskCanvas = mask;
+          bottleCrop = { sx, sy, sw, sh };
+        } catch (e) {
+          // getImageDataが使えない場合はマスクなし（=alpha直接クリップ）＋デフォルトクロップを維持
+          bottleMaskCanvas = null;
+        }
+      }
 
       function clearStampCache() {
         Object.keys(stampCache).forEach(k => { delete stampCache[k]; });
@@ -2467,7 +3193,7 @@
 
           fabricImg.onload = () => finish(fabricImg.naturalWidth > 0);
           fabricImg.onerror = () => finish(false);
-          fabricImg.src = FABRIC_IMAGE;
+          fabricImg.src = assetSrc(FABRIC_IMAGE);
 
           if (fabricImg.complete) {
             finish(fabricImg.naturalWidth > 0);
@@ -2522,46 +3248,6 @@
           octx.restore();
         }
         return out.toDataURL('image/png');
-      }
-
-      function loadSplatImage() {
-        if (splatReady && splatImg.naturalWidth > 0) return Promise.resolve();
-        if (splatLoadPromise) return splatLoadPromise;
-
-        splatLoadPromise = new Promise((resolve, reject) => {
-          const onReady = () => {
-            if (!splatImg.naturalWidth || !splatImg.naturalHeight) {
-              splatLoadPromise = null;
-              reject(new Error('splat.png: 画像サイズが取得できませんでした'));
-              return;
-            }
-            splatReady = true;
-            clearStampCache();
-            redrawCanvas();
-            resolve();
-          };
-
-          const onFail = () => {
-            splatLoadPromise = null;
-            console.error('splat.png の読み込みに失敗しました。index.html と同じフォルダにあるか確認してください。');
-            reject(new Error('splat.png load failed'));
-          };
-
-          splatImg.onload = onReady;
-          splatImg.onerror = onFail;
-          splatImg.src = SPLAT_IMAGE;
-
-          if (splatImg.complete) {
-            if (splatImg.naturalWidth > 0) onReady();
-            else onFail();
-          }
-        });
-
-        return splatLoadPromise;
-      }
-
-      function ensureSplatLoaded() {
-        return loadSplatImage();
       }
 
       function createGradientStamp(color1, color2) {
@@ -2996,6 +3682,7 @@
       }
 
       function syncHistoriesFromSplashes() {
+        syncFlowerToSplashes();
         const recipes = splashes.map(({ drip, ...rest }) => rest);
         try {
           localStorage.setItem(HISTORY_KEY, JSON.stringify(recipes));
@@ -3038,19 +3725,17 @@
         }
       }
 
-      async function saveRecipeToGallery(prefetchedSnapshot, frozenSplashes) {
-        const saveSplashes = Array.isArray(frozenSplashes) && frozenSplashes.length
-          ? frozenSplashes
-          : cloneSplashesForGallerySave(splashes);
-        if (saveSplashes.length < FRAME_ENTRIES_REQUIRED) {
-          console.warn('回廊保存: スプラッシュが不足しています', saveSplashes.length);
+      async function saveRecipeToGallery(prefetchedSnapshot, frozenFlower) {
+        const flower = frozenFlower || cloneFlowerForGallerySave(currentFlower);
+        if (!isFlowerComplete(flower)) {
+          console.warn('回廊保存: 花が未完成です', getFlowerDayCount(flower));
           return false;
         }
+        const saveSplashes = flowerToSplashRecipes(flower);
 
         try {
-          const cycleKey = buildArtworkCycleKeyFromSplashes(saveSplashes);
+          const cycleKey = buildArtworkCycleKeyFromFlower(flower);
           syncHistoriesFromSplashes();
-          const splatsRecipes = saveSplashes;
           const history = saveSplashes.map((s) => ({
             word: s.word || '',
             color: normalizeSplashHex(s.color1 || s.color),
@@ -3060,8 +3745,9 @@
 
           const snapshot = (prefetchedSnapshot && prefetchedSnapshot.artworkImageDataUrl)
             ? prefetchedSnapshot
-            : await persistArtworkCanvasSnapshot(saveSplashes);
-          const { period, periodStart, periodEnd } = computeArtworkPeriodFromSplashes(saveSplashes);
+            : await persistArtworkCanvasSnapshot(flower);
+          const { period, periodStart, periodEnd } = computeArtworkPeriodFromFlower(flower);
+          const flowerDays = getFlowerDayCount(flower);
 
           let gallery = readGalleryStore();
           if (!Array.isArray(gallery)) gallery = [];
@@ -3072,19 +3758,20 @@
               .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0))
               .map((s) => String(s.word || '').trim())
               .filter(Boolean)
-              .slice(0, MAX_ENTRIES)
           );
 
           const entry = {
             id: `art_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`,
-            splats: splatsRecipes,
+            splats: saveSplashes,
+            flower,
+            flowerDays,
             history,
             period,
             periodStart,
             periodEnd,
             wordsHash,
             cycleKey,
-            completedAt: Date.now(),
+            completedAt: flower.completedAt || Date.now(),
             canvasW: snapshot && snapshot.canvasW ? snapshot.canvasW : (parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-w')) || canvas.clientWidth),
             canvasH: snapshot && snapshot.canvasH ? snapshot.canvasH : (parseFloat(canvasWrap.style.getPropertyValue('--canvas-aspect-h')) || canvas.clientHeight),
             snapshotPixelW: snapshot && snapshot.snapshotPixelW ? snapshot.snapshotPixelW : undefined,
@@ -3093,6 +3780,13 @@
           if (snapshot && snapshot.artworkImageDataUrl) {
             entry.artworkImageDataUrl = snapshot.artworkImageDataUrl;
           }
+          if (snapshot && snapshot.bottleImageDataUrl) {
+            entry.bottleImageDataUrl = snapshot.bottleImageDataUrl;
+            entry.bottleW = snapshot.bottleW;
+            entry.bottleH = snapshot.bottleH;
+          }
+          entry.selectedCanvasId = flower.selectedCanvasId || 'flow-01';
+          entry.bottlePhase = flower.bottlePhase || BOTTLE_PHASES.COMPLETE;
 
           const existingIdx = gallery.findIndex((item) => item && item.cycleKey === cycleKey);
           if (existingIdx >= 0) {
@@ -3106,14 +3800,73 @@
             gallery = gallery.slice(-GALLERY_MAX);
           }
 
-          const saved = writeGalleryStore(gallery);
+          // 【保存直前ログ】これから永続化する対象データが100%生存していることを証明する。
+          const artUrl = entry.artworkImageDataUrl || '';
+          console.log('■ [保存直前] 感情の回廊へ書き込むデータ:');
+          console.table([{
+            作品ID: entry.id,
+            線画ID: entry.selectedCanvasId,
+            画像URL長: artUrl.length,
+            画像KB: Math.round(artUrl.length / 1024),
+            日数: entry.flowerDays,
+            期間: entry.period,
+            総エントリ数: gallery.length
+          }]);
+
+          const saved = writeGalleryStore(gallery, entry.id);
           if (!saved) {
-            console.warn('回廊への保存に失敗しました');
+            console.error('■ 保存エラー発生: 回廊への保存に失敗しました（容量確保不可）');
+            return false;
           }
+
+          // 【保存直後ログ】LocalStorageから読み戻して、当該作品の画像が定着したことを証明する。
+          const verifyBack = readGalleryStore();
+          const savedEntry = Array.isArray(verifyBack)
+            ? verifyBack.find((e) => e && e.id === entry.id)
+            : null;
+          const savedUrl = (savedEntry && savedEntry.artworkImageDataUrl) || '';
+          console.log('■ [保存直後] LocalStorage(inscape_gallery) 読み戻し検証:');
+          console.table([{
+            作品ID: savedEntry ? savedEntry.id : '(消失)',
+            画像URL長: savedUrl.length,
+            画像KB: Math.round(savedUrl.length / 1024),
+            画像生存: savedUrl.length >= 512 ? 'YES' : 'NO',
+            保存後総数: Array.isArray(verifyBack) ? verifyBack.length : 0
+          }]);
           return saved;
         } catch (err) {
-          console.warn('回廊レシピ保存に失敗:', err);
+          console.error('■ 保存エラー発生: 回廊レシピ保存で例外:', err);
           return false;
+        }
+      }
+
+      // Canvasを「保存用に軽量化」した data URL へ変換する。
+      // LocalStorage(約5MB)を圧迫しないよう、長辺を maxLongSide に縮小し、
+      // 作品画像は不透明マット背景なので JPEG(高圧縮)で数十KBに収める。
+      // mime='image/png' 指定時のみ透過を保持(ボトル用)。
+      function toStorableDataUrl(sourceCanvas, maxLongSide, quality, mime) {
+        try {
+          const sw = sourceCanvas.width, sh = sourceCanvas.height;
+          if (!sw || !sh) return null;
+          const useMime = mime || 'image/jpeg';
+          const scale = Math.min(1, maxLongSide / Math.max(sw, sh));
+          const dw = Math.max(1, Math.round(sw * scale));
+          const dh = Math.max(1, Math.round(sh * scale));
+          const tmp = document.createElement('canvas');
+          tmp.width = dw; tmp.height = dh;
+          const tctx = tmp.getContext('2d');
+          tctx.imageSmoothingEnabled = true;
+          tctx.imageSmoothingQuality = 'high';
+          if (useMime === 'image/jpeg') {
+            // JPEGは透過非対応。透過部分が黒くならないようマット色で下地を塗る。
+            tctx.fillStyle = '#f4f1ea';
+            tctx.fillRect(0, 0, dw, dh);
+          }
+          tctx.drawImage(sourceCanvas, 0, 0, dw, dh);
+          return tmp.toDataURL(useMime, quality == null ? 0.85 : quality);
+        } catch (err) {
+          console.error('■ 保存エラー発生: 画像の軽量化(toStorableDataUrl)に失敗:', err);
+          return null;
         }
       }
 
@@ -3152,16 +3905,18 @@
         };
       }
 
-      async function persistArtworkCanvasSnapshot(frozenSplashes) {
+      async function persistArtworkCanvasSnapshot(frozenFlower) {
         try {
-          await ensureSplatLoaded();
           lockCreationCanvasAspect();
           const { w: logicalW, h: logicalH } = getStoredCanvasAspect();
-          const list = Array.isArray(frozenSplashes) && frozenSplashes.length
-            ? frozenSplashes
-            : splashes;
+          const flower = frozenFlower || currentFlower;
+          if (!flower || !flower.center) return null;
           const fabricImage = await loadFabricImage();
-          const result = await renderArtworkSnapshotDataUrl(list, logicalW, logicalH, fabricImage);
+          await ensureCenterLoaded();
+          // 線画(主線)＋シルエットマスクPNGのロード完了を必ず待ってから描画→保存する。
+          // これを待たないと「色がクリップされない/白紙」の未完成画像が保存されてしまう。
+          await loadLineartImages();
+          const result = await renderFlowerSnapshotDataUrl(flower, logicalW, logicalH, fabricImage);
           if (!result.artworkImageDataUrl || result.artworkImageDataUrl === 'data:,') return null;
           refreshCanvasExportSnapshot();
           return result;
@@ -3225,7 +3980,7 @@
         });
       }
 
-      function showFrameCompleteDialog(gallerySaved) {
+      function showFrameCompleteDialog(gallerySaved, entryCount) {
         return new Promise(resolve => {
           if (!frameCompleteDialog || !frameCompleteOk) {
             resolve();
@@ -3233,9 +3988,13 @@
           }
           const messageEl = frameCompleteDialog.querySelector('p');
           if (messageEl) {
-            messageEl.textContent = gallerySaved === false
-              ? '回廊への保存に失敗しました。もう一度お試しください'
-              : '作品を感情の回廊に大切に飾りました';
+            if (gallerySaved === false) {
+              messageEl.textContent = '回廊への保存に失敗しました。もう一度お試しください';
+            } else if (entryCount) {
+              messageEl.textContent = `${entryCount}日間の感情から生まれた作品を、感情の回廊に大切に飾りました`;
+            } else {
+              messageEl.textContent = '作品を感情の回廊に大切に飾りました';
+            }
           }
           const close = () => {
             frameCompleteDialog.classList.remove('open');
@@ -3255,15 +4014,14 @@
       }
 
       function getGalleryEntryCount() {
-        const history = loadHistoryRecipes();
-        return Math.max(history.length, splashes.length);
+        return getFlowerDayCount(currentFlower);
       }
 
       function getGalleryProgress() {
         const entryCount = getGalleryEntryCount();
         return {
           entryCount,
-          ready: entryCount >= FRAME_ENTRIES_REQUIRED
+          ready: isFlowerComplete(currentFlower) && getBottlePhase(currentFlower) === BOTTLE_PHASES.COMPLETE
         };
       }
 
@@ -3284,7 +4042,7 @@
         frameBtn.classList.remove('locked', 'processing');
         frameBtn.removeAttribute('disabled');
         frameBtn.removeAttribute('aria-disabled');
-        frameProgress.textContent = '7つの記録が揃いました';
+        frameProgress.textContent = `${getFlowerDayCount(currentFlower)}日間の感情が注がれた作品`;
         frameProgressHint.classList.remove('visible');
         frameProgressHint.textContent = '';
         bindFrameButtonClick();
@@ -3329,8 +4087,9 @@
         }
 
         hideFrameCta();
-        frameProgressHint.textContent = `言葉 ${entryCount} / ${FRAME_ENTRIES_REQUIRED}`;
-        frameProgressHint.classList.add('visible');
+        const dayCount = getGalleryEntryCount();
+        frameProgressHint.textContent = dayCount > 0 ? `感情を預ける ${dayCount}日目` : '';
+        frameProgressHint.classList.toggle('visible', dayCount > 0);
       }
 
       function clearMainCanvasToWhite() {
@@ -3370,7 +4129,12 @@
 
       function restartAppCycle() {
         splashes = [];
+        currentFlower = null;
+        flowerAnim = { active: false, kind: 'none', progress: 1, index: -1 };
+        bottleAnim = { active: false, progress: 0, layerIndex: -1 };
+        pourState = { active: false, tilt: 0, pourT: 0, rafId: null };
         saveSplashes();
+        saveFlower();
         localStorage.removeItem(HISTORY_KEY);
 
         if (ambientLoopId) {
@@ -3386,16 +4150,20 @@
         exitZenMode();
 
         hideFrameCta();
+        canvasSelectOverlay.classList.remove('visible');
+        pourStage.classList.remove('visible');
         frameProgressHint.classList.remove('visible');
         frameProgressHint.textContent = '';
-        frameProgress.textContent = '0 / 7';
+        frameProgress.textContent = '';
 
         clearCssFrameFromCanvas();
         clearCreationCanvasAspectLock();
 
         wordInput.value = '';
         updateUIState();
+        updateExperienceUI();
         updateFrameButtonState();
+        redrawCanvas();
       }
 
       function clearCssFrameFromCanvas() {
@@ -3428,7 +4196,40 @@
         };
       }
 
-      function executeFrameArtworkFlow() {
+      // ③④ を厳格に直列実行する保存コミット。
+      // 「100%染まりきったCanvasの dataURL 取得 → LocalStorage(inscape_gallery)書き込み →
+      //   読み戻し検証」まで完了して初めて成功とみなす。どこかで失敗したら必ず throw する。
+      // これにより「artworkImageDataUrl 欠落の空エントリ」がサイレントに保存される不確実性を根絶する。
+      async function commitArtworkToGallery(frozenFlower) {
+        // ③ 完全着色状態のオフスクリーンCanvasから toDataURL('image/png') を確実に取得
+        //    （persistArtworkCanvasSnapshot 内部で線画/マスク画像ロードを await 済み）
+        const snapshot = await persistArtworkCanvasSnapshot(frozenFlower);
+        const dataUrl = snapshot && snapshot.artworkImageDataUrl;
+        if (!dataUrl || typeof dataUrl !== 'string' || dataUrl.length < 512 || dataUrl === 'data:,') {
+          throw new Error('作品画像(toDataURL)の生成に失敗しました（空/不正なdataURL）。保存を中止します。');
+        }
+        // ④ LocalStorage への書き込み（saveRecipeToGallery 内で localStorage.setItem を実行）
+        const saved = await saveRecipeToGallery(snapshot, frozenFlower);
+        if (!saved) {
+          throw new Error('LocalStorage(inscape_gallery)への書き込みに失敗しました。');
+        }
+        // 読み戻し検証: 「今保存したこの作品」自身の画像が LocalStorage に定着したかを cycleKey で照合。
+        // （容量超過で当該作品の画像だけが剥がされたケースも、ここで確実に失敗として検出する）
+        const cycleKey = buildArtworkCycleKeyFromFlower(frozenFlower);
+        const back = readGalleryStore();
+        const savedEntry = Array.isArray(back)
+          ? back.find((e) => e && e.cycleKey === cycleKey)
+          : null;
+        const ok = savedEntry
+          && typeof savedEntry.artworkImageDataUrl === 'string'
+          && savedEntry.artworkImageDataUrl.length >= 512;
+        if (!ok) {
+          throw new Error('保存後の読み戻し検証で、この作品の画像がLocalStorageに定着していませんでした（容量超過の可能性）。');
+        }
+        return snapshot;
+      }
+
+      async function executeFrameArtworkFlow() {
         if (frameProcessing) return;
         if (!getGalleryProgress().ready) return;
 
@@ -3437,17 +4238,20 @@
         frameBtn.setAttribute('aria-disabled', 'true');
         frameProgress.textContent = '額装中...';
         hideFrameCta();
-        const frozenSplashes = cloneSplashesForGallerySave(splashes);
-        if (frozenSplashes.length < FRAME_ENTRIES_REQUIRED) {
+        const frozenFlower = cloneFlowerForGallerySave(currentFlower);
+        if (!isFlowerComplete(frozenFlower)) {
           frameProcessing = false;
           frameBtn.classList.remove('processing');
           frameBtn.removeAttribute('aria-disabled');
           frameProgress.textContent = '保存データが不足しています';
           return;
         }
-        const snapshotPromise = persistArtworkCanvasSnapshot(frozenSplashes);
-        canvasWrap.classList.add('framing-active', 'is-framed');
+        const entryCount = getFlowerDayCount(frozenFlower);
 
+        // 額装アニメーション（視覚演出）は並行で開始してよい。
+        // ただし toDataURL は独立したオフスクリーンCanvasで完全着色状態(revealT=1)を描くため、
+        // この画面アニメーションの進行状況に一切影響されない。
+        canvasWrap.classList.add('framing-active', 'is-framed');
         requestAnimationFrame(() => {
           requestAnimationFrame(() => {
             updateFramedArtSize();
@@ -3456,33 +4260,39 @@
           });
         });
 
+        // ③④【厳格な直列保存】setItem＋読み戻し検証が100%完了するまで await でブロックする。
+        //    ここを通過するまでは、絶対にOKアラート(モーダル)を出さない。
         let gallerySaved = false;
+        try {
+          await commitArtworkToGallery(frozenFlower);
+          gallerySaved = true;
+          console.log("★ [100%保証] 作品が感情の回廊に定着しました。");
+        } catch (error) {
+          console.error("■ 保存エラー発生:", error);
+          gallerySaved = false;
+        }
 
-        waitForFrameAnimation(museumFrame, 1500).then(async () => {
-          try {
-            const snapshot = await snapshotPromise;
-            gallerySaved = await saveRecipeToGallery(snapshot, frozenSplashes);
-          } catch (err) {
-            console.warn('額装保存処理:', err);
-          }
-          frameProgress.textContent = gallerySaved ? '額装完了' : '保存に失敗しました';
-          return showFrameCompleteDialog(gallerySaved);
-        }).then(() => {
-          if (!frameProcessing) return;
-          if (gallerySaved !== false) {
-            restartAppCycle();
-          } else {
-            framingCompleted = false;
-            frameBtn.classList.remove('processing');
-            frameBtn.classList.add('ready');
-            frameBtn.removeAttribute('aria-disabled');
-            frameCtaOverlay.classList.add('visible', 'ready');
-            frameCtaOverlay.setAttribute('aria-hidden', 'false');
-            bindFrameButtonClick();
-          }
-          frameProcessing = false;
+        // 額装アニメーションの最低演出時間を確保（保存が速く終わっても見栄えを担保）
+        await waitForFrameAnimation(museumFrame, 1500);
+        frameProgress.textContent = gallerySaved ? '額装完了' : '保存に失敗しました';
+
+        // ★ LocalStorageへの定着が確認できた後にのみ、OKアラートをフェードイン表示する。
+        await showFrameCompleteDialog(gallerySaved, entryCount);
+
+        if (!frameProcessing) return;
+        if (gallerySaved) {
+          restartAppCycle();
+        } else {
+          framingCompleted = false;
           frameBtn.classList.remove('processing');
-        });
+          frameBtn.classList.add('ready');
+          frameBtn.removeAttribute('aria-disabled');
+          frameCtaOverlay.classList.add('visible', 'ready');
+          frameCtaOverlay.setAttribute('aria-hidden', 'false');
+          bindFrameButtonClick();
+        }
+        frameProcessing = false;
+        frameBtn.classList.remove('processing');
       }
 
       // キャンバス全体（上下左右）にダイナミックに散らす
@@ -3573,6 +4383,7 @@
         }
         shockCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
         redrawCanvas();
+        resizeBottleCanvas();
         drawShockwaves();
 
         if (isFramed) {
@@ -4186,17 +4997,1778 @@
         c.globalCompositeOperation = 'source-over';
       }
 
+      // ───────────────────────── 花モジュール ─────────────────────────
+      function pickFlowerTargetDays() {
+        return FLOWER_MIN_DAYS + Math.floor(Math.random() * (FLOWER_MAX_DAYS - FLOWER_MIN_DAYS + 1));
+      }
+
+      function createEmptyFlower() {
+        return {
+          id: `fl_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`,
+          seed: Math.floor(Math.random() * 2147483647),
+          targetDays: pickFlowerTargetDays(),
+          startedAt: null,
+          completedAt: null,
+          center: null,
+          petals: [],
+          bottlePhase: BOTTLE_PHASES.DEPOSIT,
+          selectedCanvasId: null,
+          pourCompleted: false
+        };
+      }
+
+      function getFlowerDayCount(flower) {
+        if (!flower) return 0;
+        return (flower.center ? 1 : 0) + (Array.isArray(flower.petals) ? flower.petals.length : 0);
+      }
+
+      function isFlowerComplete(flower) {
+        if (!flower || !flower.center) return false;
+        return getFlowerDayCount(flower) >= flower.targetDays;
+      }
+
+      // 旧データ（位置情報なし）を雫の座標付きへ移行する
+      function migrateDropFields(data) {
+        const ensure = (rec, idx) => {
+          if (!rec) return;
+          if (rec.widthNorm == null) rec.widthNorm = rec.sizeNorm ?? 0.5;
+          if (rec.nx == null || rec.ny == null) {
+            const rng = mulberry32((data.seed || 1) + idx * 977 + 31);
+            const pos = assignDropPosition(idx, data.targetDays || FLOWER_MIN_DAYS, rng);
+            if (rec.nx == null) rec.nx = pos.nx;
+            if (rec.ny == null) rec.ny = pos.ny;
+          }
+        };
+        ensure(data.center, 0);
+        (data.petals || []).forEach((p, i) => ensure(p, i + 1));
+      }
+
+      function loadFlower() {
+        try {
+          const raw = localStorage.getItem(FLOWER_KEY);
+          if (!raw) return null;
+          const data = JSON.parse(raw);
+          if (!data || typeof data !== 'object') return null;
+          if (!data.targetDays) data.targetDays = pickFlowerTargetDays();
+          if (!Array.isArray(data.petals)) data.petals = [];
+          if (data.seed == null) data.seed = Math.floor(Math.random() * 2147483647);
+          if (!data.bottlePhase) {
+            data.bottlePhase = data.pourCompleted ? BOTTLE_PHASES.COMPLETE
+              : (isFlowerComplete(data) ? BOTTLE_PHASES.SELECT : BOTTLE_PHASES.DEPOSIT);
+          }
+          if (data.pourCompleted == null) data.pourCompleted = data.bottlePhase === BOTTLE_PHASES.COMPLETE;
+          if (data.bottlePhase === BOTTLE_PHASES.POUR) data.bottlePhase = BOTTLE_PHASES.SELECT;
+          migrateDropFields(data);
+          return data;
+        } catch {
+          return null;
+        }
+      }
+
+      function saveFlower() {
+        if (!currentFlower) {
+          localStorage.removeItem(FLOWER_KEY);
+          return;
+        }
+        try {
+          localStorage.setItem(FLOWER_KEY, JSON.stringify(currentFlower));
+        } catch (err) {
+          console.warn('花データの保存に失敗:', err);
+        }
+      }
+
+      function cloneFlowerForGallerySave(flower) {
+        if (!flower) return null;
+        try {
+          return JSON.parse(JSON.stringify(flower));
+        } catch {
+          return null;
+        }
+      }
+
+      // 花の各日の記録 → 既存の splashes 互換データ（履歴・回廊・語彙集計に使用）
+      function flowerToSplashRecipes(flower) {
+        if (!flower) return [];
+        const records = [flower.center, ...(flower.petals || [])].filter(Boolean);
+        return records.map((r, i) => ({
+          id: `fl_${i}`,
+          nx: 0.5,
+          ny: 0.42,
+          color: r.color,
+          color1: r.color,
+          word: r.word,
+          timestamp: r.timestamp,
+          opacity: r.opacity,
+          sizeNorm: r.sizeNorm,
+          drawSizePx: 40 + (r.sizeNorm || 0.5) * 70
+        }));
+      }
+
+      function syncFlowerToSplashes() {
+        splashes = currentFlower ? flowerToSplashRecipes(currentFlower) : [];
+      }
+
+      function computeArtworkPeriodFromFlower(flower) {
+        const records = [flower && flower.center, ...(flower && flower.petals ? flower.petals : [])].filter(Boolean);
+        return computeArtworkPeriodFromSplashes(records.map((r) => ({ timestamp: r.timestamp })));
+      }
+
+      function buildArtworkCycleKeyFromFlower(flower) {
+        if (!flower) return '';
+        return buildArtworkCycleKeyFromSplashes(flowerToSplashRecipes(flower)) + '\u241e' + flower.id;
+      }
+
+      function createFlowerDayRecord(word, color, payload) {
+        return {
+          word: String(word || '').trim(),
+          color: normalizeSplashHex(color),
+          timestamp: Date.now(),
+          opacity: Math.min(CHARGE_OPACITY_MAX, Math.max(CHARGE_OPACITY_MIN, payload.opacity ?? CHARGE_OPACITY_MIN)),
+          sizeNorm: Math.min(1, Math.max(0, payload.progress ?? 0.5))
+        };
+      }
+
+      // 雫の落下位置を決める。日ごとに縦方向へ帯状に並べ、全体で縦グラデーションを形成する
+      function assignDropPosition(idx, targetDays, rng) {
+        const n = Math.max(1, targetDays);
+        let ny = (idx + 0.5) / n + (rng() - 0.5) * 0.16;
+        let nx = 0.5 + (rng() - 0.5) * 0.5;
+        ny = Math.min(0.92, Math.max(0.08, ny));
+        nx = Math.min(0.85, Math.max(0.15, nx));
+        return { nx, ny };
+      }
+
+      function enrichDropRecord(record, flower, idx) {
+        const rng = mulberry32(flower.seed + idx * 977 + 31);
+        const pos = assignDropPosition(idx, flower.targetDays, rng);
+        return {
+          ...record,
+          nx: pos.nx,
+          ny: pos.ny,
+          widthNorm: record.sizeNorm,
+          softSeed: Math.floor(rng() * 1e9)
+        };
+      }
+
+      function enrichCenterRecord(record, flower) {
+        return enrichDropRecord(record, flower, 0);
+      }
+
+      function enrichPetalRecord(record, flower) {
+        return enrichDropRecord(record, flower, flower.petals.length + 1);
+      }
+
+      function addFlowerDayRecord(word, color, payload) {
+        if (!currentFlower) {
+          currentFlower = createEmptyFlower();
+          currentFlower.startedAt = Date.now();
+        }
+        const record = createFlowerDayRecord(word, color, payload);
+        const dayCount = getFlowerDayCount(currentFlower);
+
+        if (!currentFlower.center) {
+          currentFlower.center = enrichCenterRecord(record, currentFlower);
+        } else if (dayCount < currentFlower.targetDays) {
+          currentFlower.petals.push(enrichPetalRecord(record, currentFlower));
+        }
+
+        if (isFlowerComplete(currentFlower) && !currentFlower.completedAt) {
+          currentFlower.completedAt = Date.now();
+        }
+
+        saveFlower();
+        syncFlowerToSplashes();
+        return record;
+      }
+
+      // ── 感情ボトル ＆ 7日目線画融合 ──
+      function getBottlePhase(flower) {
+        if (!flower) return BOTTLE_PHASES.DEPOSIT;
+        return flower.bottlePhase || BOTTLE_PHASES.DEPOSIT;
+      }
+
+      function setBottlePhase(phase) {
+        if (!currentFlower) return;
+        currentFlower.bottlePhase = phase;
+        if (phase === BOTTLE_PHASES.COMPLETE) currentFlower.pourCompleted = true;
+        saveFlower();
+        updateExperienceUI();
+      }
+
+      function getBottleDrops(flower) {
+        return getGradientDrops(flower);
+      }
+
+      // 長押し正規化値 d(0..1): 0=短い(淡い感情), 1=長い(濃い感情)
+      function bottleDensity(drop) {
+        const o = drop.opacity ?? CHARGE_OPACITY_MIN;
+        return Math.min(1, Math.max(0, (o - CHARGE_OPACITY_MIN) / Math.max(0.0001, CHARGE_OPACITY_MAX - CHARGE_OPACITY_MIN)));
+      }
+
+      // 不透明度は固定（黒に吸われて灰色に濁るのを防ぐ）。濃淡は「色の成分」で表現する。
+      function bottleLayerAlpha() {
+        return 0.97;
+      }
+
+      // 「色水の濃度（原液の量）」で濃淡を表現する。アルファは変えない。
+      //  d小(短い/薄い): 白を多く混ぜた不透明なパステル → 何色かハッキリ分かる優しい色水。
+      //  d大(長い/濃い): 混ぜものなしの原液そのもの → どっしり鮮やかな濃厚カラー。
+      function bottleInkColor(hex, d) {
+        const base = normalizeSplashHex(hex) || '#b83a5a';
+        const t = Math.min(1, Math.max(0, d));
+        // 長押しが長いほど彩度も上げて原液感を強調（コントラストを尖らせる）。
+        const vivid = saturateHex(base, 0.18 + t * 0.22);
+        // 短いほど白を多く混ぜて明確なパステルに（最大68%）。淡い日と濃い日の差を劇的に。
+        const whiten = Math.pow(1 - t, 0.82) * 0.68;
+        return lightenHex(vivid, whiten);
+      }
+
+      // 瓶（バウンディングボックス）を(w,h)内にcontainフィットさせた配置矩形を返す
+      function getBottleRect(w, h) {
+        const crop = bottleCrop || {
+          sx: 0, sy: 0,
+          sw: (bottleImg && bottleImg.naturalWidth) || 9,
+          sh: (bottleImg && bottleImg.naturalHeight) || 16
+        };
+        const scale = Math.min(w / crop.sw, h / crop.sh);
+        const rw = crop.sw * scale, rh = crop.sh * scale;
+        return { x: (w - rw) * 0.5, y: (h - rh) * 0.5, w: rw, h: rh, crop };
+      }
+
+      // 液体（オーガニック・デジタルリキッド）を矩形バッファに描く。
+      // 下から順に色が積み重なり、隣り合う色が滑らかに溶け合って美しい中間色を作る。
+      // surfaceTilt(度)で液面を傾け、瓶を傾けたときの揺れを表現する。
+      // ボトル描画専用のオフスクリーンバッファ（getGradTempと共有せず状態を隔離）
+      const _bottleLiquidBuf = document.createElement('canvas');
+      const _bottleCompBuf = document.createElement('canvas');
+      const _bottleBandBuf = document.createElement('canvas');
+      function sizeBuf(cv, w, h) {
+        const W = Math.max(1, Math.round(w)), H = Math.max(1, Math.round(h));
+        if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; }
+        return cv;
+      }
+
+      // 下から上へ積み重なる「帯状の積層」を、境界線だけ有機的に波打たせて描く。
+      // 各層の高さは filledH/N（=常に約1/7）で均等を維持。
+      function renderLiquidBuffer(rw, rh, drops, layerReveal, seed, surfaceTilt, waveAmt) {
+        const cv = sizeBuf(_bottleLiquidBuf, rw, rh);
+        const c = cv.getContext('2d');
+        c.setTransform(1, 0, 0, 1, 0, 0);
+        c.globalAlpha = 1;
+        c.globalCompositeOperation = 'source-over';
+        c.filter = 'none';
+        c.clearRect(0, 0, cv.width, cv.height);
+        const N = drops.length;
+        const bw = cv.width, bh = cv.height;
+        const tilt = (surfaceTilt || 0) * Math.PI / 180;
+        // 胴体(丸み)領域。液体は常に「満タン(上部20%余白を残す最終ライン)」まで満たす。
+        const bodyBottomY = bh * BOTTLE_BODY_BOTTOM_FRAC;
+        const bodyTopY = bh * BOTTLE_BODY_TOP_FRAC;
+        const bodyH = bodyBottomY - bodyTopY;
+        const usableH = bodyH * (1 - BOTTLE_AIR_GAP_FRAC);
+        const filledH = usableH;                                          // 高さは常に満タン固定
+        const fillTopY = bodyBottomY - filledH;                           // 液面(満タンライン)
+        // layerReveal は「最新層の割り込み進捗(0→1)」として解釈。1=定常。
+        const animT = layerReveal == null ? 1 : Math.min(1, Math.max(0, layerReveal));
+        const M = Math.max(1, N);                                         // 境界(帯)数。N=0でも水面用に1本。
+        const unit = filledH / M;                                         // 代表的な帯厚（うねりの尺度）
+
+        // 比率スタック: N色を満タン高さの中で 1/N ずつに分配。
+        // アニメ中は最新層(最上)を高さ 0→1/N、既存層を 1/(N-1)→1/N へ滑らかに再分配。
+        let heights = [];
+        if (N <= 1) {
+          heights = [filledH];                                            // N=0(水のみ)/N=1(全面1色)
+        } else {
+          const newH = (filledH / N) * animT;
+          const exist = (filledH - newH) / (N - 1);
+          for (let i = 0; i < N - 1; i++) heights.push(exist);
+          heights.push(newH);                                             // 最新色は最上
+        }
+        const baseYs = [];
+        { let acc = 0; for (let s = 0; s < M; s++) { acc += heights[s]; baseYs.push(bodyBottomY - acc); } }
+
+        // ── 1. 直立座標で、波打つ境界線を持つ帯をスクラッチに描く ──
+        const bandCv = sizeBuf(_bottleBandBuf, bw, bh);
+        const bc = bandCv.getContext('2d');
+        bc.setTransform(1, 0, 0, 1, 0, 0);
+        bc.globalAlpha = 1;
+        bc.globalCompositeOperation = 'source-over';
+        bc.filter = 'none';
+        bc.clearRect(0, 0, bw, bh);
+
+        // 境界線ごとに独立した波パラメータ（中央が沈む凹みを基調に、層ごと山谷がずれる）。
+        const rng = mulberry32((seed >>> 0) + 101);
+        const bnd = [];
+        for (let s = 0; s < M; s++) {
+          bnd.push({
+            baseY: baseYs[s],                                    // s=M-1 が液面(満タンライン)
+            amp: Math.min(unit * 0.2, 8) * (0.4 + rng() * 0.5),
+            freq: 0.6 + rng() * 1.2,
+            phase: rng() * Math.PI * 2,
+            amp2: Math.min(unit * 0.1, 4) * (0.3 + rng() * 0.6),
+            freq2: 1.6 + rng() * 2.0,
+            phase2: rng() * Math.PI * 2,
+            tiltPx: (rng() * 2 - 1) * Math.min(unit * 0.28, 10),
+            sag: Math.min(unit * 0.5, 18) * (0.5 + rng() * 0.5)
+          });
+        }
+        const ellipseDepth = Math.min(unit * 0.7, 26);
+        // 揺れ量(0..1)。静止時(0)は「液面」を完全にフラットな水平直線へ固定。
+        const wv = Math.min(1, Math.max(0, waveAmt == null ? 0 : waveAmt));
+        const bY = (s, x) => {
+          if (s < 0) return bodyBottomY + unit * 0.6;   // 最下層の底（瓶形マスクで丸められる）
+          const d = bnd[s];
+          const u = Math.max(0, Math.min(1, x / bw));
+          const isSurface = (s === M - 1);
+          // 内部の境界は常にオーガニック。液面(空気との境界)だけは揺れ量に連動させる。
+          const w = isSurface ? wv : 1;
+          let y = d.baseY + (d.tiltPx * (u - 0.5)
+            + d.sag * Math.sin(u * Math.PI)
+            + d.amp * Math.sin(u * d.freq * Math.PI * 2 + d.phase)
+            + d.amp2 * Math.sin(u * d.freq2 * Math.PI * 2 + d.phase2)) * w;
+          if (isSurface) y += ellipseDepth * Math.sin(u * Math.PI) * 0.5 * w;  // 揺れ時のみ凹型
+          return y;
+        };
+        const step = Math.max(5, bw / 30);
+        const xL = -bw * 0.4, xR = bw * 1.4;
+
+        // ── 水ベース: 満タンまでの透明な水（うっすら白い屈折/光沢）。色帯の下地。 ──
+        {
+          const topS = M - 1;
+          bc.beginPath();
+          bc.moveTo(xL, bY(topS, xL));
+          for (let x = xL; x <= xR; x += step) bc.lineTo(x, bY(topS, x));
+          bc.lineTo(xR, bodyBottomY + unit * 0.6);
+          for (let x = xR; x >= xL; x -= step) bc.lineTo(x, bodyBottomY + unit * 0.6);
+          bc.closePath();
+          const wg = bc.createLinearGradient(0, fillTopY, 0, bodyBottomY);
+          wg.addColorStop(0.0, 'rgba(228,234,242,0.22)');
+          wg.addColorStop(0.5, 'rgba(212,222,234,0.13)');
+          wg.addColorStop(1.0, 'rgba(202,214,228,0.17)');
+          bc.fillStyle = wg;
+          bc.fill();
+        }
+
+        for (let i = 0; i < N; i++) {
+          const topS = i;        // 上境界 = bnd[i]
+          const botS = i - 1;    // 下境界 = bnd[i-1]（i=0 は瓶底）
+          bc.beginPath();
+          bc.moveTo(xL, bY(topS, xL));
+          for (let x = xL; x <= xR; x += step) bc.lineTo(x, bY(topS, x));
+          bc.lineTo(xR, bY(topS, xR));
+          bc.lineTo(xR, bY(botS, xR));
+          for (let x = xR; x >= xL; x -= step) bc.lineTo(x, bY(botS, x));
+          bc.closePath();
+
+          const drop = drops[i];
+          // 長押し(感情の強さ)に応じて、色そのものを明度・彩度ごと動的に変える。
+          const dens = bottleDensity(drop);
+          const color = bottleInkColor(drop.color, dens);
+          // 1日目は層に分けず、透明な水が「フワッと全体染まる」ようアニメ中はαをanimTで増やす。
+          const a = bottleLayerAlpha(drop) * ((N === 1) ? animT : 1);
+          bc.fillStyle = rgbaFromHex(color, a);
+          bc.fill();
+
+          // 層内部の水彩的ゆらぎ（濃淡のムラ）: 円形グラデをこの層の形にクリップして重ねる
+          bc.save();
+          bc.clip(); // 直前の band パスでクリップ
+          const yTop = bnd[i].baseY;
+          const yBot = (i === 0) ? bodyBottomY : bnd[i - 1].baseY;
+          const yMid = (yTop + yBot) * 0.5;
+          const bandThick = Math.max(8, Math.abs(yBot - yTop));
+          const mottles = 2;
+          for (let k = 0; k < mottles; k++) {
+            const mx = bw * (0.18 + rng() * 0.64);
+            const my = yMid + (rng() * 2 - 1) * bandThick * 0.5;
+            const mr = bw * (0.2 + rng() * 0.26);
+            const light = rng() > 0.5;
+            const rg = bc.createRadialGradient(mx, my, 0, mx, my, mr);
+            if (light) {
+              rg.addColorStop(0, rgbaFromHex(lightenHex(color, 0.2), a * 0.16));
+              rg.addColorStop(1, rgbaFromHex(lightenHex(color, 0.2), 0));
+            } else {
+              rg.addColorStop(0, rgbaFromHex(deepenHex(color, 0.16), a * 0.14));
+              rg.addColorStop(1, rgbaFromHex(deepenHex(color, 0.16), 0));
+            }
+            bc.fillStyle = rg;
+            bc.fillRect(0, yTop - bandThick, bw, bandThick * 3);
+          }
+          bc.restore();
+        }
+
+        // ── 2. 液面の傾き（スロッシュ）に合わせて回転し、帯を合成 ──
+        c.save();
+        c.translate(bw * 0.5, fillTopY);
+        c.rotate(-tilt * 0.5);
+        c.translate(-bw * 0.5, -fillTopY);
+
+        // 境界だけを適度にボカして溶け合わせる（サンドアート感は消しつつ、
+        // 各層の“中心部”は元の不透明度を保持 → 日ごとの濃淡差が確実に残る）。
+        // 強すぎるボカシは同色層の濃淡を平均化してしまうため、控えめな1パスに固定。
+        const feather = Math.max(9, Math.min(20, unit * 0.28));
+        c.save();
+        c.filter = `blur(${feather}px)`;
+        c.drawImage(bandCv, 0, 0);
+        c.restore();
+
+        // ── 空気と接する一番上の液面だけは【1px単位でクッキリ】シャープに切る ──
+        // 層間のにじみ(ボカシ)は維持しつつ、最上部の輪郭はボカシ跡を鋭利に断ち切り、
+        // 「重みのある液体の表面張力エッジ」を作る（気体・霧感を撲滅）。
+        {
+          c.save();
+          c.globalCompositeOperation = 'destination-out';
+          c.beginPath();
+          c.moveTo(xL, -bh);
+          c.lineTo(xR, -bh);
+          c.lineTo(xR, bY(M - 1, xR));
+          for (let x = xR; x >= xL; x -= step) c.lineTo(x, bY(M - 1, x));
+          c.closePath();
+          c.fillStyle = 'rgba(0,0,0,1)';
+          c.fill();
+          c.restore();
+        }
+
+        // ── 中央の光の透過（明るく鮮やか）／フチの密度（濃く暗い）を各層に付与 ──
+        // source-atop で液体のある範囲だけに乗せる（形状は変えない）。
+        c.globalCompositeOperation = 'source-atop';
+        // (a) フチの影は「両端の約15%」だけに限定。中央70%は原色をそのまま維持。
+        const edgeG = c.createLinearGradient(0, 0, bw, 0);
+        edgeG.addColorStop(0.00, 'rgba(14,8,24,0.42)');
+        edgeG.addColorStop(0.15, 'rgba(14,8,24,0.00)');
+        edgeG.addColorStop(0.85, 'rgba(14,8,24,0.00)');
+        edgeG.addColorStop(1.00, 'rgba(14,8,24,0.42)');
+        c.fillStyle = edgeG;
+        c.fillRect(-bw * 0.5, fillTopY - 12, bw * 2, filledH + 24);
+
+        // (a2) 液体内部の「縦の光のカーテン」: 水中で屈折・乱反射する光の筋を数本合成。
+        //      source-atop で液体のある範囲だけに乗せ、傾き(surfaceTilt)に同期して左右へゆらめく。
+        {
+          const curtains = 3 + Math.floor(rng() * 2);           // 3〜4本
+          const sway = (surfaceTilt || 0) * (bw * 0.012);        // 傾きに連動する横ゆれ
+          for (let k = 0; k < curtains; k++) {
+            const halfW = bw * (0.03 + rng() * 0.08);
+            const cx = bw * (0.16 + rng() * 0.68) + sway * (0.5 + rng());
+            const peak = 0.08 + rng() * 0.13;                    // 極薄
+            const cg = c.createLinearGradient(cx - halfW, 0, cx + halfW, 0);
+            cg.addColorStop(0.0, 'rgba(255,255,255,0)');
+            cg.addColorStop(0.5, `rgba(250,252,255,${peak.toFixed(3)})`);
+            cg.addColorStop(1.0, 'rgba(255,255,255,0)');
+            c.fillStyle = cg;
+            c.fillRect(cx - halfW, fillTopY - 12, halfW * 2, filledH + 24);
+          }
+        }
+
+        // (b) 透過の白ハイライトは「中央の細い約12%」だけ。広い白飛びを廃止し原色を守る。
+        c.globalCompositeOperation = 'screen';
+        const colGl = c.createLinearGradient(bw * 0.4, 0, bw * 0.56, 0);
+        colGl.addColorStop(0.0, 'rgba(255,255,255,0)');
+        colGl.addColorStop(0.5, 'rgba(255,255,255,0.16)');
+        colGl.addColorStop(1.0, 'rgba(255,255,255,0)');
+        c.fillStyle = colGl;
+        c.fillRect(-bw * 0.5, fillTopY - 12, bw * 2, filledH + 24);
+        c.globalCompositeOperation = 'source-over';
+        c.restore();
+        // 液面は、白い線で区切らず、強ボカシによる自然なフェードのみで背景の黒へ馴染ませる。
+
+        return cv;
+      }
+
+      function drawGlassBottle(c, w, h, flower, opts) {
+        opts = opts || {};
+        try {
+          const drops = flower ? getBottleDrops(flower) : [];
+          // 1. クリア（毎フレーム状態を初期化）。呼び出し側で既にdpr変換が設定済みのため
+          //    変換には触れず、論理サイズ w×h をクリアすればバッキングストア全体が消える。
+          c.save();
+          c.globalAlpha = 1;
+          c.globalCompositeOperation = 'source-over';
+          c.filter = 'none';
+          c.clearRect(0, 0, w, h);
+          c.restore();
+
+          // PNG未ロード時のフォールバック（矩形の液体）
+          if (!bottleReady || !bottleImg.naturalWidth) {
+            c.save();
+            const rx = w * 0.28, ry = h * 0.2, rw = w * 0.44, rh = h * 0.62;
+            const liquid = renderLiquidBuffer(rw, rh, drops, opts.layerReveal, (flower && flower.seed) || 7, opts.surfaceTilt, opts.waveAmt);
+            c.drawImage(liquid, rx, ry, rw, rh);
+            c.strokeStyle = 'rgba(255,255,255,0.25)';
+            c.strokeRect(rx, ry, rw, rh);
+            c.restore();
+            return;
+          }
+
+          const rect = getBottleRect(w, h);
+          // 影
+          c.save();
+          c.fillStyle = 'rgba(0,0,0,0.14)';
+          c.beginPath();
+          c.ellipse(w * 0.5, rect.y + rect.h * 0.97, rect.w * 0.3, rect.h * 0.02, 0, 0, Math.PI * 2);
+          c.fill();
+          c.restore();
+
+          const cr = rect.crop;
+
+          // (A) ガラスの実体を最初に敷く。暗いフチ・影・屈折・底の厚みが「物質」として確保される。
+          c.save();
+          c.globalCompositeOperation = 'source-over';
+          c.globalAlpha = 1;
+          c.filter = 'none';
+          c.drawImage(bottleImg, cr.sx, cr.sy, cr.sw, cr.sh, rect.x, rect.y, rect.w, rect.h);
+          c.restore();
+
+          // (A2) 瓶の内部を暗く沈める。空のガラス（余白）が白く光って液面上に白い線が出るのを防ぎ、
+          //      インクの最上部が「黒い空間」へ自然にフェードするようにする。
+          {
+            const dk = sizeBuf(_bottleCompBuf, rect.w, rect.h);
+            const dc = dk.getContext('2d');
+            dc.setTransform(1, 0, 0, 1, 0, 0);
+            dc.globalAlpha = 1;
+            dc.globalCompositeOperation = 'source-over';
+            dc.filter = 'none';
+            dc.clearRect(0, 0, dk.width, dk.height);
+            dc.fillStyle = 'rgba(8,6,12,1)';
+            dc.fillRect(0, 0, dk.width, dk.height);
+            dc.globalCompositeOperation = 'destination-in';
+            if (bottleMaskCanvas) {
+              dc.drawImage(bottleMaskCanvas, 0, 0, dk.width, dk.height);
+            } else {
+              dc.drawImage(bottleImg, cr.sx, cr.sy, cr.sw, cr.sh, 0, 0, dk.width, dk.height);
+            }
+            c.save();
+            c.globalCompositeOperation = 'source-over';
+            c.globalAlpha = 0.72;
+            c.drawImage(dk, rect.x, rect.y, rect.w, rect.h);
+            c.restore();
+          }
+
+          // (B) 液体（0日目は透明な水、1日目以降は色帯）を「肉厚を除いた内側」だけに乗せる。
+          //     ガラスのフチは覆わない＝黒く引き締まる。
+          {
+            const liquid = renderLiquidBuffer(rect.w, rect.h, drops, opts.layerReveal, (flower && flower.seed) || 7, opts.surfaceTilt, opts.waveAmt);
+            const comp = sizeBuf(_bottleCompBuf, rect.w, rect.h);
+            const cc = comp.getContext('2d');
+            cc.setTransform(1, 0, 0, 1, 0, 0);
+            cc.globalAlpha = 1;
+            cc.globalCompositeOperation = 'source-over';
+            cc.filter = 'none';
+            cc.clearRect(0, 0, comp.width, comp.height);
+            cc.drawImage(liquid, 0, 0, comp.width, comp.height);
+            cc.globalCompositeOperation = 'destination-in';
+            // ガラスの肉厚を表現: マスクを左右・底へ内側に収縮させ、透明なガラスのフレームを残す。
+            const insX = comp.width * 0.05;    // 左右の肉厚 ~5%
+            const insBottom = comp.height * 0.045; // 底の肉厚 ~4.5%
+            const mdx = insX, mdy = 0;
+            const mdw = comp.width - insX * 2;
+            const mdh = comp.height - insBottom;
+            if (bottleMaskCanvas) {
+              cc.drawImage(bottleMaskCanvas, 0, 0, bottleMaskCanvas.width, bottleMaskCanvas.height, mdx, mdy, mdw, mdh);
+            } else {
+              const cr0 = rect.crop;
+              cc.drawImage(bottleImg, cr0.sx, cr0.sy, cr0.sw, cr0.sh, mdx, mdy, mdw, mdh);
+            }
+            cc.globalCompositeOperation = 'source-over';
+            c.save();
+            c.globalCompositeOperation = 'source-over';
+            c.globalAlpha = 0.94;
+            c.drawImage(comp, rect.x, rect.y, rect.w, rect.h);
+            c.restore();
+          }
+
+          // (C) ガラスのハイライト・屈折・縦の光を screen でインクの上に融合（発光する光沢）。
+          //     screenが強いと色が白飛びするため控えめに（暗部は変化せずフチの黒は残る）。
+          c.save();
+          c.globalCompositeOperation = 'screen';
+          c.globalAlpha = 0.34;
+          c.filter = 'none';
+          c.drawImage(bottleImg, cr.sx, cr.sy, cr.sw, cr.sh, rect.x, rect.y, rect.w, rect.h);
+          c.restore();
+
+          // (C2) overlay でガラスの明暗をインクへ焼き込み、ガラスと液体を一体化させる。
+          //      光が通る中心のインクは一段と鮮やかに“ギラッ”と発色し、フチは深く引き締まる。
+          c.save();
+          c.globalCompositeOperation = 'overlay';
+          c.globalAlpha = 0.4;
+          c.filter = 'none';
+          c.drawImage(bottleImg, cr.sx, cr.sy, cr.sw, cr.sh, rect.x, rect.y, rect.w, rect.h);
+          c.restore();
+
+          // (D) 最前面で暗い輪郭・影を multiply により引き締める（プラスチック感を消す）。
+          c.save();
+          c.globalCompositeOperation = 'multiply';
+          c.globalAlpha = 0.55;
+          c.filter = 'none';
+          c.drawImage(bottleImg, cr.sx, cr.sy, cr.sw, cr.sh, rect.x, rect.y, rect.w, rect.h);
+          c.restore();
+          return rect;
+        } catch (err) {
+          // 何が起きても描画ループは止めない
+          console.warn('drawGlassBottle error:', err);
+        }
+      }
+
+      function traceLineArtPath(c, w, h, seed) {
+        const rng = mulberry32((seed >>> 0) + 7919);
+        c.beginPath();
+        const pts = [];
+        for (let i = 0; i <= 12; i++) {
+          const t = i / 12;
+          pts.push({
+            x: w * (0.72 - t * 0.55 + Math.sin(t * 4 + rng() * 2) * 0.06),
+            y: h * (0.12 + t * 0.78 + Math.cos(t * 3 + rng() * 2) * 0.04)
+          });
+        }
+        c.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+          const p = pts[i], prev = pts[i - 1];
+          c.quadraticCurveTo(
+            (prev.x + p.x) / 2 + (rng() - 0.5) * w * 0.08,
+            (prev.y + p.y) / 2 + (rng() - 0.5) * h * 0.04,
+            p.x, p.y
+          );
+        }
+        c.moveTo(w * 0.25, h * 0.2);
+        c.bezierCurveTo(w * 0.45, h * 0.35, w * 0.55, h * 0.55, w * 0.35, h * 0.82);
+        c.moveTo(w * 0.65, h * 0.15);
+        c.bezierCurveTo(w * 0.8, h * 0.4, w * 0.7, h * 0.7, w * 0.5, h * 0.88);
+      }
+
+      function drawLineArt(c, w, h, seed, alpha) {
+        c.save();
+        traceLineArtPath(c, w, h, seed);
+        c.strokeStyle = `rgba(28,32,38,${alpha == null ? 0.88 : alpha})`;
+        c.lineWidth = Math.max(0.8, w * 0.006);
+        c.lineCap = 'round';
+        c.lineJoin = 'round';
+        c.stroke();
+        c.restore();
+      }
+
+      // 完成アート用オフスクリーンバッファ（マスク切り抜きの隔離）
+      const _artBuf = document.createElement('canvas');
+
+      // 明るいマット（台紙）: 白〜淡グレーのざらついたテクスチャ＋ヴィネット
+      function drawArtMat(c, w, h) {
+        c.save();
+        c.globalCompositeOperation = 'source-over';
+        c.globalAlpha = 1;
+        c.filter = 'none';
+        const g = c.createLinearGradient(0, 0, 0, h);
+        g.addColorStop(0, '#f8f5ef');
+        g.addColorStop(1, '#eceae2');
+        c.fillStyle = g;
+        c.fillRect(0, 0, w, h);
+        if (fabricImg && fabricImg.naturalWidth > 0) {
+          c.globalAlpha = 0.12;
+          c.globalCompositeOperation = 'multiply';
+          c.drawImage(fabricImg, 0, 0, w, h);
+          c.globalAlpha = 1;
+          c.globalCompositeOperation = 'source-over';
+        }
+        const vg = c.createRadialGradient(w * 0.5, h * 0.5, Math.min(w, h) * 0.3, w * 0.5, h * 0.5, Math.max(w, h) * 0.78);
+        vg.addColorStop(0, 'rgba(0,0,0,0)');
+        vg.addColorStop(1, 'rgba(58,52,44,0.12)');
+        c.fillStyle = vg;
+        c.fillRect(0, 0, w, h);
+        c.restore();
+      }
+
+      // 7日分の色を「垂直（上→下）」へ流れる有機的グラデーションで塗る（バッファへ）。
+      // ボトルの積層と完全同期: 最新色(drops[N-1])が一番上、1日目(drops[0])が一番下。
+      // 各色は 1/N の均等ボリュームを占め、その帯中心 (j+0.5)/N に色を配置する。
+      function paintArtGradient(bx, w, h, drops, seed) {
+        const N = drops.length;
+        // 上(y=0)→下(y=h) の垂直グラデーション（ボトルと同じ縦方向・同じ色順）
+        const g = bx.createLinearGradient(0, 0, 0, h);
+        const inkOf = (drop) => saturateHex(bottleInkColor(drop.color, bottleDensity(drop)), 0.12);
+        if (N === 1) {
+          const col = inkOf(drops[0]);
+          g.addColorStop(0, rgbaFromHex(col, 0.96));
+          g.addColorStop(1, rgbaFromHex(col, 0.96));
+        } else {
+          // j: 上からの並び(0=最上)。最上は最新色 drops[N-1]、最下は1日目 drops[0]。
+          for (let j = 0; j < N; j++) {
+            const drop = drops[N - 1 - j];
+            const col = inkOf(drop);
+            g.addColorStop((j + 0.5) / N, rgbaFromHex(col, 0.96));
+          }
+          // 端(最上/最下)まで確実に色で満たす
+          g.addColorStop(0, rgbaFromHex(inkOf(drops[N - 1]), 0.96));
+          g.addColorStop(1, rgbaFromHex(inkOf(drops[0]), 0.96));
+        }
+        bx.fillStyle = g;
+        bx.fillRect(0, 0, w, h);
+        // 水彩の滲み: 各色の柔らかいブルームを「その色の帯の位置(縦)」へ配置して溶け合わせる
+        const rng = mulberry32((seed >>> 0) + 555);
+        for (let i = 0; i < N; i++) {
+          const drop = drops[i];
+          const col = bottleInkColor(drop.color, bottleDensity(drop));
+          // drops[i] の縦位置: 上からの並び j = N-1-i、帯中心 (j+0.5)/N
+          const j = N === 1 ? 0.5 : (N - 1 - i);
+          const ty = N === 1 ? 0.5 : (j + 0.5) / N;
+          const bx0 = w * 0.5 + (rng() - 0.5) * w * 0.4;
+          const by0 = h * ty + (rng() - 0.5) * h * (0.5 / Math.max(1, N));
+          const r = Math.max(w, h) * (0.2 + rng() * 0.2);
+          const rg = bx.createRadialGradient(bx0, by0, 0, bx0, by0, r);
+          rg.addColorStop(0, rgbaFromHex(saturateHex(col, 0.2), 0.5));
+          rg.addColorStop(1, rgbaFromHex(col, 0));
+          bx.fillStyle = rg;
+          bx.fillRect(0, 0, w, h);
+        }
+      }
+
+      // 完成アート: 選ばれた線画の「シルエット内側だけ」に7色の水彩インクを閉じ込める。
+      // 描画順: (1)背景マット → (2)シルエットで切り抜いた色水 → (3)黒い主線を最前面。
+      function drawOrganicLiquidArt(c, w, h, flower, revealT) {
+        if (!flower) return;
+        const drops = getBottleDrops(flower);
+        const seed = flower.seed >>> 0;
+        const rt = revealT == null ? 1 : Math.min(1, Math.max(0, revealT));
+        const N = drops.length;
+
+        // (1) 背景マット
+        drawArtMat(c, w, h);
+
+        const img = getSelectedLineartImg(flower);
+        const mask = getSelectedLineartMask(flower);
+        const ref = img || mask;
+        // 絵柄の実bboxを基準に、どの線画も同じ見た目サイズ・中央配置へ正規化する。
+        let rx = 0, ry = 0, rw = w, rh = h;
+        if (ref) {
+          const rect = getLineartDrawRect(flower, w, h);
+          rx = rect.dx; ry = rect.dy; rw = rect.dW; rh = rect.dH;
+        }
+
+        if (!N) {
+          // 色がまだ無い状態でも「これから染まる線画の輪郭」を常にハッキリ見せる
+          if (img) { c.save(); c.globalAlpha = 0.9; c.drawImage(img, rx, ry, rw, rh); c.restore(); }
+          else drawLineArt(c, w, h, seed, 0.82);
+          return;
+        }
+
+        // (2) 色水をオフスクリーンに描き、線画シルエットで source-in 相当に切り抜く
+        const buf = sizeBuf(_artBuf, w, h);
+        const bx = buf.getContext('2d');
+        bx.setTransform(1, 0, 0, 1, 0, 0);
+        bx.globalAlpha = 1;
+        bx.globalCompositeOperation = 'source-over';
+        bx.filter = 'none';
+        bx.clearRect(0, 0, buf.width, buf.height);
+        paintArtGradient(bx, w, h, drops, seed);
+
+        if (mask) {
+          // シルエット内側だけを残す（外側は完全に消える）
+          bx.globalCompositeOperation = 'destination-in';
+          bx.drawImage(mask, rx, ry, rw, rh);
+          bx.globalCompositeOperation = 'source-atop';
+          // 水彩境界: フチに向かって同系の深い影が溜まる（ぷっくり＆エッジ濃色）
+          const cx = rx + rw * 0.5, cy = ry + rh * 0.5;
+          const rr = Math.max(rw, rh) * 0.62;
+          const eg = bx.createRadialGradient(cx, cy, rr * 0.42, cx, cy, rr);
+          eg.addColorStop(0, 'rgba(18,14,28,0)');
+          eg.addColorStop(1, 'rgba(18,14,28,0.34)');
+          bx.fillStyle = eg;
+          bx.fillRect(0, 0, w, h);
+          // ぷっくりハイライト（上寄り中央の光の膨らみ）
+          bx.globalCompositeOperation = 'screen';
+          const hy = ry + rh * 0.32;
+          const hg = bx.createRadialGradient(cx, hy, 0, cx, hy, rr * 0.5);
+          hg.addColorStop(0, 'rgba(255,255,255,0.24)');
+          hg.addColorStop(1, 'rgba(255,255,255,0)');
+          bx.fillStyle = hg;
+          bx.fillRect(0, 0, w, h);
+          bx.globalCompositeOperation = 'source-over';
+        }
+        // マスク未ロード時は「主線alphaでクリップ」しない（細線だけ着色→ほぼ白紙になるため）。
+        // グラデーション全体を残し、色が必ず見える状態を担保する（通常はマスク待機済みで到達しない）。
+
+        // 流し込みアニメ演出: rt<1 の間だけ「下から上へ滲み込む水面」でインクを段階表示する。
+        // rt>=1（再描画・保存スナップショット）では一切作用せず、従来の完成描画と完全に一致する。
+        if (rt < 1) {
+          const bottom = ry + rh;
+          const feather = Math.max(8, rh * 0.16);
+          // rt=0で底、rt=1で天井より上まで満ちる水面ライン（下→上）
+          const level = bottom - (rh + feather * 2) * rt + feather;
+          bx.save();
+          bx.globalCompositeOperation = 'destination-out';
+          bx.filter = 'none';
+          // 水面より上（まだ染まっていない領域）を柔らかいフェザーで消す
+          const wipe = bx.createLinearGradient(0, level - feather, 0, level + feather);
+          wipe.addColorStop(0, 'rgba(0,0,0,1)');
+          wipe.addColorStop(1, 'rgba(0,0,0,0)');
+          bx.fillStyle = wipe;
+          bx.fillRect(0, level - feather, w, feather * 2);
+          if (level - feather > 0) {
+            bx.fillStyle = 'rgba(0,0,0,1)';
+            bx.fillRect(0, 0, w, level - feather);
+          }
+          bx.restore();
+        }
+
+        c.save();
+        c.globalAlpha = 1;
+        c.drawImage(buf, 0, 0, w, h);
+        c.restore();
+
+        // 布テクスチャを色の上に淡く（水彩紙の質感）
+        if (fabricImg && fabricImg.naturalWidth > 0) {
+          c.save();
+          c.globalAlpha = 0.1 * rt;
+          c.globalCompositeOperation = 'multiply';
+          c.drawImage(fabricImg, 0, 0, w, h);
+          c.restore();
+        }
+
+        // (3) 黒い主線を寸分のズレもなく最前面へ。
+        // 主線は注ぐ前(rt=0)から常に100%表示し、色だけが rt で染み込むようにする。
+        if (img) {
+          c.save();
+          c.globalAlpha = 0.92;
+          c.globalCompositeOperation = 'source-over';
+          c.drawImage(img, rx, ry, rw, rh);
+          c.restore();
+        } else {
+          drawLineArt(c, w, h, seed, 0.82);
+        }
+      }
+
+      function resizeBottleCanvas() {
+        const wrap = bottleCanvas.parentElement;
+        if (!wrap) return;
+        const dpr = Math.min(2, window.devicePixelRatio || 1);
+        const cw = Math.max(1, Math.round(wrap.clientWidth || BOTTLE_LOGICAL_W));
+        const ch = Math.max(1, Math.round(wrap.clientHeight || BOTTLE_LOGICAL_H));
+        const pxw = Math.round(cw * dpr), pxh = Math.round(ch * dpr);
+        if (bottleCanvas.width !== pxw || bottleCanvas.height !== pxh) {
+          bottleCanvas.width = pxw;
+          bottleCanvas.height = pxh;
+        }
+        bottleCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        bottleCtx.__dpr = dpr;
+      }
+
+      // 現在の充填率（0..1）。デポジットアニメ中は時間補間する。
+      // 液体の高さは常に満タン固定。layerReveal は「最新層の割り込み進捗(0→1)」を表す。
+      // アニメ中のみ 0→1 を返し、定常時は 1（=完全に落ち着いた状態）。
+      function currentBottleReveal() {
+        if (bottleAnim.active) {
+          const t = Math.min(1, (performance.now() - bottleAnim.start) / bottleAnim.duration);
+          const e = easeOutCubic(t);
+          if (t >= 1) {
+            bottleAnim.active = false;
+            if (bottleAnim.onComplete) { const cb = bottleAnim.onComplete; bottleAnim.onComplete = null; cb(); }
+          }
+          return e;
+        }
+        return 1;
+      }
+
+      // 蓄積ボトルの液面の揺れ。静止時は完全にフラット、入力(傾き/マウス)の「変化」だけが波を励起する。
+      //  current: 現在の液面傾き角(度), vel: 角速度, motion: 揺れエネルギー(0..1)
+      const bottleTilt = { current: 0, vel: 0, motion: 0, lastGamma: null };
+      let bottleTiltReady = false;
+      function exciteBottle(impulse, energy) {
+        bottleTilt.vel += impulse;
+        bottleTilt.motion = Math.min(1, bottleTilt.motion + energy);
+      }
+      function setupBottleTilt() {
+        if (bottleTiltReady) return;
+        bottleTiltReady = true;
+        // デバイスの「傾きの変化量(dγ)」だけをインパルスとして注入（静止＝入力ゼロ＝フラット）
+        if (window.DeviceOrientationEvent) {
+          window.addEventListener('deviceorientation', (e) => {
+            const gamma = e.gamma || 0;
+            if (bottleTilt.lastGamma == null) { bottleTilt.lastGamma = gamma; return; }
+            const dg = gamma - bottleTilt.lastGamma;
+            bottleTilt.lastGamma = gamma;
+            if (Math.abs(dg) > 0.15) exciteBottle(dg * 0.18, Math.abs(dg) * 0.05);
+          }, { passive: true });
+        }
+        // デスクトップ: ボトル上でマウス(ポインタ)が動いた時だけ波立てる
+        if (bottleCanvas) {
+          let lastX = null;
+          bottleCanvas.addEventListener('pointermove', (e) => {
+            if (lastX == null) { lastX = e.clientX; return; }
+            const dx = e.clientX - lastX;
+            lastX = e.clientX;
+            if (Math.abs(dx) > 0.5) exciteBottle(dx * 0.02, Math.min(0.4, Math.abs(dx) * 0.012));
+          }, { passive: true });
+          bottleCanvas.addEventListener('pointerleave', () => { lastX = null; });
+        }
+      }
+
+      // 常時走るボトル描画ループ（データ更新後も途切れず毎フレーム描き直す）
+      let bottleLoopId = null;
+      function bottleLoop() {
+        bottleLoopId = requestAnimationFrame(bottleLoop);
+        // ボトルが非表示（注ぎ完了フェーズ）ならスキップだけしてループは維持
+        if (getBottlePhase(currentFlower) === BOTTLE_PHASES.COMPLETE) return;
+        if (bottleStage.classList.contains('is-hidden')) return;
+        // バネ振動: 復元力で0(=水平)へ戻り、減衰して静止する。入力が無ければ速やかにフラット化。
+        bottleTilt.vel += (0 - bottleTilt.current) * 0.05;   // 0へ引き戻す復元力
+        bottleTilt.vel *= 0.90;                              // 減衰
+        bottleTilt.current += bottleTilt.vel;
+        bottleTilt.motion *= 0.92;                           // 揺れエネルギーの自然減衰
+        // 実際の揺れ量: 生きている振動(current/vel)＋残エネルギー。静止時は限りなく0。
+        const live = Math.abs(bottleTilt.current) + Math.abs(bottleTilt.vel) * 6;
+        const waveAmt = Math.min(1, live / 4 + bottleTilt.motion);
+        // ほぼ静止(閾値以下)なら完全にゼロへスナップ（水面を完璧な水平直線に固定）
+        const settled = waveAmt < 0.02;
+        if (settled) { bottleTilt.current = 0; bottleTilt.vel = 0; bottleTilt.motion = 0; }
+        resizeBottleCanvas();
+        const cw = bottleCanvas.clientWidth || BOTTLE_LOGICAL_W;
+        const ch = bottleCanvas.clientHeight || BOTTLE_LOGICAL_H;
+        drawGlassBottle(bottleCtx, cw, ch, currentFlower, {
+          layerReveal: currentBottleReveal(),
+          surfaceTilt: settled ? 0 : bottleTilt.current,
+          waveAmt: settled ? 0 : waveAmt
+        });
+      }
+
+      function startBottleLoop() {
+        setupBottleTilt();
+        if (bottleLoopId == null) bottleLoopId = requestAnimationFrame(bottleLoop);
+      }
+
+      // 単発の再描画（ループが止まっていても1フレーム描く保険）
+      function redrawBottle() {
+        resizeBottleCanvas();
+        const cw = bottleCanvas.clientWidth || BOTTLE_LOGICAL_W;
+        const ch = bottleCanvas.clientHeight || BOTTLE_LOGICAL_H;
+        drawGlassBottle(bottleCtx, cw, ch, currentFlower, { layerReveal: currentBottleReveal() });
+      }
+
+      function animateBottleDeposit(onComplete) {
+        const N = getFlowerDayCount(currentFlower);
+        // 最新層(最上)が高さ0→1/Nへ割り込み、既存層がキュッと縮む再分配アニメ。
+        // Day1は透明な水が全体染まる（renderLiquidBuffer側でαフェード）。
+        bottleAnim = {
+          active: true,
+          start: performance.now(),
+          duration: 1600,
+          layerIndex: N - 1,
+          onComplete: onComplete || null
+        };
+        startBottleLoop();
+      }
+
+      // 7枚の線画サムネイルを2列グリッドに構築（初回のみ）。タップで選択→確定ボタンを有効化。
+      let canvasCardsBuilt = false;
+      function buildCanvasCards() {
+        if (!canvasCardGrid) return;
+        loadLineartImages();
+        if (!canvasCardsBuilt) {
+          canvasCardGrid.innerHTML = '';
+          LINEART_TEMPLATES.forEach((t) => {
+            const card = document.createElement('button');
+            card.type = 'button';
+            card.className = 'canvas-card';
+            card.dataset.canvasId = t.id;
+            card.setAttribute('aria-label', `${t.label}を選ぶ`);
+            const thumb = document.createElement('div');
+            thumb.className = 'canvas-card-thumb';
+            const img = document.createElement('img');
+            img.src = assetSrc(t.src);
+            img.alt = t.label;
+            img.loading = 'lazy';
+            thumb.appendChild(img);
+            const label = document.createElement('span');
+            label.className = 'canvas-card-label';
+            label.textContent = t.label;
+            card.appendChild(thumb);
+            card.appendChild(label);
+            card.addEventListener('click', () => selectCanvasCard(t.id));
+            canvasCardGrid.appendChild(card);
+          });
+          canvasCardsBuilt = true;
+        }
+        // 既存の選択状態を反映
+        const preselect = (currentFlower && currentFlower.selectedCanvasId) || null;
+        highlightCanvasCard(preselect && CANVAS_TEMPLATES[preselect] ? CANVAS_TEMPLATES[preselect].id : null);
+      }
+
+      function highlightCanvasCard(id) {
+        pendingCanvasId = id;
+        if (canvasCardGrid) {
+          canvasCardGrid.querySelectorAll('.canvas-card').forEach((el) => {
+            el.classList.toggle('is-selected', el.dataset.canvasId === id);
+          });
+        }
+        if (canvasConfirmBtn) canvasConfirmBtn.disabled = !id;
+      }
+
+      function selectCanvasCard(id) {
+        highlightCanvasCard(id);
+      }
+
+      function updateExperienceUI() {
+        const phase = getBottlePhase(currentFlower);
+        const poured = phase === BOTTLE_PHASES.COMPLETE;
+        const dayCount = getFlowerDayCount(currentFlower);
+        const complete = currentFlower && isFlowerComplete(currentFlower);
+
+        canvasWrap.classList.toggle('is-bottle-mode', !poured);
+        bottleStage.classList.toggle('is-hidden', poured);
+        canvasSelectOverlay.classList.toggle('visible', phase === BOTTLE_PHASES.SELECT);
+        canvasSelectOverlay.setAttribute('aria-hidden', phase !== BOTTLE_PHASES.SELECT ? 'true' : 'false');
+        pourStage.classList.toggle('visible', phase === BOTTLE_PHASES.POUR);
+        pourStage.setAttribute('aria-hidden', phase !== BOTTLE_PHASES.POUR ? 'true' : 'false');
+
+        if (phase === BOTTLE_PHASES.DEPOSIT) {
+          bottleHint.textContent = dayCount > 0
+            ? `${dayCount}日目の感情をボトルに預けました`
+            : '感情をボトルに預けています';
+        }
+
+        const hintEl = document.querySelector('.emotion-palette-hint');
+        if (hintEl) {
+          hintEl.textContent = poured
+            ? '作品が完成しました'
+            : '長押しで色を育て、上へフリックしてボトルに預ける';
+        }
+
+        frameProgressHint.textContent = dayCount > 0 && !complete
+          ? `感情を預ける ${dayCount}日目`
+          : (complete && phase !== BOTTLE_PHASES.COMPLETE ? 'キャンバスへ注ぐ準備ができました' : '');
+        frameProgressHint.classList.toggle('visible', dayCount > 0 && phase === BOTTLE_PHASES.DEPOSIT && !complete);
+
+        if (phase === BOTTLE_PHASES.SELECT) buildCanvasCards();
+      }
+
+      let pourDragStartX = null;
+
+      // pourキャンバスの内部解像度を「表示サイズ × dpr(最低2倍)」で確保し、Retina相当のクッキリ描画にする。
+      // 返り値は論理サイズ(CSSピクセル)。ctxはdprスケール＋高品質スムージングを有効化した状態になる。
+      function preparePourCanvas(canvas, ctx, fallbackW, fallbackH) {
+        const dpr = Math.max(2, window.devicePixelRatio || 1);
+        const cw = canvas.clientWidth || fallbackW;
+        const ch = canvas.clientHeight || fallbackH;
+        const pxw = Math.max(1, Math.round(cw * dpr));
+        const pxh = Math.max(1, Math.round(ch * dpr));
+        if (canvas.width !== pxw || canvas.height !== pxh) {
+          canvas.width = pxw;
+          canvas.height = pxh;
+        }
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        ctx.imageSmoothingEnabled = true;
+        ctx.imageSmoothingQuality = 'high';
+        return { w: cw, h: ch };
+      }
+
+      function drawPourFrame() {
+        const b = preparePourCanvas(pourBottleCanvas, pourBottleCtx, 110, 196);
+        const a = preparePourCanvas(pourArtCanvas, pourArtCtx, 160, 284);
+        drawGlassBottle(pourBottleCtx, b.w, b.h, currentFlower, { layerReveal: 1, surfaceTilt: pourState.tilt || 0 });
+        drawOrganicLiquidArt(pourArtCtx, a.w, a.h, currentFlower, pourState.pourT);
+        if (pourState.pourT >= 0.98 && pourState.active) finishPourSequence();
+      }
+
+      function finishPourSequence() {
+        if (!pourState.active) return;
+        pourState.active = false;
+        if (pourState.rafId) cancelAnimationFrame(pourState.rafId);
+        currentFlower.selectedCanvasId = currentFlower.selectedCanvasId || 'flow-01';
+        setBottlePhase(BOTTLE_PHASES.COMPLETE);
+        redrawCanvas();
+        refreshCanvasExportSnapshot();
+        updateFrameButtonState();
+      }
+
+      function startPourSequence() {
+        canvasSelectOverlay.classList.remove('visible');
+        setBottlePhase(BOTTLE_PHASES.POUR);
+        pourState = { active: true, tilt: 0, pourT: 0, rafId: null };
+        pourBottleWrap.style.transform = 'rotate(0deg)';
+        drawPourFrame();
+        // 線画/マスク画像のロード（＆実行時マスク生成）完了後にもう一度描画し、
+        // 色を注ぐ前でも選択した線画の黒い輪郭が確実にキャンバス上へ出るようにする。
+        loadLineartImages().then(() => { if (pourState.active) drawPourFrame(); });
+        const loop = () => {
+          if (!pourState.active) return;
+          if (pourState.tilt > 12 && pourState.pourT < 1) {
+            pourState.pourT = Math.min(1, pourState.pourT + 0.008);
+            drawPourFrame();
+          }
+          pourState.rafId = requestAnimationFrame(loop);
+        };
+        pourState.rafId = requestAnimationFrame(loop);
+      }
+
+      let inkFillAnim = null;
+
+      // 選ばれた線画を中央に大きく表示 →「下から上へ滲み込む」3秒のインク流し込みアニメ →
+      // 100%着色状態を保存 → 額装＋完了アラート、という新しい完成演出。
+      // ※ 色順・source-inマスク・80%描画/中央揃え・保存(toDataURL)ロジックは一切変更せず、
+      //   drawOrganicLiquidArt の revealT(0→1) を時間補間するだけで実現する。
+      function runInkFillAnimation() {
+        if (inkFillAnim && inkFillAnim.rafId) cancelAnimationFrame(inkFillAnim.rafId);
+        const DURATION = 3000;
+        const start = performance.now();
+        // 開始フレーム: まず主線のみのスタンバイ状態(rt=0)を描く
+        const drawAt = (t) => {
+          const { w, h } = getCanvasLogicalSize();
+          fillCanvasBackground();
+          drawOrganicLiquidArt(ctx, w, h, currentFlower, t);
+        };
+        // 水彩が染み込むような滑らかなイージング
+        const ease = (p) => (p < 0.5 ? 2 * p * p : 1 - Math.pow(-2 * p + 2, 2) / 2);
+        drawAt(0);
+        return new Promise((resolve) => {
+          const step = (now) => {
+            const p = Math.min(1, (now - start) / DURATION);
+            drawAt(ease(p));
+            if (p < 1) {
+              inkFillAnim = { rafId: requestAnimationFrame(step) };
+            } else {
+              inkFillAnim = null;
+              // 完全着色状態を確定描画 → スナップショット更新（保存はこの状態を使う）
+              drawAt(1);
+              refreshCanvasExportSnapshot();
+              resolve();
+            }
+          };
+          inkFillAnim = { rafId: requestAnimationFrame(step) };
+        });
+      }
+
+      async function onCanvasSelected(canvasId) {
+        if (!currentFlower || !isFlowerComplete(currentFlower)) return;
+        currentFlower.selectedCanvasId = canvasId;
+        saveFlower();
+        // 選択オーバーレイ・pourステージを閉じ、ボトルを完全に非表示にする。
+        canvasSelectOverlay.classList.remove('visible');
+        canvasSelectOverlay.setAttribute('aria-hidden', 'true');
+        pourStage.classList.remove('visible');
+        pourStage.setAttribute('aria-hidden', 'true');
+        // 線画/マスク画像のロード（＆マスク実行時生成）を必ず待ってから演出開始
+        // = source-inマスク・色順同期・toDataURL保存が白紙化せず確実に完了する。
+        try { await loadLineartImages(); } catch (e) { console.warn('線画ロード待機:', e); }
+        // COMPLETEフェーズへ = ボトルステージ非表示 & 本キャンバスに線画を中央大表示。
+        setBottlePhase(BOTTLE_PHASES.COMPLETE);
+        updateExperienceUI();
+        // 非額装レイアウトでメインキャンバスを正しいサイズへ。redrawCanvas(全色)が走るが、
+        // 直後の runInkFillAnimation の drawAt(0) が同期的に上書きするためフラッシュは見えない。
+        resizeCanvas();
+        // ① 3秒間のインク流し込みアニメを実行し、② 100%完了を Promise の resolve で確実に待つ。
+        await runInkFillAnimation();
+        updateFrameButtonState();
+        // ③④ 完全着色状態の保存 → 読み戻し検証 → 保存確定後にのみOKアラート、を厳格に直列実行。
+        await executeFrameArtworkFlow();
+      }
+
+      function setupPourInteraction() {
+        const maxTilt = 48;
+        const onMove = (clientX) => {
+          if (!pourState.active || pourDragStartX == null) return;
+          pourState.tilt = Math.max(0, Math.min(maxTilt, (clientX - pourDragStartX) * 0.35));
+          pourBottleWrap.style.transform = `rotate(${pourState.tilt}deg)`;
+          if (pourState.tilt > 12) pourState.pourT = Math.min(1, pourState.pourT + 0.015);
+          drawPourFrame();
+        };
+        pourScene.addEventListener('mousedown', (e) => { pourDragStartX = e.clientX; });
+        pourScene.addEventListener('mousemove', (e) => { if (pourDragStartX != null) onMove(e.clientX); });
+        document.addEventListener('mouseup', () => { pourDragStartX = null; });
+        pourScene.addEventListener('touchstart', (e) => {
+          if (e.touches[0]) pourDragStartX = e.touches[0].clientX;
+        }, { passive: true });
+        pourScene.addEventListener('touchmove', (e) => {
+          if (e.touches[0] && pourDragStartX != null) onMove(e.touches[0].clientX);
+        }, { passive: true });
+        document.addEventListener('touchend', () => { pourDragStartX = null; });
+        if (window.DeviceOrientationEvent) {
+          window.addEventListener('deviceorientation', (e) => {
+            if (!pourState.active || getBottlePhase(currentFlower) !== BOTTLE_PHASES.POUR) return;
+            const gamma = e.gamma || 0;
+            pourState.tilt = Math.max(0, Math.min(maxTilt, gamma * 1.2));
+            pourBottleWrap.style.transform = `rotate(${pourState.tilt}deg)`;
+            if (pourState.tilt > 8) pourState.pourT = Math.min(1, pourState.pourT + 0.012);
+            drawPourFrame();
+          });
+        }
+      }
+
+      async function renderBottleSnapshotDataUrl(flower) {
+        const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+        const lw = BOTTLE_LOGICAL_W, lh = BOTTLE_LOGICAL_H;
+        const out = document.createElement('canvas');
+        out.width = Math.round(lw * dpr);
+        out.height = Math.round(lh * dpr);
+        const octx = out.getContext('2d');
+        octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+        drawGlassBottle(octx, lw, lh, flower, { layerReveal: 1 });
+        // ボトルは透過を保持したいのでPNG。ただし長辺440pxへ縮小し容量を抑える（退避優先度は最下位）。
+        let bottleImageDataUrl = toStorableDataUrl(out, 440, undefined, 'image/png');
+        if (!bottleImageDataUrl) {
+          try { bottleImageDataUrl = out.toDataURL('image/png'); } catch (e) { bottleImageDataUrl = null; }
+        }
+        return { bottleImageDataUrl, bottleW: lw, bottleH: lh };
+      }
+
+      // ── グラデーションアート: 地層のように色を積み重ねて全面を染める ──
+      function getGradientDrops(flower) {
+        if (!flower) return [];
+        return [flower.center, ...(flower.petals || [])].filter(Boolean);
+      }
+
+      // チャージ時間（=opacity 0.4〜1.0）を 0〜1 の「感情の重さ／インクの深さ」に正規化
+      function layerDensity(drop) {
+        const o = drop.opacity ?? CHARGE_OPACITY_MIN;
+        const d = (o - CHARGE_OPACITY_MIN) / Math.max(0.0001, CHARGE_OPACITY_MAX - CHARGE_OPACITY_MIN);
+        return Math.min(1, Math.max(0, d));
+      }
+
+      // インク最大不透明度の上限。長押しMAXでも布目がギリギリ奥に透ける濃さに解放。
+      const INK_ALPHA_CAP = 0.95;
+
+      // 濃淡から水彩の色域を作る。淡い＝水多め（紙に近い明色）／濃い＝沈殿した深色。
+      // multiplyで沈んでも鮮やかさが死なないよう、濃い日ほど彩度を引き上げる。
+      function layerPigment(color, d) {
+        const sv = saturateHex(color, 0.14 + d * 0.28);
+        return {
+          pale: lightenHex(sv, 0.26 - d * 0.18),
+          mid: d < 0.5 ? lightenHex(sv, (0.5 - d) * 0.2) : darkenHex(sv, (d - 0.5) * 0.14),
+          // 縁の濃色は黒混ぜではなく同系色の深い色（ネイビー/ワイン等）
+          deep: deepenHex(sv, 0.3 + d * 0.22)
+        };
+      }
+
+      // 各層の「太さ」を体感的均等（不規則な面積）で決める。1/Nギチギチを廃止し、
+      // ある色は大胆に太く、ある色は細く潜り込む。全色が必ずどこかに露出する。
+      const _bandBaseCache = {};
+      function getBandBases(N, seed) {
+        const key = (seed >>> 0) + '_' + N;
+        if (_bandBaseCache[key]) return _bandBaseCache[key];
+        const rng = mulberry32(((seed * 2246822519) + N * 3266489917 + 12345) >>> 0);
+        const weights = [];
+        let sum = 0;
+        for (let i = 0; i < N; i++) {
+          const wt = 0.4 + Math.pow(rng(), 2) * 4.0; // 約0.4〜4.4 → 最大/最小で約10倍差
+          weights.push(wt); sum += wt;
+        }
+        const bases = [0];
+        let acc = 0;
+        for (let i = 0; i < N; i++) { acc += weights[i] / sum; bases.push(Math.min(1, acc)); }
+        bases[N] = 1;
+        _bandBaseCache[key] = bases;
+        return bases;
+      }
+
+      // 境界m（0..N）の不規則な波状ライン。m=0は上端, m=Nは下端で平坦。
+      // 層ごとに開始オフセット・周波数・うねり方向・大きな斜め傾きを分離し、横帯感を排除。
+      // （seed固定=再描画で安定。ただし各層は全く別物の輪郭を持つ。）
+      function dividerY(m, N, x, w, h, seed) {
+        if (m <= 0) return 0;
+        if (m >= N) return h;
+        const bases = getBandBases(N, seed);
+        const base = bases[m] * h;
+        // 層ごとに大きく離れた独立シード（山谷が層間で一致しない）
+        const rng = mulberry32(((seed * 2654435761) + m * 1013904223 + N * 40503) >>> 0);
+        const t = x / w;
+
+        // (1) 各層でランダムにずらす開始オフセット
+        const phaseOff = rng() * Math.PI * 2;
+
+        // (2) 波の周波数を層ごとにシャッフル（大うねり〜中細かさ）
+        const f1 = 0.7 + rng() * 1.5;           // 全体で約1〜2回
+        const f2 = f1 + 0.9 + rng() * 2.3;      // 中くらい
+        const f3 = f2 + 1.6 + rng() * 3.8;      // やや細かい
+        const ph1 = rng() * 6.283, ph2 = rng() * 6.283, ph3 = rng() * 6.283;
+        const a1 = 0.6 + rng() * 0.5;
+        const a2 = 0.15 + rng() * 0.35;
+        const a3 = 0.05 + rng() * 0.2;
+        const u = t * Math.PI * 2 + phaseOff;
+        let wob = Math.sin(u * f1 + ph1) * a1 + Math.sin(u * f2 + ph2) * a2 + Math.sin(u * f3 + ph3) * a3;
+        wob /= (a1 + a2 + a3);
+        const ampBase = h * (0.03 + rng() * 0.03);
+
+        // ★ うねり方向の強制反転: 中央が膨らむ凸型 or 中央が凹む凹型を層ごとにランダム化
+        const lobeSign = rng() < 0.5 ? 1 : -1;
+        const lobeAmp = h * (0.05 + rng() * 0.06);
+        const lobe = lobeSign * lobeAmp * Math.sin(Math.PI * t * (0.85 + rng() * 0.4) + rng() * 0.6);
+
+        // ★ 大きな斜め傾き: 左右端のY差を画面縦幅の 15〜25%、向きはランダム
+        const tiltPx = h * (0.15 + rng() * 0.10) * (rng() < 0.5 ? -1 : 1);
+        const tiltY = tiltPx * (t - 0.5);
+
+        // 局所的な歪み（手書きのいびつさ）
+        const dcx = rng();
+        const dw = 0.07 + rng() * 0.2;
+        const damp = h * (0.03 + rng() * 0.05) * (rng() < 0.5 ? -1 : 1);
+        const dx = (t - dcx) / dw;
+        const dist = damp * Math.exp(-0.5 * dx * dx);
+
+        let y = base + tiltY + lobe + ampBase * wob + dist;
+        // 斜めに激しく交差させるため、キャンバス内に収める程度の緩いクランプのみ
+        const lo = 0.006 * h;
+        const hi = 0.994 * h;
+        if (y < lo) y = lo;
+        if (y > hi) y = hi;
+        return y;
+      }
+
+      // 帯k（上端=境界k, 下端=境界k+1）のパス。offsetで上下に膨らませブリード用に。
+      function buildEqualBandPath(c, k, N, w, h, seed, offset) {
+        const steps = 36;
+        const off = offset || 0;
+        c.beginPath();
+        for (let i = 0; i <= steps; i++) {
+          const x = (i / steps) * w;
+          const y = dividerY(k, N, x, w, h, seed) - off;
+          if (i === 0) c.moveTo(x, y); else c.lineTo(x, y);
+        }
+        for (let i = steps; i >= 0; i--) {
+          const x = (i / steps) * w;
+          c.lineTo(x, dividerY(k + 1, N, x, w, h, seed) + off);
+        }
+        c.closePath();
+      }
+
+      // 有機的なにじみムラ（絵の具の濃淡ブロブ）を層内に散らす
+      function addWatercolorMottle(c, w, h, y0, y1, color, seed, baseAlpha) {
+        const rng = mulberry32((seed || 7) >>> 0);
+        const blobs = 6;
+        const minDim = Math.min(w, h);
+        for (let i = 0; i < blobs; i++) {
+          const bx = rng() * w;
+          const by = y0 + rng() * (y1 - y0);
+          const br = minDim * (0.1 + rng() * 0.26);
+          const tint = rng() < 0.5
+            ? darkenHex(color, 0.1 + rng() * 0.16)
+            : lightenHex(color, 0.08 + rng() * 0.18);
+          const a = baseAlpha * (0.07 + rng() * 0.12);
+          const g = c.createRadialGradient(bx, by, 0, bx, by, br);
+          g.addColorStop(0, rgbaFromHex(tint, a));
+          g.addColorStop(0.6, rgbaFromHex(tint, a * 0.4));
+          g.addColorStop(1, rgbaFromHex(tint, 0));
+          c.fillStyle = g;
+          c.fillRect(bx - br, by - br, br * 2, br * 2);
+        }
+      }
+
+      // ぼかし合成用オフスクリーン（使い回し）
+      const _gradTemps = [];
+      function getGradTemp(i, w, h) {
+        let cv = _gradTemps[i];
+        if (!cv) { cv = document.createElement('canvas'); _gradTemps[i] = cv; }
+        if (cv.width !== w || cv.height !== h) { cv.width = w; cv.height = h; }
+        return cv;
+      }
+
+      // 横方向にランダムな強弱を持つマスク境界（滲みのムラ用）。posは昇順。
+      function buildBlurMaskStops(rng) {
+        const n = 3 + Math.floor(rng() * 3); // 3..5区間
+        const stops = [];
+        for (let i = 0; i <= n; i++) {
+          stops.push({ pos: i / n, a: Math.pow(rng(), 1.3) });
+        }
+        return stops;
+      }
+
+      // srcを指定ぼかしでcへ合成（maskがあれば横位置マスクを掛ける。invertで反転）
+      function compositeMaskedBlur(c, src, w, h, blur, stops, invert, supportsFilter, alpha) {
+        let img = src;
+        if (stops) {
+          const tw = src.width, th = src.height;
+          const tmp = getGradTemp(1, tw, th);
+          const tc = tmp.getContext('2d');
+          tc.setTransform(1, 0, 0, 1, 0, 0);
+          tc.globalAlpha = 1;
+          tc.filter = 'none';
+          tc.globalCompositeOperation = 'source-over';
+          tc.clearRect(0, 0, tw, th);
+          tc.drawImage(src, 0, 0);
+          tc.globalCompositeOperation = 'destination-in';
+          const mg = tc.createLinearGradient(0, 0, tw, 0);
+          for (const s of stops) {
+            const a = invert ? (1 - s.a) : s.a;
+            mg.addColorStop(Math.max(0, Math.min(1, s.pos)), `rgba(0,0,0,${a.toFixed(3)})`);
+          }
+          tc.fillStyle = mg;
+          tc.fillRect(0, 0, tw, th);
+          tc.globalCompositeOperation = 'source-over';
+          img = tmp;
+        }
+        c.save();
+        c.globalAlpha = (alpha == null) ? 1 : alpha;
+        if (supportsFilter) c.filter = `blur(${blur}px)`;
+        c.drawImage(img, 0, 0, w, h);
+        c.restore();
+      }
+
+      // ユーザーが決めたベース濃度の「内部」に、水彩特有の濃淡ムラ・かすれを足す。
+      // ベタ塗りを排除し、色が薄い/濃い揺らぎと不透明度ノイズでインク溜まりを表現。
+      function addInkTexture(bc, k, N, bw, bh, seed, color, d, baseAlpha, bleedB) {
+        const ibases = getBandBases(N, seed);
+        const top = ibases[k] * bh - bleedB;
+        const bot = ibases[k + 1] * bh + bleedB;
+        const rng = mulberry32((seed + k * 191 + 5) >>> 0);
+        const va = baseAlpha;
+        const minDim = Math.min(bw, bh);
+        bc.save();
+        buildEqualBandPath(bc, k, N, bw, bh, seed, bleedB);
+        bc.clip();
+
+        // (a) 斜めの色ムラ: 左右(斜め)で薄い部分・濃い部分の揺らぎを作る
+        const rev = rng() < 0.5;
+        const hg = bc.createLinearGradient(rev ? bw : 0, top, rev ? 0 : bw, bot);
+        hg.addColorStop(0.00, rgbaFromHex(lightenHex(color, 0.14), 0));
+        hg.addColorStop(0.22, rgbaFromHex(darkenHex(color, 0.10), va * 0.16));
+        hg.addColorStop(0.45, rgbaFromHex(lightenHex(color, 0.16), va * 0.10));
+        hg.addColorStop(0.68, rgbaFromHex(darkenHex(color, 0.13), va * 0.20));
+        hg.addColorStop(1.00, rgbaFromHex(lightenHex(color, 0.10), 0));
+        bc.globalCompositeOperation = 'source-over';
+        bc.fillStyle = hg;
+        bc.fillRect(0, top, bw, bot - top);
+
+        // (b) 不透明度のランダム微変動ノイズ（インク溜まり＆かすれ）
+        const specks = 26;
+        for (let i = 0; i < specks; i++) {
+          const sx = rng() * bw;
+          const sy = top + rng() * (bot - top);
+          const sr = minDim * (0.02 + rng() * 0.08);
+          const darker = rng() < 0.55;
+          const tint = darker ? darkenHex(color, 0.12 + rng() * 0.16) : lightenHex(color, 0.12 + rng() * 0.2);
+          const a = (darker ? 0.05 + rng() * 0.1 : 0.04 + rng() * 0.08) * (0.6 + va);
+          const sg = bc.createRadialGradient(sx, sy, 0, sx, sy, sr);
+          sg.addColorStop(0, rgbaFromHex(tint, a));
+          sg.addColorStop(1, rgbaFromHex(tint, 0));
+          bc.globalCompositeOperation = darker ? 'multiply' : 'source-over';
+          bc.fillStyle = sg;
+          bc.fillRect(sx - sr, sy - sr, sr * 2, sr * 2);
+        }
+        bc.globalCompositeOperation = 'source-over';
+        bc.restore();
+      }
+
+      // 1つの色帯（k番目 / 全N帯）を水彩で塗る。縁に濃色が溜まり、隣とにじみ合う。
+      // 滲み（ぼかし）は1本の縁の中でも横位置によって強弱にムラが出る。
+      function paintBand(c, w, h, drop, k, N, seed) {
+        const color = normalizeSplashHex(drop.color) || '#5d78b8';
+        const d = layerDensity(drop);
+        const pig = layerPigment(color, d);
+        const minDim = Math.min(w, h);
+        const supportsFilter = ('filter' in c);
+        const bases = getBandBases(N, seed);
+        const band = (bases[k + 1] - bases[k]) * h; // 層ごとに不規則な太さ
+        // 水彩境界のフェード幅を約18%拡張し、より生々しく溶け合わせる
+        const bleed = Math.min(band * 0.7, h * 0.06);
+        // ■ ユーザー長押し=その日の層の「インク最大密度（アルファ基準）」。
+        //   最短=0.15(儚いベール) 〜 最長=0.95(ドロっと濃厚) までダイナミックに解放。
+        const baseAlpha = Math.min(INK_ALPHA_CAP, 0.15 + d * 0.80);
+
+        const bw = Math.max(1, Math.round(w));
+        const bh = Math.max(1, Math.round(h));
+        const sy = bh / h;
+
+        // 1) 鮮明な帯をオフスクリーンに描画（縁に濃色が溜まる水彩境界＋内部ムラ＋沈殿）
+        const buf = getGradTemp(0, bw, bh);
+        const bc = buf.getContext('2d');
+        bc.setTransform(1, 0, 0, 1, 0, 0);
+        bc.globalAlpha = 1;
+        bc.filter = 'none';
+        bc.globalCompositeOperation = 'source-over';
+        bc.clearRect(0, 0, bw, bh);
+        const top = bases[k] * bh;
+        const bot = bases[k + 1] * bh;
+        const bleedB = bleed * sy;
+        const g = bc.createLinearGradient(0, top - bleedB, 0, bot + bleedB);
+        g.addColorStop(0.0, rgbaFromHex(pig.deep, 0));
+        g.addColorStop(0.16, rgbaFromHex(pig.deep, baseAlpha));
+        g.addColorStop(0.5, rgbaFromHex(pig.mid, baseAlpha * 0.86));
+        g.addColorStop(0.84, rgbaFromHex(pig.deep, baseAlpha));
+        g.addColorStop(1.0, rgbaFromHex(pig.deep, 0));
+        buildEqualBandPath(bc, k, N, bw, bh, seed, bleedB);
+        bc.fillStyle = g;
+        bc.fill();
+
+        // 2) ベース濃度の“内部”に水彩の濃淡ムラ・かすれを融合（ベタ塗り排除）
+        addInkTexture(bc, k, N, bw, bh, seed, color, d, baseAlpha, bleedB);
+
+        // 沈殿(multiply): 濃い日ほど境界へ食い込むが、上限ガードで黒潰れ防止
+        if (d > 0.1 && N > 1) {
+          bc.globalCompositeOperation = 'multiply';
+          buildEqualBandPath(bc, k, N, bw, bh, seed, -band * sy * 0.14);
+          bc.fillStyle = rgbaFromHex(pig.deep, Math.min(0.3, 0.08 + d * 0.22));
+          bc.fill();
+          bc.globalCompositeOperation = 'source-over';
+        }
+        addWatercolorMottle(bc, bw, bh, top - bleedB, bot + bleedB, color, (drop.softSeed || 0) + k * 7, baseAlpha);
+
+        // 3) 滲みのムラ: クッキリ部分と激しく溶ける部分を横マスクで分配。
+        //    2枚の合計が概ね「1回分」になるので、ベース濃度(=上限0.78)を超えず布目が透ける。
+        const zr = mulberry32((seed + k * 53 + 11) >>> 0);
+        const stops = buildBlurMaskStops(zr);
+        const lowBlur = minDim * (0.0048 + zr() * 0.012);
+        const highBlur = minDim * (0.065 + (1 - d) * 0.06 + zr() * 0.035);
+        compositeMaskedBlur(c, buf, w, h, lowBlur, stops, false, supportsFilter, 1);
+        compositeMaskedBlur(c, buf, w, h, highBlur, stops, true, supportsFilter, 1);
+      }
+
+      // 境界線そのものに水彩の「溜まり」を、場所ごとに強弱を変えて描く
+      function paintDivider(c, w, h, N, m, drops, seed, supportsFilter) {
+        if (m <= 0 || m >= N) return;
+        const above = drops[N - 1 - (m - 1)];
+        const below = drops[N - 1 - m];
+        const cAbove = normalizeSplashHex(above && above.color) || '#5d78b8';
+        const cBelow = normalizeSplashHex(below && below.color) || '#5d78b8';
+        const minDim = Math.min(w, h);
+        const segs = 16;
+        const rng = mulberry32((seed + m * 977 + 31) >>> 0);
+        let px = 0, py = dividerY(m, N, 0, w, h, seed);
+        for (let i = 1; i <= segs; i++) {
+          const x = (i / segs) * w;
+          const y = dividerY(m, N, x, w, h, seed);
+          const crisp = rng() < 0.5;
+          const blur = crisp ? minDim * (0.0048 + rng() * 0.012) : minDim * (0.036 + rng() * 0.06);
+          const lw = crisp ? minDim * (0.005 + rng() * 0.01) : minDim * (0.02 + rng() * 0.03);
+          // 黒混ぜをやめ、隣接色の同系ディープカラーで水彩境界を描く
+          const col = deepenHex(rng() < 0.5 ? cAbove : cBelow, 0.3 + rng() * 0.2);
+          const a = Math.min(0.3, crisp ? 0.16 + rng() * 0.14 : 0.06 + rng() * 0.08);
+          c.save();
+          c.globalCompositeOperation = 'source-over';
+          if (supportsFilter) c.filter = `blur(${blur}px)`;
+          c.strokeStyle = rgbaFromHex(col, a);
+          c.lineWidth = lw;
+          c.lineCap = 'round';
+          c.beginPath();
+          c.moveTo(px, py);
+          c.lineTo(x, y);
+          c.stroke();
+          c.restore();
+          px = x; py = y;
+        }
+      }
+
+      // キャンバス上下端でインクを透明へフェードし、空間へ溶け込ませる（直線の途切れを廃止）
+      function applyEdgeFade(ic, iw, ih) {
+        const fade = Math.max(20, Math.min(32, ih * 0.045));
+        ic.save();
+        ic.globalCompositeOperation = 'destination-out';
+        ic.filter = 'none';
+        let g = ic.createLinearGradient(0, 0, 0, fade);
+        g.addColorStop(0, 'rgba(0,0,0,1)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        ic.fillStyle = g;
+        ic.fillRect(0, 0, iw, fade);
+        g = ic.createLinearGradient(0, ih - fade, 0, ih);
+        g.addColorStop(0, 'rgba(0,0,0,0)');
+        g.addColorStop(1, 'rgba(0,0,0,1)');
+        ic.fillStyle = g;
+        ic.fillRect(0, ih - fade, iw, fade);
+        ic.restore();
+      }
+
+      // N色でキャンバスを縦に等分割して全面を塗る（新しい色=上, 古い色=下）。
+      function drawGradientLayers(c, w, h, drops, seed) {
+        const N = drops.length;
+        if (!N) return;
+        const iw = Math.max(1, Math.round(w));
+        const ih = Math.max(1, Math.round(h));
+        // インク層は透明背景のオフスクリーンに描画し、上下端を透明フェードしてから合成
+        const ink = getGradTemp(2, iw, ih);
+        const ic = ink.getContext('2d');
+        ic.setTransform(1, 0, 0, 1, 0, 0);
+        ic.globalAlpha = 1;
+        ic.filter = 'none';
+        ic.globalCompositeOperation = 'source-over';
+        ic.clearRect(0, 0, iw, ih);
+        const supportsFilter = ('filter' in ic);
+        for (let k = 0; k < N; k++) {
+          const chrono = N - 1 - k; // 上ほど新しい日
+          paintBand(ic, iw, ih, drops[chrono], k, N, seed >>> 0);
+        }
+        // 各境界に強弱ムラのある水彩の溜まり線を重ねる
+        for (let m = 1; m < N; m++) {
+          paintDivider(ic, iw, ih, N, m, drops, seed >>> 0, supportsFilter);
+        }
+        applyPaperGrainOverlay(ic, iw, ih, seed);
+        applyEdgeFade(ic, iw, ih);
+        // 背景（布目）の上へインク層を合成 → フェードしたフチは背景が透ける
+        c.save();
+        c.globalAlpha = 1;
+        c.globalCompositeOperation = 'source-over';
+        c.filter = 'none';
+        c.drawImage(ink, 0, 0, w, h);
+        c.restore();
+        // 布目テクスチャを全体にうっすら乗算
+        if (fabricImg && fabricImg.naturalWidth > 0) {
+          c.save();
+          c.globalAlpha = 0.16;
+          c.globalCompositeOperation = 'multiply';
+          c.drawImage(fabricImg, 0, 0, w, h);
+          c.restore();
+        }
+      }
+
+      // 等分割レイアウトを1枚のオフスクリーンに描く（アニメのクロスフェード用）
+      function renderGradientSnapshotCanvas(drops, w, h, seed) {
+        const cw = Math.max(1, Math.round(w));
+        const ch = Math.max(1, Math.round(h));
+        const cv = document.createElement('canvas');
+        cv.width = cw;
+        cv.height = ch;
+        const c = cv.getContext('2d');
+        fillCanvasBackgroundOnCtx(c, cw, ch);
+        drawGradientLayers(c, cw, ch, drops, seed);
+        return cv;
+      }
+
+      function drawGradientArt(c, w, h, flower) {
+        if (!flower) return;
+        drawGradientLayers(c, w, h, getGradientDrops(flower), flower.seed);
+      }
+
+      // 既存呼び出し互換のエイリアス
+      function drawFlowerArt(c, w, h, flower) {
+        drawGradientArt(c, w, h, flower);
+      }
+
+      function easeInOutCubic(t) {
+        return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+      }
+
+      // 新しい色が加わると全体をN等分し直す。旧レイアウト→新レイアウトを静かにクロスフェード。
+      function animateFlowerGrowth(kind, index, w, h, onComplete) {
+        const drops = getGradientDrops(currentFlower);
+        const N = drops.length;
+        const seed = currentFlower.seed;
+        const beforeBuf = renderGradientSnapshotCanvas(drops.slice(0, Math.max(0, N - 1)), w, h, seed);
+        const afterBuf = renderGradientSnapshotCanvas(drops, w, h, seed);
+        flowerAnim = { active: true, kind, index: N - 1, progress: 0 };
+        const duration = 2000;
+        const start = performance.now();
+
+        function tick(now) {
+          const t = Math.min(1, (now - start) / duration);
+          flowerAnim.progress = t;
+          const e = easeInOutCubic(t);
+
+          fillCanvasBackground();
+          ctx.drawImage(beforeBuf, 0, 0, w, h);
+          ctx.save();
+          ctx.globalAlpha = e;
+          ctx.drawImage(afterBuf, 0, 0, w, h);
+          ctx.restore();
+          clearAndDrawOverlays();
+
+          if (t < 1) {
+            requestAnimationFrame(tick);
+          } else {
+            flowerAnim = { active: false, kind: 'none', progress: 1, index: -1 };
+            redrawCanvas();
+            if (onComplete) onComplete();
+          }
+        }
+        requestAnimationFrame(tick);
+      }
+
+      // グラデーションアートは画像アセットを使わないため、ローダは即時解決する
+      function loadFlowerCenterAssets() {
+        return Promise.resolve();
+      }
+
+      function ensureCenterLoaded() {
+        return Promise.resolve();
+      }
+
+      function applyPaperGrainOverlay(c, w, h, seed) {
+        const rng = mulberry32(seed || 42);
+        const step = Math.max(3, Math.floor(Math.min(w, h) / 80));
+        c.save();
+        c.globalCompositeOperation = 'multiply';
+        for (let y = 0; y < h; y += step) {
+          for (let x = 0; x < w; x += step) {
+            const n = rng();
+            if (n > 0.58) continue;
+            const tone = 248 + Math.floor(n * 8);
+            c.fillStyle = `rgba(${tone},${tone - 3},${tone - 8},${0.03 + n * 0.04})`;
+            c.fillRect(x, y, step, step);
+          }
+        }
+        c.restore();
+      }
+
+      async function renderFlowerSnapshotDataUrl(flower, logicalW, logicalH, fabricImage) {
+        const dpr = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+        const pixelW = Math.round(logicalW * dpr);
+        const pixelH = Math.round(logicalH * dpr);
+        const out = document.createElement('canvas');
+        out.width = pixelW;
+        out.height = pixelH;
+        const octx = out.getContext('2d');
+        octx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+        fillCanvasBackgroundOnCtx(octx, logicalW, logicalH);
+        // マスク(シルエット)＋主線＋インクの描画は drawOrganicLiquidArt 内で同期的に完了する。
+        // 画像は loadLineartImages() の await 済み＆Base64データURIなので、ここでの toDataURL は
+        // 「色＋線画が乗った完成状態」を確実に捉える。
+        drawOrganicLiquidArt(octx, logicalW, logicalH, flower, 1);
+
+        let artworkImageDataUrl;
+        try {
+          // 作品面は不透明マット背景。長辺820pxのJPEG(q0.85)へ圧縮して LocalStorage 肥大を防ぐ。
+          artworkImageDataUrl = toStorableDataUrl(out, 820, 0.85, 'image/jpeg');
+          if (!artworkImageDataUrl) artworkImageDataUrl = out.toDataURL('image/png');
+        } catch (err) {
+          console.error('■ 保存エラー発生: 作品スナップショットの toDataURL 失敗（canvas汚染の可能性）:', err);
+          artworkImageDataUrl = null;
+        }
+        console.log('[gallery-save] 作品画像 dataURL 生成:', {
+          ok: !!artworkImageDataUrl && artworkImageDataUrl.length > 512,
+          length: artworkImageDataUrl ? artworkImageDataUrl.length : 0,
+          approxKB: artworkImageDataUrl ? Math.round(artworkImageDataUrl.length / 1024) : 0,
+          head: artworkImageDataUrl ? artworkImageDataUrl.slice(0, 40) : null
+        });
+        // ボトル画像の生成失敗（万一のtaint等）で、完成した作品画像まで巻き添えで失わないよう分離。
+        let bottleSnap = { bottleImageDataUrl: null, bottleW: 0, bottleH: 0 };
+        try {
+          bottleSnap = await renderBottleSnapshotDataUrl(flower);
+        } catch (err) {
+          console.warn('ボトル画像の生成に失敗（作品画像は保持）:', err);
+        }
+        return {
+          artworkImageDataUrl,
+          bottleImageDataUrl: bottleSnap.bottleImageDataUrl,
+          bottleW: bottleSnap.bottleW,
+          bottleH: bottleSnap.bottleH,
+          canvasW: logicalW,
+          canvasH: logicalH,
+          snapshotPixelW: pixelW,
+          snapshotPixelH: pixelH
+        };
+      }
+
+      function findFlowerHit(px, py) {
+        const drops = getGradientDrops(currentFlower);
+        if (!drops.length) return null;
+        const { w, h } = getCanvasLogicalSize();
+        let best = null;
+        let bestD = Infinity;
+        drops.forEach((d) => {
+          const dx = (d.nx ?? 0.5) * w - px;
+          const dy = (d.ny ?? 0.5) * h - py;
+          const dd = dx * dx + dy * dy;
+          if (dd < bestD) { bestD = dd; best = d; }
+        });
+        if (!best) return null;
+        return {
+          nx: best.nx ?? 0.5,
+          ny: best.ny ?? 0.5,
+          timestamp: best.timestamp,
+          word: best.word
+        };
+      }
+
       function redrawCanvas() {
         const { w, h } = getCanvasLogicalSize();
-        fillCanvasBackground();
-        splashes.forEach(s => {
-          drawSplatter(s, w, h);
-          drawDrip(s, w, h);
-        });
-        try {
-          lastCanvasExportDataUrl = canvas.toDataURL('image/png');
-        } catch {
-          /* export snapshot optional during draw */
+        const phase = getBottlePhase(currentFlower);
+        if (phase === BOTTLE_PHASES.COMPLETE && currentFlower && currentFlower.center) {
+          canvasWrap.classList.remove('is-bottle-mode');
+          fillCanvasBackground();
+          drawOrganicLiquidArt(ctx, w, h, currentFlower, 1);
+        } else {
+          fillCanvasBackground();
+          redrawBottle();
         }
       }
 
@@ -4312,6 +6884,7 @@
       function commitInkLanding(savedWord, payload) {
         const pickedColor = normalizeSplashHex(payload.color);
         if (!pickedColor || isDiarySubmitting) return;
+        if (hasReachedSplashLimit()) return;
 
         onUserActivity();
         ensureAudio();
@@ -4320,44 +6893,33 @@
         setEmotionPaletteDisabled(true);
         fadeOutLandingUI();
 
-          ensureSplatLoaded().then(() => {
-          const w = canvas.clientWidth;
-          const h = canvas.clientHeight;
-          const splashMeta = createSplashData(payload.progress, payload.opacity, w, h);
-          const pos = randomSplashPosition(w, h, splashMeta);
+        const { w, h } = getCanvasLogicalSize();
 
-          vibrate();
-          playBeep();
-          triggerCanvasShake();
-          spawnShockwave(pos.x, pos.y);
+        vibrate();
+        playBeep();
 
-          const splash = {
-            id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-            nx: pos.x / w,
-            ny: pos.y / h,
-            word: savedWord,
-            timestamp: Date.now(),
-            ...splashMeta
-          };
-          applyColorToSplash(splash, pickedColor);
-
-          initDrip(splash);
-          splashes.push(splash);
-          const now = Date.now();
-          splashes = splashes
-            .filter(s => now - s.timestamp < RETENTION_MS)
-            .slice(-MAX_ENTRIES);
-          saveSplashes();
-          syncHistoriesFromSplashes();
-          appendDiaryColorLog(savedWord, pickedColor, splash.timestamp);
+        const startGrowth = () => {
+          const record = addFlowerDayRecord(savedWord, pickedColor, payload);
+          appendDiaryColorLog(savedWord, pickedColor, record.timestamp);
           wordInput.value = '';
+          syncHistoriesFromSplashes();
 
-          animateSplash(splash, w, h, () => {
-            redrawCanvas();
-            refreshCanvasExportSnapshot();
+          const justCompleted = isFlowerComplete(currentFlower);
+          animateBottleDeposit(() => {
+            redrawBottle();
+            if (justCompleted) {
+              currentFlower.bottlePhase = BOTTLE_PHASES.SELECT;
+              saveFlower();
+              setTimeout(() => {
+                updateExperienceUI();
+                buildCanvasCards();
+              }, 600);
+            } else {
+              updateExperienceUI();
+            }
             ensureAmbientLoop();
             saveGallerySnapshot();
-            if (getGalleryProgress().ready) {
+            if (getGalleryProgress().ready && getBottlePhase(currentFlower) === BOTTLE_PHASES.COMPLETE) {
               updateFrameButtonState();
             } else {
               scheduleZenAfterImpact();
@@ -4368,13 +6930,9 @@
             updateUIState();
             showCompletionWhisper(true);
           });
-        }).catch((err) => {
-          console.error(err);
-          isDiarySubmitting = false;
-          if (midPanel) midPanel.classList.remove('is-ui-fading');
-          if (emotionPalette) emotionPalette.classList.remove('is-ui-fading');
-          updateUIState();
-        });
+        };
+
+        startGrowth();
       }
 
       function canSubmitDiaryNow() {
@@ -4439,18 +6997,8 @@
         return `${y}/${mo}/${da} ${hr}:${mi}`;
       }
 
-      // 中心付近のみヒット判定
       function findSplashAt(px, py) {
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
-        for (let i = splashes.length - 1; i >= 0; i--) {
-          const s = splashes[i];
-          const sx = s.nx * w;
-          const sy = s.ny * h;
-          const dist = Math.hypot(px - sx, py - sy);
-          if (dist <= s.hitRadius) return s;
-        }
-        return null;
+        return findFlowerHit(px, py);
       }
 
       function showTooltip(s, clientX, clientY) {
@@ -4459,7 +7007,8 @@
         const rect = canvas.getBoundingClientRect();
         const sx = clientX != null ? clientX : s.nx * w + rect.left;
         const sy = clientY != null ? clientY : s.ny * h + rect.top;
-        tooltip.textContent = formatDate(s.timestamp);
+        const label = s.word ? `${s.word} · ${formatDate(s.timestamp)}` : formatDate(s.timestamp);
+        tooltip.textContent = label;
         tooltip.style.left = sx + 'px';
         tooltip.style.top = sy + 'px';
         tooltip.classList.add('visible');
@@ -4565,20 +7114,20 @@
       function bootApp() {
       migrateHistoriesToRecipes();
       migrateGalleryStorage();
-      splashes = loadSplashes();
-      saveSplashes();
-      if (!loadHistoryRecipes().length && splashes.length) {
-        syncHistoriesFromSplashes();
-      } else if (splashes.length) {
-        syncHistoriesFromSplashes();
-      }
-      loadSplatImage().catch(() => {});
+      currentFlower = loadFlower();
+      syncFlowerToSplashes();
+      syncHistoriesFromSplashes();
       loadFabricImage().catch(() => {});
+      // ボトル画像は初期化時に1度だけ読み込み（ループ内でnew Imageしない）。
+      // 読み込み完了前でもフォールバックで描画し続けられるよう、先にループを起動する。
+      startBottleLoop();
+      loadBottleImage().then(() => { redrawBottle(); }).catch(() => {});
+      loadFlowerCenterAssets().then(() => { redrawCanvas(); }).catch(() => {});
       buildEmotionPalette();
       resizeCanvas();
       requestAnimationFrame(() => {
         resizeCanvas();
-        refreshCanvasExportSnapshot();
+        requestAnimationFrame(() => refreshCanvasExportSnapshot());
       });
       applyDailyLockUI();
       restoreCompletionWhisperIfNeeded();
@@ -4586,6 +7135,17 @@
       updateFrameButtonState();
       bindFrameButtonClick();
       scheduleDiaryDayUnlockCheck();
+      setupPourInteraction();
+      loadLineartImages().then(() => { if (getBottlePhase(currentFlower) === BOTTLE_PHASES.SELECT) buildCanvasCards(); }).catch(() => {});
+      if (canvasConfirmBtn) {
+        canvasConfirmBtn.addEventListener('click', () => {
+          if (pendingCanvasId) onCanvasSelected(pendingCanvasId);
+        });
+      }
+      updateExperienceUI();
+      if (currentFlower && getBottlePhase(currentFlower) === BOTTLE_PHASES.SELECT) {
+        setTimeout(() => updateExperienceUI(), 400);
+      }
 
       document.addEventListener('visibilitychange', () => {
         if (document.hidden) return;
