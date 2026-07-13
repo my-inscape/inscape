@@ -117,9 +117,10 @@
 
   // Canvas 2D の filter(blur) が「実際に効くか」を実測判定。
   // iOS はプロパティが存在しても blur が無視される場合があるため、境界の滲みで検証する。
+  // iOS WebKit は大半径 blur を黙って無視することがあるため、実使用に近い大半径で実測判定。
   const CANVAS_FILTER_OK = (function () {
     try {
-      const S = 40;
+      const S = 160;
       const src = document.createElement('canvas');
       src.width = S; src.height = S;
       const sx = src.getContext('2d');
@@ -129,15 +130,25 @@
       dst.width = S; dst.height = S;
       const dx = dst.getContext('2d', { willReadFrequently: true });
       if (typeof dx.filter !== 'string') return false;
-      dx.filter = 'blur(8px)';
+      dx.filter = 'blur(40px)';
       dx.drawImage(src, 0, 0);
       dx.filter = 'none';
-      const a = dx.getImageData(30, S / 2, 1, 1).data[3];
-      return a > 6;
+      const a = dx.getImageData(110, S / 2, 1, 1).data[3];
+      return a > 8;
     } catch (e) { return false; }
   })();
   const _blurA = document.createElement('canvas');
   const _blurB = document.createElement('canvas');
+  function _blurBlit(from, fw, fh, toCv) {
+    const x = toCv.getContext('2d');
+    x.setTransform(1, 0, 0, 1, 0, 0);
+    x.globalAlpha = 1;
+    x.globalCompositeOperation = 'source-over';
+    x.imageSmoothingEnabled = true;
+    x.imageSmoothingQuality = 'high';
+    x.clearRect(0, 0, toCv.width, toCv.height);
+    x.drawImage(from, 0, 0, fw, fh, 0, 0, toCv.width, toCv.height);
+  }
   function drawBlurred(dest, src, blurPx) {
     if (blurPx <= 0.5) { dest.drawImage(src, 0, 0); return; }
     if (CANVAS_FILTER_OK) {
@@ -155,16 +166,20 @@
       const nw = Math.max(2, Math.round(cw / 2));
       const nh = Math.max(2, Math.round(ch / 2));
       const b = sizeBuf(pool[i % 2], nw, nh);
-      const bx = b.getContext('2d');
-      bx.setTransform(1, 0, 0, 1, 0, 0);
-      bx.globalCompositeOperation = 'source-over';
-      bx.imageSmoothingEnabled = true;
-      bx.imageSmoothingQuality = 'high';
-      bx.clearRect(0, 0, nw, nh);
-      bx.drawImage(cur, 0, 0, cw, ch, 0, 0, nw, nh);
+      _blurBlit(cur, cw, ch, b);
+      cur = b; cw = nw; ch = nh;
+    }
+    let guard = 0;
+    while ((cw < sw || ch < sh) && guard++ < 16) {
+      const nw = Math.min(sw, cw * 2);
+      const nh = Math.min(sh, ch * 2);
+      const tgt = (cur === pool[0]) ? pool[1] : pool[0];
+      const b = sizeBuf(tgt, nw, nh);
+      _blurBlit(cur, cw, ch, b);
       cur = b; cw = nw; ch = nh;
     }
     dest.save();
+    dest.globalCompositeOperation = 'source-over';
     dest.imageSmoothingEnabled = true;
     dest.imageSmoothingQuality = 'high';
     dest.drawImage(cur, 0, 0, cw, ch, 0, 0, sw, sh);

@@ -5256,32 +5256,46 @@
       // Canvas 2D の filter(blur) が「実際に効くか」を実測判定（一度だけ）。
       // iOS Safari はプロパティが存在(string)しても blur が黙って無視される場合があるため、
       // ハードエッジをぼかして境界の外側へ色が滲むかをピクセルで検証する。
+      // ★重要: iOS WebKit は ctx.filter プロパティが存在しても「大きな半径の blur」だけ
+      //   黙って無視することがある。小半径で試すと誤検出するため、実使用に近い大半径(40px)で
+      //   実測し、境界から十分離れた位置まで色が滲むかで「本当に効くか」を判定する。
       const CANVAS_FILTER_OK = (function () {
         try {
-          const S = 40;
+          const S = 160;
           const src = document.createElement('canvas');
           src.width = S; src.height = S;
           const sx = src.getContext('2d');
           sx.fillStyle = '#000';
-          sx.fillRect(0, 0, S / 2, S);                 // 左半分だけ不透明（境界 x=20）
+          sx.fillRect(0, 0, S / 2, S);                 // 左半分だけ不透明（境界 x=80）
           const dst = document.createElement('canvas');
           dst.width = S; dst.height = S;
           const dx = dst.getContext('2d', { willReadFrequently: true });
           if (typeof dx.filter !== 'string') return false;
-          dx.filter = 'blur(8px)';                      // 実使用に近い中程度の半径で検証
+          dx.filter = 'blur(40px)';                     // 実際に使う大きな半径で検証
           dx.drawImage(src, 0, 0);
           dx.filter = 'none';
-          // 境界(x=20)から10px右(x=30)へアルファが滲めば blur は実際に機能している。
-          const a = dx.getImageData(30, S / 2, 1, 1).data[3];
-          return a > 6;
+          // 境界(x=80)から30px離れた点(x=110)まで滲めば「大半径blurが本当に効いている」。
+          // ここまで届くのは半径が実際に大きい場合のみ（iOSの半径クランプも弾ける）。
+          const a = dx.getImageData(110, S / 2, 1, 1).data[3];
+          return a > 8;
         } catch (e) { return false; }
       })();
       const _blurA = document.createElement('canvas');
       const _blurB = document.createElement('canvas');
+      function _blurBlit(from, fw, fh, toCv) {
+        const x = toCv.getContext('2d');
+        x.setTransform(1, 0, 0, 1, 0, 0);
+        x.globalAlpha = 1;
+        x.globalCompositeOperation = 'source-over';
+        x.imageSmoothingEnabled = true;
+        x.imageSmoothingQuality = 'high';
+        x.clearRect(0, 0, toCv.width, toCv.height);
+        x.drawImage(from, 0, 0, fw, fh, 0, 0, toCv.width, toCv.height);
+      }
       // src キャンバスを blurPx 相当でボカして dest(現在の変換のまま 0,0) に描く。
-      // ・filter 対応環境(PC/新iOS): ネイティブ blur（最高品質）。
-      // ・非対応(古いiOS): 段階的な 1/2 縮小ピラミッド → バイリニア一括拡大で、
-      //   ネイティブ相当の“広く滑らかな”ガウス近似ブラーを GPU(drawImage)で高速再現する。
+      // ・filter が“実際に効く”環境(PC等): ネイティブ blur（最高品質）。
+      // ・効かない環境(iOS WebKit の大半径バグ等): 「多段1/2縮小 → 多段2倍拡大」の
+      //   デュアルフィルタで、ネイティブ相当の“広く滑らか”なガウス近似を GPU で再現する。
       function drawBlurred(dest, src, blurPx) {
         if (blurPx <= 0.5) { dest.drawImage(src, 0, 0); return; }
         if (CANVAS_FILTER_OK) {
@@ -5292,25 +5306,30 @@
           return;
         }
         const sw = src.width, sh = src.height;
-        // blur 半径が大きいほど段数を増やす（1段=1/2縮小≒ぼかし2倍）。
+        // 半径が大きいほど段数を増やす（1段=1/2縮小≒ぼかし約2倍）。
         const steps = Math.max(1, Math.min(6, Math.round(Math.log2(blurPx + 1))));
         const pool = [_blurA, _blurB];
+        // ① ダウンサンプル・ピラミッド
         let cur = src, cw = sw, ch = sh;
         for (let i = 0; i < steps; i++) {
           const nw = Math.max(2, Math.round(cw / 2));
           const nh = Math.max(2, Math.round(ch / 2));
           const b = sizeBuf(pool[i % 2], nw, nh);
-          const bx = b.getContext('2d');
-          bx.setTransform(1, 0, 0, 1, 0, 0);
-          bx.globalCompositeOperation = 'source-over';
-          bx.imageSmoothingEnabled = true;
-          bx.imageSmoothingQuality = 'high';
-          bx.clearRect(0, 0, nw, nh);
-          bx.drawImage(cur, 0, 0, cw, ch, 0, 0, nw, nh);
+          _blurBlit(cur, cw, ch, b);
           cur = b; cw = nw; ch = nh;
         }
-        // 最小ミップから一括でバイリニア拡大 → 継ぎ目のない滑らかな広域ブラー。
+        // ② アップサンプル・ピラミッド（1段ずつ2倍。単純拡大より継ぎ目なく滑らか）
+        let guard = 0;
+        while ((cw < sw || ch < sh) && guard++ < 16) {
+          const nw = Math.min(sw, cw * 2);
+          const nh = Math.min(sh, ch * 2);
+          const tgt = (cur === pool[0]) ? pool[1] : pool[0];
+          const b = sizeBuf(tgt, nw, nh);
+          _blurBlit(cur, cw, ch, b);
+          cur = b; cw = nw; ch = nh;
+        }
         dest.save();
+        dest.globalCompositeOperation = 'source-over';
         dest.imageSmoothingEnabled = true;
         dest.imageSmoothingQuality = 'high';
         dest.drawImage(cur, 0, 0, cw, ch, 0, 0, sw, sh);
