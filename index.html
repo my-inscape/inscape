@@ -4350,50 +4350,72 @@
 
         const now = ctx.currentTime;
         const master = ctx.createGain();
-        master.gain.value = 0.9;
+        master.gain.value = 0.85;
         master.connect(ctx.destination);
 
-        // (1) “ポチョン”の核: 水滴特有の、素早く上昇するサイン波のピッチ
-        const drop = ctx.createOscillator();
-        drop.type = 'sine';
-        drop.frequency.setValueAtTime(540, now);
-        drop.frequency.exponentialRampToValueAtTime(1240, now + 0.11);
-        const dropGain = ctx.createGain();
-        dropGain.gain.setValueAtTime(0.0001, now);
-        dropGain.gain.exponentialRampToValueAtTime(0.24, now + 0.012);
-        dropGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.26);
-        drop.connect(dropGain);
-        dropGain.connect(master);
+        // 全体を包む温かいローパス: 高すぎる不自然な倍音（“ポアン”の響き）を削り、丸い水音にする
+        const warm = ctx.createBiquadFilter();
+        warm.type = 'lowpass';
+        warm.frequency.setValueAtTime(1700, now);
+        warm.frequency.exponentialRampToValueAtTime(620, now + 0.28);
+        warm.Q.value = 0.4;
+        warm.connect(master);
 
-        // (2) ガラス瓶内の余韻: 低めのサイン波を短く重ね“中に落ちた”空間を演出
-        const body = ctx.createOscillator();
-        body.type = 'sine';
-        body.frequency.setValueAtTime(300, now);
-        body.frequency.exponentialRampToValueAtTime(228, now + 0.24);
-        const bodyGain = ctx.createGain();
-        bodyGain.gain.setValueAtTime(0.0001, now);
-        bodyGain.gain.exponentialRampToValueAtTime(0.10, now + 0.02);
-        bodyGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.36);
-        body.connect(bodyGain);
-        bodyGain.connect(master);
+        // (1) “ポ”の丸み: 高い周波数(≈900Hz)から数十msで低い周波数(≈210Hz)へ急降下するピッチ・スイープ。
+        //     サイン波＋三角波をブレンドして深みを出す。
+        const plop = ctx.createOscillator();
+        plop.type = 'sine';
+        plop.frequency.setValueAtTime(900, now);
+        plop.frequency.exponentialRampToValueAtTime(210, now + 0.055);
 
-        // (3) 着水の一瞬の“ピチッ”: ごく短い高域ノイズで水面のきらめきを添える
-        const tick = ctx.createBufferSource();
-        tick.buffer = getNoiseBuffer(ctx);
-        const tickBp = ctx.createBiquadFilter();
-        tickBp.type = 'bandpass';
-        tickBp.frequency.value = 2600;
-        tickBp.Q.value = 0.9;
-        const tickGain = ctx.createGain();
-        tickGain.gain.setValueAtTime(0.06, now);
-        tickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.05);
-        tick.connect(tickBp);
-        tickBp.connect(tickGain);
-        tickGain.connect(master);
+        const plopTri = ctx.createOscillator();
+        plopTri.type = 'triangle';
+        plopTri.frequency.setValueAtTime(880, now);
+        plopTri.frequency.exponentialRampToValueAtTime(200, now + 0.055);
+        const triMix = ctx.createGain();
+        triMix.gain.value = 0.45;   // 三角波は控えめに混ぜてこもった深みを足す
 
-        drop.start(now); drop.stop(now + 0.3);
-        body.start(now); body.stop(now + 0.38);
-        tick.start(now); tick.stop(now + 0.06);
+        const plopGain = ctx.createGain();
+        plopGain.gain.setValueAtTime(0.0001, now);
+        plopGain.gain.exponentialRampToValueAtTime(0.30, now + 0.008);  // 速いアタック
+        plopGain.gain.exponentialRampToValueAtTime(0.10, now + 0.09);
+        plopGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42); // 少し長めの余韻
+
+        plop.connect(plopGain);
+        plopTri.connect(triMix);
+        triMix.connect(plopGain);
+        plopGain.connect(warm);
+
+        // (2) “ン…”の余韻: 低いサイン波(≈175→150Hz)をゆっくり減衰させ、水中に響く深い残響を作る
+        const res = ctx.createOscillator();
+        res.type = 'sine';
+        res.frequency.setValueAtTime(175, now);
+        res.frequency.exponentialRampToValueAtTime(148, now + 0.4);
+        const resGain = ctx.createGain();
+        resGain.gain.setValueAtTime(0.0001, now);
+        resGain.gain.exponentialRampToValueAtTime(0.13, now + 0.03);
+        resGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.52);  // なめらかに消える尾
+        res.connect(resGain);
+        resGain.connect(master);
+
+        // (3) 着水の一瞬の“ピチャ”: ごく短い低域寄りノイズ。高域は抑え、電子的なクリック感を出さない
+        const plip = ctx.createBufferSource();
+        plip.buffer = getNoiseBuffer(ctx);
+        const plipLp = ctx.createBiquadFilter();
+        plipLp.type = 'lowpass';
+        plipLp.frequency.value = 1300;
+        plipLp.Q.value = 0.7;
+        const plipGain = ctx.createGain();
+        plipGain.gain.setValueAtTime(0.05, now);
+        plipGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
+        plip.connect(plipLp);
+        plipLp.connect(plipGain);
+        plipGain.connect(master);
+
+        plop.start(now); plop.stop(now + 0.46);
+        plopTri.start(now); plopTri.stop(now + 0.46);
+        res.start(now); res.stop(now + 0.56);
+        plip.start(now); plip.stop(now + 0.04);
       }
 
       function hexToRgb(hex) {
