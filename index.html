@@ -2011,8 +2011,6 @@
       let flowerAnim = { active: false, kind: 'none', progress: 1, index: -1 };
       let bottleAnim = { active: false, progress: 0, layerIndex: -1 };
       let pourState = { active: false, tilt: 0, pourT: 0, rafId: null };
-      let audioCtx = null;
-      let noiseBuffer = null;
       let shockwaves = [];
       let tapRipples = [];
       let ambientLoopId = null;
@@ -2172,7 +2170,7 @@
         if (isDiarySubmitting || isCanvasInteractionLocked()) return;
         // 長押し開始（ユーザー操作）: iOSジャイロ許可を取り、ボトルに振動を伝える
         if (typeof requestBottleMotionPermission === 'function') requestBottleMotionPermission();
-        ensureAudio();  // このユーザー操作でAudioContextを解禁 → フリック時の水滴音が確実に鳴る
+        unlockWaterSound();  // このユーザー操作で水滴音の再生を解禁（フリック時に確実に鳴る）
         if (typeof exciteBottle === 'function') exciteBottle((Math.random() * 2 - 1) * 0.9, 0.4);
         resetChargeState();
         chargeState.active = true;
@@ -4322,100 +4320,72 @@
       function easeOutCubic(t) { return 1 - Math.pow(1 - t, 3); }
       function easeInExpo(t) { return t <= 0 ? 0 : Math.pow(2, 10 * t - 10); }
 
-      function ensureAudio() {
-        try {
-          if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-          if (audioCtx.state === 'suspended') audioCtx.resume();
-          return audioCtx;
-        } catch (_) {
-          return null;
+      // ── 水滴サウンド（本物の録音を new Audio で再生。数式合成は廃止） ──
+      //   ★推奨: 単発の高品質な水滴mp3を sounds/water-drop.mp3 に配置してください。
+      //     無い場合は同梱済みCC0録音 sounds/water-drops.mp3 の冒頭だけを自動で鳴らします。
+      const WATER_SOUND_SRC = 'sounds/water-drop.mp3';
+      const WATER_SOUND_FALLBACK_SRC = 'sounds/water-drops.mp3';
+      const WATER_SOUND_FALLBACK_CAP_MS = 700;   // フォールバック（複数滴）は最初の1滴ぶんだけ再生
+      const WATER_POOL_SIZE = 5;                 // 連続タップで音が気持ちよく重なるようプール化
+      let waterPool = null;
+      let waterPoolIdx = 0;
+      let waterUseFallback = false;
+      let waterUnlocked = false;
+
+      function buildWaterPool(src) {
+        waterPool = [];
+        for (let i = 0; i < WATER_POOL_SIZE; i++) {
+          const a = new Audio(src);
+          a.preload = 'auto';
+          a.volume = 0.85;
+          waterPool.push(a);
         }
       }
 
-      function getNoiseBuffer(ctx) {
-        if (noiseBuffer) return noiseBuffer;
-        const len = ctx.sampleRate * 2;
-        noiseBuffer = ctx.createBuffer(1, len, ctx.sampleRate);
-        const data = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < len; i++) data[i] = Math.random() * 2 - 1;
-        return noiseBuffer;
+      function initWaterSound() {
+        if (waterPool) return;
+        buildWaterPool(WATER_SOUND_SRC);
+        // プライマリ(単発mp3)が読めない環境では、同梱録音へ一度だけ自動フォールバック
+        waterPool[0].addEventListener('error', () => {
+          if (waterUseFallback) return;
+          waterUseFallback = true;
+          buildWaterPool(WATER_SOUND_FALLBACK_SRC);
+          if (waterUnlocked) unlockWaterSound(true);
+        }, { once: true });
+        waterPool[0].load();
       }
 
-      // ── 水滴がガラス瓶の中に落ちる静かな効果音（Web Audioで合成） ──
-      //   外部音源ファイルに依存せず、file://・GitHub Pages・オフラインでも確実に鳴る。
-      //    user gesture（長押し/フリック）内で ensureAudio() 済みなので Autoplay 制限も回避。
+      // ユーザー操作の直後に呼び、Autoplay制限を解除（無音で一度再生→即停止）
+      function unlockWaterSound(force) {
+        initWaterSound();
+        if (waterUnlocked && !force) return;
+        waterUnlocked = true;
+        waterPool.forEach((a) => {
+          const v = a.volume;
+          a.muted = true;
+          const p = a.play();
+          const settle = () => { try { a.pause(); a.currentTime = 0; } catch (_) {} a.muted = false; a.volume = v; };
+          if (p && p.then) p.then(settle).catch(() => { a.muted = false; a.volume = v; });
+          else settle();
+        });
+      }
+
+      // 水滴音を再生。currentTime=0 でリセットし、連続タップでも被って心地よく鳴る。
       function playWaterDrop() {
-        const ctx = ensureAudio();
-        if (!ctx) return;
-
-        const now = ctx.currentTime;
-        const master = ctx.createGain();
-        master.gain.value = 0.85;
-        master.connect(ctx.destination);
-
-        // 全体を包む温かいローパス: 高すぎる不自然な倍音（“ポアン”の響き）を削り、丸い水音にする
-        const warm = ctx.createBiquadFilter();
-        warm.type = 'lowpass';
-        warm.frequency.setValueAtTime(1700, now);
-        warm.frequency.exponentialRampToValueAtTime(620, now + 0.28);
-        warm.Q.value = 0.4;
-        warm.connect(master);
-
-        // (1) “ポ”の丸み: 高い周波数(≈900Hz)から数十msで低い周波数(≈210Hz)へ急降下するピッチ・スイープ。
-        //     サイン波＋三角波をブレンドして深みを出す。
-        const plop = ctx.createOscillator();
-        plop.type = 'sine';
-        plop.frequency.setValueAtTime(900, now);
-        plop.frequency.exponentialRampToValueAtTime(210, now + 0.055);
-
-        const plopTri = ctx.createOscillator();
-        plopTri.type = 'triangle';
-        plopTri.frequency.setValueAtTime(880, now);
-        plopTri.frequency.exponentialRampToValueAtTime(200, now + 0.055);
-        const triMix = ctx.createGain();
-        triMix.gain.value = 0.45;   // 三角波は控えめに混ぜてこもった深みを足す
-
-        const plopGain = ctx.createGain();
-        plopGain.gain.setValueAtTime(0.0001, now);
-        plopGain.gain.exponentialRampToValueAtTime(0.30, now + 0.008);  // 速いアタック
-        plopGain.gain.exponentialRampToValueAtTime(0.10, now + 0.09);
-        plopGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.42); // 少し長めの余韻
-
-        plop.connect(plopGain);
-        plopTri.connect(triMix);
-        triMix.connect(plopGain);
-        plopGain.connect(warm);
-
-        // (2) “ン…”の余韻: 低いサイン波(≈175→150Hz)をゆっくり減衰させ、水中に響く深い残響を作る
-        const res = ctx.createOscillator();
-        res.type = 'sine';
-        res.frequency.setValueAtTime(175, now);
-        res.frequency.exponentialRampToValueAtTime(148, now + 0.4);
-        const resGain = ctx.createGain();
-        resGain.gain.setValueAtTime(0.0001, now);
-        resGain.gain.exponentialRampToValueAtTime(0.13, now + 0.03);
-        resGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.52);  // なめらかに消える尾
-        res.connect(resGain);
-        resGain.connect(master);
-
-        // (3) 着水の一瞬の“ピチャ”: ごく短い低域寄りノイズ。高域は抑え、電子的なクリック感を出さない
-        const plip = ctx.createBufferSource();
-        plip.buffer = getNoiseBuffer(ctx);
-        const plipLp = ctx.createBiquadFilter();
-        plipLp.type = 'lowpass';
-        plipLp.frequency.value = 1300;
-        plipLp.Q.value = 0.7;
-        const plipGain = ctx.createGain();
-        plipGain.gain.setValueAtTime(0.05, now);
-        plipGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.03);
-        plip.connect(plipLp);
-        plipLp.connect(plipGain);
-        plipGain.connect(master);
-
-        plop.start(now); plop.stop(now + 0.46);
-        plopTri.start(now); plopTri.stop(now + 0.46);
-        res.start(now); res.stop(now + 0.56);
-        plip.start(now); plip.stop(now + 0.04);
+        initWaterSound();
+        if (!waterPool || !waterPool.length) return;
+        const a = waterPool[waterPoolIdx];
+        waterPoolIdx = (waterPoolIdx + 1) % waterPool.length;
+        try {
+          a.muted = false;
+          a.currentTime = 0;
+          const p = a.play();
+          if (p && p.catch) p.catch(() => {});
+          if (waterUseFallback) {
+            // 複数滴録音は最初の1滴ぶんで止める
+            setTimeout(() => { try { a.pause(); a.currentTime = 0; } catch (_) {} }, WATER_SOUND_FALLBACK_CAP_MS);
+          }
+        } catch (_) {}
       }
 
       function hexToRgb(hex) {
@@ -6476,7 +6446,7 @@
         if (hasReachedSplashLimit()) return;
 
         onUserActivity();
-        ensureAudio();
+        unlockWaterSound();
         isDiarySubmitting = true;
         wordInput.disabled = true;
         setEmotionPaletteDisabled(true);
@@ -6747,8 +6717,8 @@
         updateUIState();
       });
 
-      document.addEventListener('touchstart', () => { ensureAudio(); }, { once: true });
-      document.addEventListener('click', () => { ensureAudio(); }, { once: true });
+      document.addEventListener('touchstart', () => { unlockWaterSound(); }, { once: true });
+      document.addEventListener('click', () => { unlockWaterSound(); }, { once: true });
       }
 
       bootApp();
