@@ -115,14 +115,29 @@
     return cv;
   }
 
-  // Canvas 2D の filter(blur) 対応判定。iOS Safari では未対応の場合がある。
+  // Canvas 2D の filter(blur) が「実際に効くか」を実測判定。
+  // iOS はプロパティが存在しても blur が無視される場合があるため、境界の滲みで検証する。
   const CANVAS_FILTER_OK = (function () {
     try {
-      const t = document.createElement('canvas').getContext('2d');
-      return t && typeof t.filter === 'string';
+      const S = 40;
+      const src = document.createElement('canvas');
+      src.width = S; src.height = S;
+      const sx = src.getContext('2d');
+      sx.fillStyle = '#000';
+      sx.fillRect(0, 0, S / 2, S);
+      const dst = document.createElement('canvas');
+      dst.width = S; dst.height = S;
+      const dx = dst.getContext('2d', { willReadFrequently: true });
+      if (typeof dx.filter !== 'string') return false;
+      dx.filter = 'blur(8px)';
+      dx.drawImage(src, 0, 0);
+      dx.filter = 'none';
+      const a = dx.getImageData(30, S / 2, 1, 1).data[3];
+      return a > 6;
     } catch (e) { return false; }
   })();
-  const _blurBuf = document.createElement('canvas');
+  const _blurA = document.createElement('canvas');
+  const _blurB = document.createElement('canvas');
   function drawBlurred(dest, src, blurPx) {
     if (blurPx <= 0.5) { dest.drawImage(src, 0, 0); return; }
     if (CANVAS_FILTER_OK) {
@@ -133,20 +148,26 @@
       return;
     }
     const sw = src.width, sh = src.height;
-    const k = Math.max(1, Math.min(10, blurPx * 0.6));
-    const tw = Math.max(1, Math.round(sw / k)), th = Math.max(1, Math.round(sh / k));
-    const tmp = sizeBuf(_blurBuf, tw, th);
-    const tctx = tmp.getContext('2d');
-    tctx.setTransform(1, 0, 0, 1, 0, 0);
-    tctx.globalCompositeOperation = 'source-over';
-    tctx.clearRect(0, 0, tw, th);
-    tctx.imageSmoothingEnabled = true;
-    tctx.imageSmoothingQuality = 'high';
-    tctx.drawImage(src, 0, 0, sw, sh, 0, 0, tw, th);
+    const steps = Math.max(1, Math.min(6, Math.round(Math.log2(blurPx + 1))));
+    const pool = [_blurA, _blurB];
+    let cur = src, cw = sw, ch = sh;
+    for (let i = 0; i < steps; i++) {
+      const nw = Math.max(2, Math.round(cw / 2));
+      const nh = Math.max(2, Math.round(ch / 2));
+      const b = sizeBuf(pool[i % 2], nw, nh);
+      const bx = b.getContext('2d');
+      bx.setTransform(1, 0, 0, 1, 0, 0);
+      bx.globalCompositeOperation = 'source-over';
+      bx.imageSmoothingEnabled = true;
+      bx.imageSmoothingQuality = 'high';
+      bx.clearRect(0, 0, nw, nh);
+      bx.drawImage(cur, 0, 0, cw, ch, 0, 0, nw, nh);
+      cur = b; cw = nw; ch = nh;
+    }
     dest.save();
     dest.imageSmoothingEnabled = true;
     dest.imageSmoothingQuality = 'high';
-    dest.drawImage(tmp, 0, 0, tw, th, 0, 0, sw, sh);
+    dest.drawImage(cur, 0, 0, cw, ch, 0, 0, sw, sh);
     dest.restore();
   }
 
