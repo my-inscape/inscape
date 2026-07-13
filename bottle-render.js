@@ -328,10 +328,10 @@
     for (let s = 0; s < M; s++) {
       bnd.push({
         baseY: baseYs[s],
-        amp: Math.min(unit * 0.2, 8) * (0.4 + rng() * 0.5),
+        amp: Math.min(unit * 0.34, 16) * (0.5 + rng() * 0.5),
         freq: 0.6 + rng() * 1.2,
         phase: rng() * Math.PI * 2,
-        amp2: Math.min(unit * 0.1, 4) * (0.3 + rng() * 0.6),
+        amp2: Math.min(unit * 0.18, 9) * (0.4 + rng() * 0.6),
         freq2: 1.6 + rng() * 2.0,
         phase2: rng() * Math.PI * 2,
         tiltPx: (rng() * 2 - 1) * Math.min(unit * 0.28, 10),

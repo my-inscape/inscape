@@ -2248,9 +2248,9 @@
 
       function startCharge(btn, color, clientX, clientY) {
         if (isDiarySubmitting || isCanvasInteractionLocked()) return;
-        // 長押し開始（ユーザー操作）: iOSジャイロ許可を取り、ボトルに軽い振動を伝える
+        // 長押し開始（ユーザー操作）: iOSジャイロ許可を取り、ボトルに振動を伝える
         if (typeof requestBottleMotionPermission === 'function') requestBottleMotionPermission();
-        if (typeof exciteBottle === 'function') exciteBottle((Math.random() * 2 - 1) * 0.5, 0.25);
+        if (typeof exciteBottle === 'function') exciteBottle((Math.random() * 2 - 1) * 0.9, 0.4);
         resetChargeState();
         chargeState.active = true;
         chargeState.color = color;
@@ -2288,7 +2288,7 @@
         };
         resetChargeState();
         // フリックで預けた瞬間: 新しい色が“ドボン”と落ちるように水面を大きく波立たせる
-        if (typeof exciteBottle === 'function') exciteBottle((Math.random() * 2 - 1) * 1.4, 1.0);
+        if (typeof exciteBottle === 'function') exciteBottle((Math.random() * 2 - 1) * 3.0, 1.3);
         commitInkLanding(savedWord, payload);
       }
 
@@ -5372,18 +5372,18 @@
         for (let s = 0; s < M; s++) {
           bnd.push({
             baseY: baseYs[s],                                    // s=M-1 が液面(満タンライン)
-            amp: Math.min(unit * 0.2, 8) * (0.4 + rng() * 0.5),
+            amp: Math.min(unit * 0.34, 16) * (0.5 + rng() * 0.5),
             freq: 0.6 + rng() * 1.2,
             phase: rng() * Math.PI * 2,
-            amp2: Math.min(unit * 0.1, 4) * (0.3 + rng() * 0.6),
+            amp2: Math.min(unit * 0.18, 9) * (0.4 + rng() * 0.6),
             freq2: 1.6 + rng() * 2.0,
             phase2: rng() * Math.PI * 2,
             tiltPx: (rng() * 2 - 1) * Math.min(unit * 0.28, 10),
             sag: Math.min(unit * 0.5, 18) * (0.5 + rng() * 0.5),
-            spd: 0.5 + rng() * 0.9                              // 時間で進む波の角速度(rad/s)
+            spd: 0.8 + rng() * 1.3                              // 時間で進む波の角速度(rad/s)
           });
         }
-        const ellipseDepth = Math.min(unit * 0.7, 26);
+        const ellipseDepth = Math.min(unit * 0.85, 32);
         // 揺れ量(0..1)。0でも僅かに“生きた”さざ波が乗り、入力で大きく波打つ。
         const wv = Math.min(1, Math.max(0, waveAmt == null ? 0 : waveAmt));
         const animated = (waveTime != null);                    // 静的描画(ギャラリー/注ぎ)は従来通り
@@ -5400,15 +5400,17 @@
             + d.sag * Math.sin(u * Math.PI)
             + d.amp * Math.sin(u * d.freq * Math.PI * 2 + d.phase)
             + d.amp2 * Math.sin(u * d.freq2 * Math.PI * 2 + d.phase2)) * staticW;
-          // 【時間で流れるさざ波】土台に加算。内部は常時わずかに(0.12)、液面は波エネルギーで増幅。
-          //   進行方向の異なる2波を合成し、水として"生きた"うねりを作る。
-          const rippleW = animated ? (isSurface ? wv : (0.12 + wv * 0.5)) : 0;
+          // 【時間で流れるさざ波】土台に加算。内部は常時ゆるやかに、液面は波エネルギーで大きく増幅。
+          //   進行方向の異なる2波を合成し、水として"生きた"ダイナミックなうねりを作る。
+          const rippleW = animated
+            ? (isSurface ? Math.max(0.16, wv) : (0.2 + wv * 0.75))
+            : 0;
           if (rippleW > 0.001) {
-            const ripple = d.amp * 0.5 * Math.sin(u * d.freq * Math.PI * 2 + d.phase + tsec * d.spd)
-              + d.amp2 * 0.6 * Math.sin(u * d.freq2 * Math.PI * 2 + d.phase2 - tsec * d.spd * 1.4);
+            const ripple = d.amp * 0.9 * Math.sin(u * d.freq * Math.PI * 2 + d.phase + tsec * d.spd)
+              + d.amp2 * 1.05 * Math.sin(u * d.freq2 * Math.PI * 2 + d.phase2 - tsec * d.spd * 1.4);
             y += ripple * rippleW;
           }
-          if (isSurface) y += ellipseDepth * Math.sin(u * Math.PI) * 0.5 * wv;  // 揺れ時のみ凹型
+          if (isSurface) y += ellipseDepth * Math.sin(u * Math.PI) * 0.55 * Math.max(0.14, wv);  // 凹型のうねり
           return y;
         };
         const step = Math.max(5, bw / 30);
@@ -5481,7 +5483,7 @@
         // ── 2. 液面の傾き（スロッシュ）に合わせて回転し、帯を合成 ──
         c.save();
         c.translate(bw * 0.5, fillTopY);
-        c.rotate(-tilt * 0.5);
+        c.rotate(-tilt * 0.8);
         c.translate(-bw * 0.5, -fillTopY);
 
         // 境界だけを適度にボカして溶け合わせる（サンドアート感は消しつつ、
@@ -5957,7 +5959,7 @@
       // 蓄積ボトルの液面の揺れ（物理シミュレーション）。
       //  current : 現在の液面傾き角(度)   vel : 角速度   target : 傾き目標角(ジャイロ由来)
       //  motion  : タップ/フリック等で注入された揺れエネルギー(0..1.2)
-      const AMBIENT_WAVE = 0.06;          // 静止時も液体が“生きて”見える微細な常時さざ波
+      const AMBIENT_WAVE = 0.11;          // 静止時も液体が“生きて”見えるゆるやかな常時さざ波
       const bottleTilt = { current: 0, vel: 0, motion: 0, target: 0, lastGamma: null };
       let bottleTiltReady = false;
       let orientationAttached = false;
@@ -5965,17 +5967,18 @@
       // 揺れエネルギー・角速度インパルスを注入（タップ/フリック/急な傾き）
       function exciteBottle(impulse, energy) {
         bottleTilt.vel += impulse;
-        bottleTilt.motion = Math.min(1.2, bottleTilt.motion + energy);
+        bottleTilt.motion = Math.min(1.4, bottleTilt.motion + energy);
       }
-      // ジャイロ本体（傾き→液面がじわっと傾き、急変でスロッシュ）
+      // ジャイロ本体（傾き→液面が大きく傾き、急変でスロッシュ）
       function onDeviceOrientation(e) {
         const gamma = (typeof e.gamma === 'number') ? e.gamma : 0;   // 左右傾き(度)
-        // 目標液面角: 端末の傾きに比例（±16°で頭打ち）。バネで current が追従する。
-        bottleTilt.target = Math.max(-16, Math.min(16, gamma * 0.5));
+        // 目標液面角: 端末の傾きに比例（±26°で頭打ち）。バネで current が追従する。
+        bottleTilt.target = Math.max(-26, Math.min(26, gamma * 0.85));
         if (bottleTilt.lastGamma == null) { bottleTilt.lastGamma = gamma; return; }
         const dg = gamma - bottleTilt.lastGamma;
         bottleTilt.lastGamma = gamma;
-        if (Math.abs(dg) > 0.4) exciteBottle(dg * 0.06, Math.min(0.5, Math.abs(dg) * 0.03)); // 急な傾き=波
+        // 急な傾き=大きなスロッシュ（振幅と余韻を強める）
+        if (Math.abs(dg) > 0.3) exciteBottle(dg * 0.14, Math.min(0.7, Math.abs(dg) * 0.06));
       }
       function attachOrientationListener() {
         if (orientationAttached || !window.DeviceOrientationEvent) return;
@@ -5999,11 +6002,14 @@
           attachOrientationListener();
         }
       }
-      // 最初のユーザー操作(タップ/クリック)で一度だけ許可要求（ジェスチャ内で呼ぶ必要がある）
+      // 最初のユーザー操作(タップ/クリック)で一度だけ許可要求（ジェスチャ内で呼ぶ必要がある）。
+      // capture段階で拾い、子要素が stopPropagation してもジェスチャを取りこぼさない。
       function armMotionPermissionOnFirstGesture() {
         const fire = () => { requestBottleMotionPermission(); };
-        window.addEventListener('pointerdown', fire, { once: true, passive: true });
-        window.addEventListener('touchstart', fire, { once: true, passive: true });
+        const opt = { once: true, passive: true, capture: true };
+        window.addEventListener('pointerdown', fire, opt);
+        window.addEventListener('touchstart', fire, opt);
+        window.addEventListener('click', fire, opt);
       }
       function setupBottleTilt() {
         if (bottleTiltReady) return;
@@ -6019,7 +6025,7 @@
           // ボトルをタップ → 水面に振動が伝わったように大きく波紋が立つ
           bottleCanvas.addEventListener('pointerdown', (e) => {
             requestBottleMotionPermission();
-            exciteBottle((Math.random() * 2 - 1) * 1.1, 0.65);
+            exciteBottle((Math.random() * 2 - 1) * 2.4, 1.0);
           }, { passive: true });
           // デスクトップ: ボトル上でポインタが動いた分だけ波立てる
           let lastX = null;
@@ -6040,11 +6046,11 @@
         // ボトルが非表示（注ぎ完了フェーズ）ならスキップだけしてループは維持
         if (getBottlePhase(currentFlower) === BOTTLE_PHASES.COMPLETE) return;
         if (bottleStage.classList.contains('is-hidden')) return;
-        // バネ振動: 目標角(target)へ復元力で追従し、減衰しながらスロッシュする。
-        bottleTilt.vel += (bottleTilt.target - bottleTilt.current) * 0.045;   // 目標へ引き戻す
-        bottleTilt.vel *= 0.86;                                               // 減衰
+        // バネ振動: 目標角(target)へ復元力で追従し、弱めの減衰で“タプン、タプン”と余韻を残す。
+        bottleTilt.vel += (bottleTilt.target - bottleTilt.current) * 0.052;   // 目標へ引き戻す(復元力)
+        bottleTilt.vel *= 0.915;                                              // 減衰(1に近いほど余韻が長い)
         bottleTilt.current += bottleTilt.vel;
-        bottleTilt.motion *= 0.93;                                            // 揺れエネルギー減衰
+        bottleTilt.motion *= 0.945;                                           // 揺れエネルギーの自然減衰
         // 目標が0(傾けていない)で、ほぼ静止したら微小ドリフトをスナップ除去。
         if (Math.abs(bottleTilt.target) < 0.01
             && Math.abs(bottleTilt.current) < 0.02
@@ -6053,7 +6059,7 @@
         }
         // 揺れ量: 目標との差(スロッシュ)＋角速度＋注入エネルギー＋常時さざ波(AMBIENT)。
         const live = Math.abs(bottleTilt.current - bottleTilt.target) + Math.abs(bottleTilt.vel) * 6;
-        const waveAmt = Math.min(1, AMBIENT_WAVE + live * 0.25 + bottleTilt.motion);
+        const waveAmt = Math.min(1, AMBIENT_WAVE + live * 0.42 + bottleTilt.motion);
         resizeBottleCanvas();
         const cw = bottleCanvas.clientWidth || BOTTLE_LOGICAL_W;
         const ch = bottleCanvas.clientHeight || BOTTLE_LOGICAL_H;
