@@ -5412,24 +5412,28 @@
           const d = bnd[s];
           const u = Math.max(0, Math.min(1, x / bw));
           const isSurface = (s === M - 1);
+          // 液面は両端(=瓶の内壁)で振幅を絞り、常に壁へ密着させる（傾き時の隙間を防ぐ）。
+          //   u は 0..1 にクランプ済み。sin(uπ) は両端で0・中央で1 → 壁際の波を消す。
+          //   内部の色境界は全幅で自由にうねらせる（テーパー無し）。
+          const edgeTaper = isSurface ? Math.sin(u * Math.PI) : 1;
           // 【静的なオーガニック形状】既存の地層の見た目をそのまま維持する土台。
-          //   内部境界は常に完全な形状(1)、液面は揺れ量に連動(wv)。
-          const staticW = isSurface ? wv : 1;
+          //   内部境界は常に完全な形状(1)、液面は揺れ量(wv)×エッジテーパーに連動。
+          const staticW = (isSurface ? wv : 1) * edgeTaper;
           let y = d.baseY + (d.tiltPx * (u - 0.5)
             + d.sag * Math.sin(u * Math.PI)
             + d.amp * Math.sin(u * d.freq * Math.PI * 2 + d.phase)
             + d.amp2 * Math.sin(u * d.freq2 * Math.PI * 2 + d.phase2)) * staticW;
-          // 【時間で流れるさざ波】土台に加算。内部は常時ゆるやかに、液面は波エネルギーで大きく増幅。
+          // 【時間で流れるさざ波】土台に加算。内部は常時ゆるやかに、液面は波エネルギーで増幅。
           //   進行方向の異なる2波を合成し、水として"生きた"ダイナミックなうねりを作る。
-          const rippleW = animated
+          const rippleW = (animated
             ? (isSurface ? Math.max(0.16, wv) : (0.2 + wv * 0.75))
-            : 0;
+            : 0) * edgeTaper;
           if (rippleW > 0.001) {
             const ripple = d.amp * 0.9 * Math.sin(u * d.freq * Math.PI * 2 + d.phase + tsec * d.spd)
               + d.amp2 * 1.05 * Math.sin(u * d.freq2 * Math.PI * 2 + d.phase2 - tsec * d.spd * 1.4);
             y += ripple * rippleW;
           }
-          if (isSurface) y += ellipseDepth * Math.sin(u * Math.PI) * 0.55 * Math.max(0.14, wv);  // 凹型のうねり
+          if (isSurface) y += ellipseDepth * Math.sin(u * Math.PI) * 0.55 * Math.max(0.14, wv);  // 凹型のうねり(両端0)
           return y;
         };
         const step = Math.max(5, bw / 30);
@@ -5502,7 +5506,7 @@
         // ── 2. 液面の傾き（スロッシュ）に合わせて回転し、帯を合成 ──
         c.save();
         c.translate(bw * 0.5, fillTopY);
-        c.rotate(-tilt * 0.8);
+        c.rotate(-tilt * 0.4);   // 傾き回転は控えめに（強すぎると片側に隙間ができる）
         c.translate(-bw * 0.5, -fillTopY);
 
         // 境界だけを適度にボカして溶け合わせる（サンドアート感は消しつつ、
@@ -5991,8 +5995,8 @@
       // ジャイロ本体（傾き→液面が大きく傾き、急変でスロッシュ）
       function onDeviceOrientation(e) {
         const gamma = (typeof e.gamma === 'number') ? e.gamma : 0;   // 左右傾き(度)
-        // 目標液面角: 端末の傾きに比例（±26°で頭打ち）。バネで current が追従する。
-        bottleTilt.target = Math.max(-26, Math.min(26, gamma * 0.85));
+        // 目標液面角: 端末の傾きに比例（±16°で頭打ち）。強すぎる傾きは隙間の原因になるため抑制。
+        bottleTilt.target = Math.max(-16, Math.min(16, gamma * 0.6));
         if (bottleTilt.lastGamma == null) { bottleTilt.lastGamma = gamma; return; }
         const dg = gamma - bottleTilt.lastGamma;
         bottleTilt.lastGamma = gamma;
@@ -6084,7 +6088,8 @@
         const ch = bottleCanvas.clientHeight || BOTTLE_LOGICAL_H;
         drawGlassBottle(bottleCtx, cw, ch, currentFlower, {
           layerReveal: currentBottleReveal(),
-          surfaceTilt: bottleTilt.current,
+          // 描画に渡す傾きは ±18° に制限（急な入力でも回転しすぎて隙間を作らない安全弁）。
+          surfaceTilt: Math.max(-18, Math.min(18, bottleTilt.current)),
           waveAmt: waveAmt,
           waveTime: performance.now() / 1000
         });
