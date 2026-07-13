@@ -5248,9 +5248,48 @@
         return cv;
       }
 
+      // Canvas 2D の filter(blur) が使えるか一度だけ判定。
+      // iOS Safari(16.4未満など)では未対応で、代入しても黙って無視される。
+      const CANVAS_FILTER_OK = (function () {
+        try {
+          const t = document.createElement('canvas').getContext('2d');
+          return t && typeof t.filter === 'string';
+        } catch (e) { return false; }
+      })();
+      const _blurBuf = document.createElement('canvas');
+      // src キャンバスを blurPx 相当でボカして dest(現在の変換のまま 0,0) に描く。
+      // filter 対応環境は本来の blur。非対応(iOS)では縮小→拡大の bilinear で等価な柔らかさを再現。
+      function drawBlurred(dest, src, blurPx) {
+        if (blurPx <= 0.5) { dest.drawImage(src, 0, 0); return; }
+        if (CANVAS_FILTER_OK) {
+          dest.save();
+          dest.filter = `blur(${blurPx}px)`;
+          dest.drawImage(src, 0, 0);
+          dest.restore();
+          return;
+        }
+        const sw = src.width, sh = src.height;
+        const k = Math.max(1, Math.min(10, blurPx * 0.6));
+        const tw = Math.max(1, Math.round(sw / k)), th = Math.max(1, Math.round(sh / k));
+        const tmp = sizeBuf(_blurBuf, tw, th);
+        const tctx = tmp.getContext('2d');
+        tctx.setTransform(1, 0, 0, 1, 0, 0);
+        tctx.globalCompositeOperation = 'source-over';
+        tctx.clearRect(0, 0, tw, th);
+        tctx.imageSmoothingEnabled = true;
+        tctx.imageSmoothingQuality = 'high';
+        tctx.drawImage(src, 0, 0, sw, sh, 0, 0, tw, th);
+        dest.save();
+        dest.imageSmoothingEnabled = true;
+        dest.imageSmoothingQuality = 'high';
+        dest.drawImage(tmp, 0, 0, tw, th, 0, 0, sw, sh);
+        dest.restore();
+      }
+
       // 下から上へ積み重なる「帯状の積層」を、境界線だけ有機的に波打たせて描く。
       // 各層の高さは filledH/N（=常に約1/7）で均等を維持。
-      function renderLiquidBuffer(rw, rh, drops, layerReveal, seed, surfaceTilt, waveAmt) {
+      function renderLiquidBuffer(rw, rh, drops, layerReveal, seed, surfaceTilt, waveAmt, ss) {
+        const supBlur = Math.max(1, ss || 1);
         const cv = sizeBuf(_bottleLiquidBuf, rw, rh);
         const c = cv.getContext('2d');
         c.setTransform(1, 0, 0, 1, 0, 0);
@@ -5405,11 +5444,9 @@
         // 境界だけを適度にボカして溶け合わせる（サンドアート感は消しつつ、
         // 各層の“中心部”は元の不透明度を保持 → 日ごとの濃淡差が確実に残る）。
         // 強すぎるボカシは同色層の濃淡を平均化してしまうため、控えめな1パスに固定。
-        const feather = Math.max(9, Math.min(20, unit * 0.28));
-        c.save();
-        c.filter = `blur(${feather}px)`;
-        c.drawImage(bandCv, 0, 0);
-        c.restore();
+        // 論理px基準の 9〜20px を、supersample 倍率に合わせてスケール（Retinaでも同じ見た目）。
+        const feather = Math.max(9 * supBlur, Math.min(20 * supBlur, unit * 0.28));
+        drawBlurred(c, bandCv, feather);
 
         // ── 空気と接する一番上の液面だけは【1px単位でクッキリ】シャープに切る ──
         // 層間のにじみ(ボカシ)は維持しつつ、最上部の輪郭はボカシ跡を鋭利に断ち切り、
@@ -5545,13 +5582,20 @@
           // (B) 液体（0日目は透明な水、1日目以降は色帯）を「肉厚を除いた内側」だけに乗せる。
           //     ガラスのフチは覆わない＝黒く引き締まる。
           {
-            const liquid = renderLiquidBuffer(rect.w, rect.h, drops, opts.layerReveal, (flower && flower.seed) || 7, opts.surfaceTilt, opts.waveAmt);
-            const comp = sizeBuf(_bottleCompBuf, rect.w, rect.h);
+            // Retina対策: 液体バッファを端末ピクセル密度(最大2x)で生成し、
+            // 論理サイズの矩形へ縮小合成する。低解像度の拡大ボケを解消する。
+            const ss = Math.max(1, Math.min(2, window.devicePixelRatio || 1));
+            const lw = Math.max(1, Math.round(rect.w * ss));
+            const lh = Math.max(1, Math.round(rect.h * ss));
+            const liquid = renderLiquidBuffer(lw, lh, drops, opts.layerReveal, (flower && flower.seed) || 7, opts.surfaceTilt, opts.waveAmt, ss);
+            const comp = sizeBuf(_bottleCompBuf, lw, lh);
             const cc = comp.getContext('2d');
             cc.setTransform(1, 0, 0, 1, 0, 0);
             cc.globalAlpha = 1;
             cc.globalCompositeOperation = 'source-over';
             cc.filter = 'none';
+            cc.imageSmoothingEnabled = true;
+            cc.imageSmoothingQuality = 'high';
             cc.clearRect(0, 0, comp.width, comp.height);
             cc.drawImage(liquid, 0, 0, comp.width, comp.height);
             cc.globalCompositeOperation = 'destination-in';
@@ -5571,6 +5615,8 @@
             c.save();
             c.globalCompositeOperation = 'source-over';
             c.globalAlpha = 0.94;
+            c.imageSmoothingEnabled = true;
+            c.imageSmoothingQuality = 'high';
             c.drawImage(comp, rect.x, rect.y, rect.w, rect.h);
             c.restore();
           }

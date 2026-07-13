@@ -115,6 +115,41 @@
     return cv;
   }
 
+  // Canvas 2D の filter(blur) 対応判定。iOS Safari では未対応の場合がある。
+  const CANVAS_FILTER_OK = (function () {
+    try {
+      const t = document.createElement('canvas').getContext('2d');
+      return t && typeof t.filter === 'string';
+    } catch (e) { return false; }
+  })();
+  const _blurBuf = document.createElement('canvas');
+  function drawBlurred(dest, src, blurPx) {
+    if (blurPx <= 0.5) { dest.drawImage(src, 0, 0); return; }
+    if (CANVAS_FILTER_OK) {
+      dest.save();
+      dest.filter = `blur(${blurPx}px)`;
+      dest.drawImage(src, 0, 0);
+      dest.restore();
+      return;
+    }
+    const sw = src.width, sh = src.height;
+    const k = Math.max(1, Math.min(10, blurPx * 0.6));
+    const tw = Math.max(1, Math.round(sw / k)), th = Math.max(1, Math.round(sh / k));
+    const tmp = sizeBuf(_blurBuf, tw, th);
+    const tctx = tmp.getContext('2d');
+    tctx.setTransform(1, 0, 0, 1, 0, 0);
+    tctx.globalCompositeOperation = 'source-over';
+    tctx.clearRect(0, 0, tw, th);
+    tctx.imageSmoothingEnabled = true;
+    tctx.imageSmoothingQuality = 'high';
+    tctx.drawImage(src, 0, 0, sw, sh, 0, 0, tw, th);
+    dest.save();
+    dest.imageSmoothingEnabled = true;
+    dest.imageSmoothingQuality = 'high';
+    dest.drawImage(tmp, 0, 0, tw, th, 0, 0, sw, sh);
+    dest.restore();
+  }
+
   // ── ボトル画像とマスク ──
   const bottleImg = new Image();
   let bottleReady = false;
@@ -234,7 +269,8 @@
   }
 
   // 液体（静止版: waveAmt=0, tilt=0, reveal=1）
-  function renderLiquidBuffer(rw, rh, drops, seed) {
+  function renderLiquidBuffer(rw, rh, drops, seed, ss) {
+    const supBlur = Math.max(1, ss || 1);
     const cv = sizeBuf(_liquidBuf, rw, rh);
     const c = cv.getContext('2d');
     c.setTransform(1, 0, 0, 1, 0, 0);
@@ -359,11 +395,8 @@
     }
 
     c.save();
-    const feather = Math.max(9, Math.min(20, unit * 0.28));
-    c.save();
-    c.filter = `blur(${feather}px)`;
-    c.drawImage(bandCv, 0, 0);
-    c.restore();
+    const feather = Math.max(9 * supBlur, Math.min(20 * supBlur, unit * 0.28));
+    drawBlurred(c, bandCv, feather);
 
     // 最上部液面をシャープに断つ
     {
@@ -473,11 +506,16 @@
 
     // (B) 液体（内側にクリップ）
     {
-      const liquid = renderLiquidBuffer(rect.w, rect.h, drops, seed);
-      const comp = sizeBuf(_compBuf, rect.w, rect.h);
+      // Retina対策: 端末ピクセル密度(最大2x)で生成し論理矩形へ縮小合成。
+      const ss = Math.max(1, Math.min(2, global.devicePixelRatio || 1));
+      const lw = Math.max(1, Math.round(rect.w * ss));
+      const lh = Math.max(1, Math.round(rect.h * ss));
+      const liquid = renderLiquidBuffer(lw, lh, drops, seed, ss);
+      const comp = sizeBuf(_compBuf, lw, lh);
       const cc = comp.getContext('2d');
       cc.setTransform(1, 0, 0, 1, 0, 0);
       cc.globalAlpha = 1; cc.globalCompositeOperation = 'source-over'; cc.filter = 'none';
+      cc.imageSmoothingEnabled = true; cc.imageSmoothingQuality = 'high';
       cc.clearRect(0, 0, comp.width, comp.height);
       cc.drawImage(liquid, 0, 0, comp.width, comp.height);
       cc.globalCompositeOperation = 'destination-in';
@@ -492,6 +530,7 @@
       c.save();
       c.globalCompositeOperation = 'source-over';
       c.globalAlpha = 0.94;
+      c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
       c.drawImage(comp, rect.x, rect.y, rect.w, rect.h);
       c.restore();
     }
