@@ -781,11 +781,15 @@
       const SPLASHES_KEY = 'inscape_splashes';
       const ALL_DIARIES_KEY = 'inscape_all_diaries';
       const GALLERY_KEY = 'inscape_gallery';
+      const FLOWER_KEY = 'inscape_flower_v2';
       const SHIRUSHI_KEY = 'inscape_shirushi_v1';
       const SPLAT_IMAGE = 'splat.png';
       const CANVAS_BG = '#f7f4eb';
       const EXPORT_W = 1080;
       const EXPORT_H = 1920;
+      // index.html と同じ濃淡レンジ（長押し短=0.4 淡い / 長=1.0 濃い）
+      const CHARGE_OPACITY_MIN = 0.4;
+      const CHARGE_OPACITY_MAX = 1.0;
 
       const colorsGrid = document.getElementById('colorsGrid');
       const emptyState = document.getElementById('emptyState');
@@ -904,6 +908,53 @@
         return null;
       }
 
+      function hexToRgb(hex) {
+        const h = normalizeHex(hex) || '#808080';
+        const n = parseInt(h.slice(1), 16);
+        return { r: (n >> 16) & 255, g: (n >> 8) & 255, b: n & 255 };
+      }
+
+      function rgbToHex(r, g, b) {
+        const clamp = (v) => Math.max(0, Math.min(255, v | 0));
+        return `#${[clamp(r), clamp(g), clamp(b)].map((v) => v.toString(16).padStart(2, '0')).join('')}`;
+      }
+
+      function lightenHex(hex, amt) {
+        const { r, g, b } = hexToRgb(hex);
+        const mix = (c) => Math.round(c + (255 - c) * amt);
+        return rgbToHex(mix(r), mix(g), mix(b));
+      }
+
+      function saturateHex(hex, amt) {
+        const { r, g, b } = hexToRgb(hex);
+        const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+        const push = (c) => Math.round(Math.max(0, Math.min(255, lum + (c - lum) * (1 + amt))));
+        return rgbToHex(push(r), push(g), push(b));
+      }
+
+      // index.html の bottleDensity / bottleInkColor と同式。
+      // 短押し→白多めのパステル、長押し→原液の鮮やかな色。
+      function emotionDensity(opacity) {
+        const o = opacity == null ? CHARGE_OPACITY_MIN : Number(opacity);
+        return Math.min(1, Math.max(0,
+          (o - CHARGE_OPACITY_MIN) / Math.max(0.0001, CHARGE_OPACITY_MAX - CHARGE_OPACITY_MIN)));
+      }
+
+      function emotionInkColor(hex, opacity) {
+        const base = normalizeHex(hex) || '#5a6a7a';
+        const t = emotionDensity(opacity);
+        const vivid = saturateHex(base, 0.18 + t * 0.22);
+        const whiten = Math.pow(1 - t, 0.82) * 0.68;
+        return lightenHex(vivid, whiten);
+      }
+
+      function clampOpacity(value) {
+        if (value == null || value === '') return null;
+        const n = Number(value);
+        if (!Number.isFinite(n)) return null;
+        return Math.min(CHARGE_OPACITY_MAX, Math.max(CHARGE_OPACITY_MIN, n));
+      }
+
       function formatHistoryDate(ts, fallback) {
         if (!ts) return fallback || '';
         const d = new Date(ts);
@@ -917,14 +968,28 @@
       }
 
       function mapColorEntry(source) {
-        const color = normalizeHex(source && source.color);
+        const color = normalizeHex(source && (source.color || source.color1));
         if (!color) return null;
+        const opacity = clampOpacity(source && source.opacity);
         return {
           word: (source.word || source.text || '').trim(),
           color,
+          opacity, // null = 濃淡未記録（描画時は最小寄り既定）
+          displayColor: emotionInkColor(color, opacity != null ? opacity : CHARGE_OPACITY_MIN),
           date: source.date || formatHistoryDate(source.timestamp, ''),
           timestamp: source.timestamp || 0
         };
+      }
+
+      function applySwatchColor(el, entry) {
+        if (!el || !entry) return;
+        const op = entry.opacity != null ? entry.opacity : CHARGE_OPACITY_MIN;
+        const ink = entry.displayColor || emotionInkColor(entry.color, op);
+        el.style.setProperty('--swatch-color', ink);
+        el.style.backgroundColor = ink;
+        const dens = emotionDensity(op);
+        el.style.setProperty('--swatch-density', String(dens));
+        el.style.opacity = String(0.72 + dens * 0.28);
       }
 
       function expandHistorySessions(data) {
@@ -941,7 +1006,8 @@
                   word: point.word,
                   color: point.color,
                   timestamp: point.timestamp,
-                  date: point.date
+                  date: point.date,
+                  opacity: point.opacity
                 });
                 if (entry) flat.push(entry);
               });
@@ -973,7 +1039,8 @@
               .map((s) => mapColorEntry({
                 word: s.word,
                 color: s.color,
-                timestamp: s.timestamp
+                timestamp: s.timestamp,
+                opacity: s.opacity
               }))
               .filter(Boolean);
             if (entries.length) return entries;
@@ -1025,6 +1092,12 @@
           });
         }
 
+        function absorbFlower(flower) {
+          if (!flower || typeof flower !== 'object') return;
+          const drops = [flower.center, ...(flower.petals || [])].filter(Boolean);
+          absorb(drops);
+        }
+
         try {
           absorb(collectEntriesFromRaw(localStorage.getItem(ALL_DIARIES_KEY)));
         } catch (err) {
@@ -1052,6 +1125,14 @@
           console.warn('histories の読み込みに失敗:', err);
         }
 
+        // 進行中の7日ボトル（濃淡付き）
+        try {
+          const flowerRaw = localStorage.getItem(FLOWER_KEY);
+          if (flowerRaw) absorbFlower(safeParseJson(flowerRaw, null));
+        } catch (err) {
+          console.warn('inscape_flower_v2 の読み込みに失敗:', err);
+        }
+
         try {
           const galleryRaw = localStorage.getItem(GALLERY_KEY);
           if (galleryRaw) {
@@ -1062,6 +1143,8 @@
                 if (Array.isArray(item.points)) absorb(item.points);
                 if (Array.isArray(item.history)) absorb(item.history);
                 if (Array.isArray(item.splats)) absorb(item.splats);
+                // 完成作品の flower に長押し opacity が残っている
+                if (item.flower) absorbFlower(item.flower);
               });
             }
           }
@@ -1075,8 +1158,18 @@
           if (deduped.length) {
             const existing = safeParseJson(localStorage.getItem(ALL_DIARIES_KEY), []);
             const existingCount = Array.isArray(existing) ? existing.length : 0;
-            if (deduped.length > existingCount) {
-              localStorage.setItem(ALL_DIARIES_KEY, JSON.stringify(deduped));
+            // 濃淡付きで書き戻し（次回以降もフラットな基本色に戻らない）
+            const shouldRewrite = deduped.length > existingCount
+              || deduped.some((e) => e.opacity != null)
+              || (Array.isArray(existing) && existing.some((e) => e && e.opacity == null));
+            if (shouldRewrite) {
+              localStorage.setItem(ALL_DIARIES_KEY, JSON.stringify(deduped.map((e) => ({
+                word: e.word,
+                color: e.color,
+                date: e.date,
+                timestamp: e.timestamp,
+                opacity: e.opacity
+              }))));
             }
           }
         } catch (err) {
@@ -1095,13 +1188,28 @@
       }
 
       function dedupeColorEntries(entries) {
-        const seen = new Set();
-        return entries.filter((entry) => {
-          const key = `${entry.timestamp || 0}|${entry.color}|${entry.word}`;
-          if (seen.has(key)) return false;
-          seen.add(key);
-          return true;
+        const map = new Map();
+        entries.forEach((entry) => {
+          if (!entry) return;
+          const key = `${entry.timestamp || 0}|${entry.color}|${entry.word || ''}`;
+          const prev = map.get(key);
+          if (!prev) {
+            map.set(key, entry);
+            return;
+          }
+          // 濃淡が付いている方を優先してマージ
+          const opacity = entry.opacity != null ? entry.opacity : prev.opacity;
+          const color = entry.color || prev.color;
+          const merged = {
+            ...prev,
+            ...entry,
+            color,
+            opacity,
+            displayColor: emotionInkColor(color, opacity != null ? opacity : CHARGE_OPACITY_MIN)
+          };
+          map.set(key, merged);
         });
+        return Array.from(map.values());
       }
 
       function getCatalogEntries() {
@@ -1150,8 +1258,7 @@
         highlightColorBall(entry);
 
         if (emotionBubbleSwatch) {
-          emotionBubbleSwatch.style.setProperty('--swatch-color', entry.color);
-          emotionBubbleSwatch.style.backgroundColor = entry.color;
+          applySwatchColor(emotionBubbleSwatch, entry);
         }
         if (emotionBubbleDatetime) {
           emotionBubbleDatetime.textContent = formatDetailDate(entry);
@@ -1230,7 +1337,7 @@
         ctx.fillStyle = CANVAS_BG;
         ctx.fillRect(0, 0, w, h);
 
-        const stamp = createColorStamp(entry.color);
+        const stamp = createColorStamp(entry.displayColor || emotionInkColor(entry.color, entry.opacity));
         if (!stamp) return;
 
         const seed = entry.timestamp || 1;
@@ -1453,8 +1560,7 @@
 
         const swatch = document.createElement('span');
         swatch.className = 'color-swatch';
-        swatch.style.setProperty('--swatch-color', entry.color);
-        swatch.style.backgroundColor = entry.color;
+        applySwatchColor(swatch, entry);
 
         const dateEl = document.createElement('span');
         dateEl.className = 'color-date';

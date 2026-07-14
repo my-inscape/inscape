@@ -1875,6 +1875,32 @@
       }, {});
       // 旧データ互換: 'flow-01' は最初の線画にフォールバック
       CANVAS_TEMPLATES['flow-01'] = CANVAS_TEMPLATES['line-1'];
+
+      // 線画ごとの染色パラメータ（形状・縦横比・実マスク余白に合わせ個別最適化）
+      // yOffsetTop/Bottom: 描画矩形内のグラデ開始・終了（0..1）。blurRadius: マスク前のにじみのみ。
+      // waveScale: 色帯うねり。maskThreshold: クリップ二値化（高いほど外側半透明を切る）。
+      // maskErode: シルエットを内側へ収縮するpx（外側ハロー抑止。細線画は 0〜1）。
+      // ※マスクPNG(lineartN-mask.png)の実測余白に合わせた初期値。
+      const ART_LINE_CONFIG = {
+        'line-1': { alias: 'rose', yOffsetTop: 0.02, yOffsetBottom: 0.98, blurRadius: 2.2, waveScale: 0.75, maskThreshold: 200, maskErode: 1 },
+        'line-2': { alias: 'tulip', yOffsetTop: 0.02, yOffsetBottom: 0.98, blurRadius: 2.0, waveScale: 0.70, maskThreshold: 205, maskErode: 1 },
+        'line-3': { alias: 'bud', yOffsetTop: 0.02, yOffsetBottom: 0.98, blurRadius: 2.0, waveScale: 0.70, maskThreshold: 205, maskErode: 1 },
+        'line-4': { alias: 'rose-wide', yOffsetTop: 0.02, yOffsetBottom: 0.99, blurRadius: 2.0, waveScale: 0.65, maskThreshold: 210, maskErode: 1 },
+        'line-5': { alias: 'feather', yOffsetTop: 0.03, yOffsetBottom: 0.97, blurRadius: 1.6, waveScale: 0.85, maskThreshold: 220, maskErode: 0 },
+        'line-6': { alias: 'feather-wide', yOffsetTop: 0.03, yOffsetBottom: 0.96, blurRadius: 1.6, waveScale: 0.85, maskThreshold: 220, maskErode: 0 },
+        'line-7': { alias: 'butterfly', yOffsetTop: 0.02, yOffsetBottom: 0.98, blurRadius: 1.8, waveScale: 0.70, maskThreshold: 215, maskErode: 1 }
+      };
+      const ART_LINE_CONFIG_DEFAULT = { yOffsetTop: 0.02, yOffsetBottom: 0.98, blurRadius: 2.0, waveScale: 0.75, maskThreshold: 205, maskErode: 1 };
+      // 旧キー互換
+      ART_LINE_CONFIG.rose = ART_LINE_CONFIG['line-1'];
+      ART_LINE_CONFIG.tulip = ART_LINE_CONFIG['line-2'];
+      ART_LINE_CONFIG.feather = ART_LINE_CONFIG['line-5'];
+
+      function getArtLineConfig(flower) {
+        const tpl = resolveLineartTpl(flower);
+        const id = (tpl && tpl.id) || 'line-1';
+        return Object.assign({}, ART_LINE_CONFIG_DEFAULT, ART_LINE_CONFIG[id] || {});
+      }
       const BOTTLE_LOGICAL_W = 180;
       const BOTTLE_LOGICAL_H = 320;
       const FLOWER_MIN_DAYS = 7;
@@ -2842,18 +2868,35 @@
           }));
         });
         lineartLoadPromise = Promise.all(jobs).then(() => {
-          // マスクPNGが存在しない線画（例: line-4）は、主線画像からシルエットマスクを実行時生成する。
-          // 埋め込みデータURIは同一オリジン扱いのため getImageData が使え、汚染も発生しない。
+          // ★重要: 同寸法の *-mask.png（製作者シルエット）を最優先で使う。
+          //   以前は実行時洪水塗りで上書きしていたが、壁膨張が外側ハローを生み
+          //   細い葉・茎では内部が壁で潰れて抜け落ちる真原因になっていた。
+          //   ファイルマスクが無い／寸法不一致のときだけ実行時生成にフォールバック。
           LINEART_TEMPLATES.forEach((t) => {
-            const mask = lineartMaskImgs[t.id];
-            const okMask = mask && ((mask.naturalWidth || 0) > 0 || (mask.width || 0) > 0);
             const img = lineartImgs[t.id];
-            if (!okMask && img && img.naturalWidth > 0) {
-              try {
-                lineartMaskImgs[t.id] = buildRuntimeSilhouetteMask(img);
-              } catch (err) {
-                console.warn('マスク実行時生成に失敗:', t.id, err);
+            const fileMask = lineartMaskImgs[t.id];
+            const iw = img ? (img.naturalWidth || 0) : 0;
+            const ih = img ? (img.naturalHeight || 0) : 0;
+            const mw = fileMask ? (fileMask.naturalWidth || fileMask.width || 0) : 0;
+            const mh = fileMask ? (fileMask.naturalHeight || fileMask.height || 0) : 0;
+            const cfg = Object.assign({}, ART_LINE_CONFIG_DEFAULT, ART_LINE_CONFIG[t.id] || {});
+            try {
+              if (fileMask && iw > 0 && mw === iw && mh === ih) {
+                lineartMaskImgs[t.id] = prepareClipMaskCanvas(fileMask, cfg.maskThreshold, cfg.maskErode || 0);
+              } else if (img && iw > 0) {
+                if (fileMask && (mw !== iw || mh !== ih)) {
+                  console.warn('マスク寸法不一致→実行時生成:', t.id, mw + 'x' + mh, 'vs', iw + 'x' + ih);
+                }
+                lineartMaskImgs[t.id] = prepareClipMaskCanvas(
+                  buildRuntimeSilhouetteMask(img),
+                  cfg.maskThreshold,
+                  cfg.maskErode || 0
+                );
+              } else {
+                console.warn('マスク欠落:', t.id);
               }
+            } catch (err) {
+              console.warn('マスク準備に失敗:', t.id, err);
             }
             // 絵柄の実バウンディングボックスを算出（透明余白を除いた見た目サイズ正規化用）
             if (img && img.naturalWidth > 0 && !lineartBBox[t.id]) {
@@ -2895,25 +2938,28 @@
       // 選択線画の絵柄を、キャンバス(w×h)内の一定サイズ枠へ正規化して収める描画矩形を返す。
       // どの線画も「絵柄部分」が同じ占有率(TARGET)・中央配置になり、見た目サイズが揃う。
       // 返り値 {dx,dy,dW,dH} は drawImage(img/mask, dx, dy, dW, dH) 用（画像全体の配置）。
+      // ★主線とマスクは必ず同一矩形で描くこと（ズレの防止）。座標は整数に丸める。
       function getLineartDrawRect(flower, w, h) {
         const tpl = resolveLineartTpl(flower);
         const img = tpl && lineartImgs[tpl.id];
         const iw = img ? (img.naturalWidth || img.width) : 0;
         const ih = img ? (img.naturalHeight || img.height) : 0;
-        if (!iw || !ih) return { dx: 0, dy: 0, dW: w, dH: h };
+        if (!iw || !ih) return { dx: 0, dy: 0, dW: Math.round(w), dH: Math.round(h) };
         const bb = (tpl && lineartBBox[tpl.id]) || { x: 0, y: 0, w: iw, h: ih };
         const TARGET = 0.80; // 絵柄がキャンバスに占める最大割合（上下左右に均等な余白を確保）
         const scale = Math.min((w * TARGET) / bb.w, (h * TARGET) / bb.h);
-        const dW = iw * scale, dH = ih * scale;
+        const dW = Math.round(iw * scale);
+        const dH = Math.round(ih * scale);
         // 絵柄bboxの中心をキャンバス中心へ合わせる
         const cxImg = bb.x + bb.w / 2, cyImg = bb.y + bb.h / 2;
-        const dx = w / 2 - cxImg * scale;
-        const dy = h / 2 - cyImg * scale;
+        const dx = Math.round(w / 2 - cxImg * scale);
+        const dy = Math.round(h / 2 - cyImg * scale);
         return { dx, dy, dW, dH };
       }
 
-      // 主線画像(透過PNG)から「塗りつぶしシルエットマスク」canvasを生成する。
-      // ダークな主線を壁として外周から flood fill し、外側でない領域＝内部を白不透明にする。
+      // 主線画像から「閉じたシルエット内側」のハードマスクを生成（ファイルマスク欠落時のみ）。
+      // wallD は洪水の漏れ止め専用。最終塗りは !outside（外枠内すべて）を採用し、
+      // 外側ハローになる「壁膨張帯への deep 膨張」は絶対に行わない。
       function buildRuntimeSilhouetteMask(img) {
         const W = img.naturalWidth, H = img.naturalHeight;
         const src = document.createElement('canvas');
@@ -2923,15 +2969,14 @@
         const data = sctx.getImageData(0, 0, W, H).data;
         const N = W * H;
 
-        // 1) 壁（線）= 不透明かつ暗い画素
         const wall = new Uint8Array(N);
         for (let i = 0; i < N; i++) {
           const a = data[i * 4 + 3];
           const lum = 0.299 * data[i * 4] + 0.587 * data[i * 4 + 1] + 0.114 * data[i * 4 + 2];
-          if (a > 40 && lum < 150) wall[i] = 1;
+          // 主線の芯だけ（薄いAAフチは壁にしない＝外側へ塗りが乗らない）
+          if (a > 80 && lum < 140) wall[i] = 1;
         }
-        // 2) 壁を半径Rで膨張（線の隙間を塞ぐ）
-        const R = 4;
+        const R = 2;
         const wallD = new Uint8Array(N);
         for (let y = 0; y < H; y++) {
           for (let x = 0; x < W; x++) {
@@ -2939,13 +2984,13 @@
             for (let dy = -R; dy <= R; dy++) {
               const ny = y + dy; if (ny < 0 || ny >= H) continue;
               for (let dx = -R; dx <= R; dx++) {
+                if (dx * dx + dy * dy > R * R) continue;
                 const nx = x + dx; if (nx < 0 || nx >= W) continue;
                 wallD[ny * W + nx] = 1;
               }
             }
           }
         }
-        // 3) 外周から flood fill（壁は通れない）→ outside
         const outside = new Uint8Array(N);
         const stack = new Int32Array(N);
         let sp = 0;
@@ -2960,7 +3005,7 @@
           if (y + 1 < H) push(idx + W);
           if (y - 1 >= 0) push(idx - W);
         }
-        // 4) outside でない画素 = シルエット内部 → 白不透明
+        // 外枠の内側すべて（細い葉の内部も wallD で潰れていても外枠内なら塗る）
         const out = document.createElement('canvas');
         out.width = W; out.height = H;
         const octx = out.getContext('2d');
@@ -2973,6 +3018,79 @@
         }
         octx.putImageData(outImg, 0, 0);
         return out;
+      }
+
+      // マスクを二値化し、必要なら形態学的収縮で外側フチを内側へ戻す
+      function prepareClipMaskCanvas(src, threshold, erodePx) {
+        const W = src.naturalWidth || src.width;
+        const H = src.naturalHeight || src.height;
+        const cv = document.createElement('canvas');
+        cv.width = W; cv.height = H;
+        const c = cv.getContext('2d', { willReadFrequently: true });
+        c.clearRect(0, 0, W, H);
+        c.imageSmoothingEnabled = false;
+        c.drawImage(src, 0, 0, W, H);
+        hardenCanvasAlpha(cv, threshold == null ? 200 : threshold, false);
+        const er = Math.max(0, Math.min(3, erodePx | 0));
+        if (er > 0) erodeMaskAlpha(cv, er);
+        hardenCanvasAlpha(cv, 128, false);
+        return cv;
+      }
+
+      function erodeMaskAlpha(cv, rounds) {
+        try {
+          const c = cv.getContext('2d', { willReadFrequently: true });
+          const w = cv.width, h = cv.height;
+          let d = new Uint8ClampedArray(c.getImageData(0, 0, w, h).data);
+          for (let r = 0; r < rounds; r++) {
+            const src = d;
+            const next = new Uint8ClampedArray(src);
+            for (let y = 0; y < h; y++) {
+              for (let x = 0; x < w; x++) {
+                const i = (y * w + x) * 4;
+                if (src[i + 3] < 128) {
+                  next[i] = next[i + 1] = next[i + 2] = next[i + 3] = 0;
+                  continue;
+                }
+                let keep = true;
+                for (let dy = -1; dy <= 1 && keep; dy++) {
+                  for (let dx = -1; dx <= 1; dx++) {
+                    const nx = x + dx, ny = y + dy;
+                    if (nx < 0 || ny < 0 || nx >= w || ny >= h) { keep = false; break; }
+                    if (src[(ny * w + nx) * 4 + 3] < 128) { keep = false; break; }
+                  }
+                }
+                if (!keep) next[i] = next[i + 1] = next[i + 2] = next[i + 3] = 0;
+              }
+            }
+            d = next;
+          }
+          const out = c.createImageData(w, h);
+          out.data.set(d);
+          c.putImageData(out, 0, 0);
+        } catch (_) {}
+      }
+
+      // キャンバスのアルファを二値化して半透明フチ（外側ハロー／内側抜け）を抹殺する
+      function hardenCanvasAlpha(cv, threshold, rgbKeep) {
+        try {
+          const c = cv.getContext('2d', { willReadFrequently: true });
+          const w = cv.width, h = cv.height;
+          if (!w || !h) return;
+          const img = c.getImageData(0, 0, w, h);
+          const d = img.data;
+          const t = threshold == null ? 128 : threshold;
+          for (let i = 0; i < d.length; i += 4) {
+            const a = d[i + 3];
+            if (a >= t) {
+              d[i + 3] = 255;
+              if (!rgbKeep) { d[i] = 255; d[i + 1] = 255; d[i + 2] = 255; }
+            } else {
+              d[i] = d[i + 1] = d[i + 2] = d[i + 3] = 0;
+            }
+          }
+          c.putImageData(img, 0, 0);
+        } catch (_) {}
       }
       function resolveLineartTpl(flower) {
         const id = (flower && flower.selectedCanvasId) || 'line-1';
@@ -3563,6 +3681,42 @@
         } catch (_) {}
       }
 
+      // 旧JPEGスナップ／古いマスクロジックで焼けた回廊作品を、現行の線画別マスクで再ベイクする。
+      // gallery.html は artworkImageDataUrl を直接表示するため、ここでの更新がギャラリーにも即反映される。
+      const ART_MASK_VERSION = 3;
+      async function remasterGalleryArtworkSnapshots() {
+        try {
+          await loadLineartImages();
+          await loadFabricImage().catch(() => {});
+          const gallery = readGalleryStore();
+          if (!Array.isArray(gallery) || !gallery.length) return;
+          let changed = 0;
+          for (let i = 0; i < gallery.length; i++) {
+            const e = gallery[i];
+            if (!e || !e.flower) continue;
+            if (e.artMaskVersion === ART_MASK_VERSION && e.artworkImageDataUrl
+                && !/^data:image\/jpe?g/i.test(e.artworkImageDataUrl)) continue;
+            const lw = (e.canvasW > 0) ? Math.round(e.canvasW) : CANVAS_LOGICAL_W;
+            const lh = (e.canvasH > 0) ? Math.round(e.canvasH) : CANVAS_LOGICAL_H;
+            const fabric = (fabricImg && fabricImg.naturalWidth > 0) ? fabricImg : null;
+            const snap = await renderFlowerSnapshotDataUrl(e.flower, lw, lh, fabric);
+            if (snap && snap.artworkImageDataUrl && snap.artworkImageDataUrl.length > 512) {
+              e.artworkImageDataUrl = snap.artworkImageDataUrl;
+              e.artMaskVersion = ART_MASK_VERSION;
+              if (snap.snapshotPixelW) e.snapshotPixelW = snap.snapshotPixelW;
+              if (snap.snapshotPixelH) e.snapshotPixelH = snap.snapshotPixelH;
+              changed++;
+            }
+          }
+          if (changed > 0) {
+            const ok = writeGalleryStore(gallery);
+            console.log('[gallery-remaster] 作品を再ベイク:', changed, '件', ok ? '保存OK' : '保存失敗(容量?)');
+          }
+        } catch (err) {
+          console.warn('[gallery-remaster] 失敗:', err);
+        }
+      }
+
       function loadHistoryRecipes() {
         try {
           const raw = localStorage.getItem(HISTORY_KEY);
@@ -3602,7 +3756,8 @@
           word: s.word || '',
           color: normalizeSplashHex(s.color1 || s.color),
           date: formatDate(s.timestamp),
-          timestamp: s.timestamp || Date.now()
+          timestamp: s.timestamp || Date.now(),
+          opacity: s.opacity
         })).filter((e) => e.color);
         return [{ points, history: entries, updatedAt: Date.now() }];
       }
@@ -3627,21 +3782,28 @@
         return raw;
       }
 
-      function appendDiaryColorLog(word, color, timestamp) {
+      function appendDiaryColorLog(word, color, timestamp, opacity) {
         const hex = normalizeDiaryColor(color);
         if (!hex) return;
         try {
           let logs = JSON.parse(localStorage.getItem(ALL_DIARIES_KEY)) || [];
           if (!Array.isArray(logs)) logs = [];
           const ts = timestamp || Date.now();
+          const op = Math.min(CHARGE_OPACITY_MAX, Math.max(CHARGE_OPACITY_MIN,
+            opacity != null ? Number(opacity) : CHARGE_OPACITY_MIN));
           const entry = {
             word: String(word || '').trim(),
             color: hex,
             date: formatDate(ts),
-            timestamp: ts
+            timestamp: ts,
+            opacity: op   // 長押しで決めた感情の濃淡（ボトル・今日の私の色と同期）
           };
           const dedupeKey = `${entry.timestamp}|${entry.color}|${entry.word}`;
-          if (logs.some((e) => `${e.timestamp || 0}|${e.color}|${e.word || ''}` === dedupeKey)) {
+          const existingIdx = logs.findIndex((e) => `${e.timestamp || 0}|${e.color}|${e.word || ''}` === dedupeKey);
+          if (existingIdx >= 0) {
+            // 既存ログに濃淡が欠落している場合は補完する（過去データの救出）
+            if (logs[existingIdx].opacity == null) logs[existingIdx].opacity = op;
+            localStorage.setItem(ALL_DIARIES_KEY, JSON.stringify(logs));
             return;
           }
           logs.push(entry);
@@ -5291,31 +5453,15 @@
       const _artBandBuf = document.createElement('canvas');
       const _artMaskPadBuf = document.createElement('canvas');
 
-      // マスクをわずかに膨張させて描く（主線の下までインクを潜らせ、キワの白抜けを消す）。
-      // destination-in 直前のクリップ用。複数回オフセット描画で形態学的ダイレート相当。
-      function stampDilatedMask(dest, mask, dx, dy, dw, dh, growPx) {
-        const g = Math.max(0, growPx || 0);
+      // マスクを寸分ズレなくスタンプ（膨張はしない＝外側ハミ出し防止）。
+      // imageSmoothing を切って半透明フチの増殖を防ぐ。
+      function stampTightMask(dest, mask, dx, dy, dw, dh) {
         dest.save();
         dest.globalCompositeOperation = 'source-over';
         dest.globalAlpha = 1;
         dest.filter = 'none';
-        dest.imageSmoothingEnabled = true;
-        dest.imageSmoothingQuality = 'high';
-        if (g < 0.25) {
-          dest.drawImage(mask, dx, dy, dw, dh);
-        } else {
-          const rings = Math.max(4, Math.min(12, Math.ceil(g * 4)));
-          for (let i = 0; i < rings; i++) {
-            const ang = (i / rings) * Math.PI * 2;
-            dest.drawImage(mask, dx + Math.cos(ang) * g, dy + Math.sin(ang) * g, dw, dh);
-          }
-          // さらに十字方向を補強（細いヒゲ線も埋める）
-          dest.drawImage(mask, dx + g, dy, dw, dh);
-          dest.drawImage(mask, dx - g, dy, dw, dh);
-          dest.drawImage(mask, dx, dy + g, dw, dh);
-          dest.drawImage(mask, dx, dy - g, dw, dh);
-          dest.drawImage(mask, dx, dy, dw, dh);
-        }
+        dest.imageSmoothingEnabled = false;
+        dest.drawImage(mask, dx, dy, dw, dh);
         dest.restore();
       }
 
@@ -5385,17 +5531,18 @@
       }
 
       // 7日分の色を「ボトル同様のうねる境界＋水彩のにじみ」で塗る（バッファへ）。
-      // 色順・面積等分は維持。直線 LinearGradient を廃し、波パスの帯＋ぼかしで有機的に。
-      function paintArtGradient(bx, w, h, drops, seed, gy0, gyH, bandFracs) {
+      // ★Blurはここで色帯にのみ適用。呼び出し側がこの後に必ず destination-in で切り抜くこと。
+      function paintArtGradient(bx, w, h, drops, seed, gy0, gyH, bandFracs, artCfg) {
         const N = drops.length;
         const y0 = (gy0 == null) ? 0 : gy0;
         const yH = (gyH == null || gyH <= 0) ? h : gyH;
+        const cfg = artCfg || ART_LINE_CONFIG_DEFAULT;
+        const waveScale = Math.max(0.35, Math.min(1.4, cfg.waveScale == null ? 0.8 : cfg.waveScale));
         const inkOf = (drop) => saturateHex(bottleInkColor(drop.color, bottleDensity(drop)), 0.12);
         const fr = (bandFracs && bandFracs.length === N + 1)
           ? bandFracs
           : Array.from({ length: N + 1 }, (_, i) => i / N);
 
-        // スクラッチに波状の帯を描き、ぼかして本番バッファへ写す（定規線を消す）
         const bandCv = sizeBuf(_artBandBuf, w, h);
         const bc = bandCv.getContext('2d');
         bc.setTransform(1, 0, 0, 1, 0, 0);
@@ -5405,30 +5552,27 @@
         bc.clearRect(0, 0, w, h);
 
         if (N === 1) {
-          // ★不透明: destination-in 後にキワが半透明で白抜けしないよう alpha=1
           bc.fillStyle = rgbaFromHex(inkOf(drops[0]), 1);
-          bc.fillRect(0, Math.floor(y0) - 2, w, Math.ceil(yH) + 4);
+          bc.fillRect(0, Math.floor(y0) - 1, w, Math.ceil(yH) + 2);
         } else {
           const unit = yH / N;
           const rngW = mulberry32((seed >>> 0) + 707);
-          // 境界 N+1 本（上端〜下端）。各境界に独立したうねり・傾き・谷を持たせる。
           const bnd = [];
           for (let s = 0; s <= N; s++) {
             const baseY = y0 + fr[s] * yH;
             const isEdge = (s === 0 || s === N);
             bnd.push({
               baseY,
-              amp: isEdge ? 0 : Math.min(unit * 0.42, 18) * (0.55 + rngW() * 0.45),
+              amp: isEdge ? 0 : Math.min(unit * 0.42, 18) * (0.55 + rngW() * 0.45) * waveScale,
               freq: 0.55 + rngW() * 1.35,
               phase: rngW() * Math.PI * 2,
-              amp2: isEdge ? 0 : Math.min(unit * 0.22, 10) * (0.4 + rngW() * 0.6),
+              amp2: isEdge ? 0 : Math.min(unit * 0.22, 10) * (0.4 + rngW() * 0.6) * waveScale,
               freq2: 1.5 + rngW() * 2.2,
               phase2: rngW() * Math.PI * 2,
-              tiltPx: isEdge ? 0 : (rngW() * 2 - 1) * Math.min(unit * 0.32, 12),
-              sag: isEdge ? 0 : Math.min(unit * 0.38, 14) * (0.45 + rngW() * 0.55)
+              tiltPx: isEdge ? 0 : (rngW() * 2 - 1) * Math.min(unit * 0.32, 12) * waveScale,
+              sag: isEdge ? 0 : Math.min(unit * 0.38, 14) * (0.45 + rngW() * 0.55) * waveScale
             });
           }
-          // 左右を十分はみ出させて端で切れないようにする
           const xL = -8, xR = w + 8;
           const step = Math.max(1, Math.round(w / 64));
           const bY = (s, x) => {
@@ -5440,9 +5584,7 @@
               + d.amp * Math.sin(u * d.freq * Math.PI * 2 + d.phase)
               + d.amp2 * Math.sin(u * d.freq2 * Math.PI * 2 + d.phase2);
           };
-          // 帯同士のわずかな重ね（アンチエイリアスの糸状隙間を潰す）
-          const overlap = Math.max(1.5, Math.min(4, unit * 0.08));
-          // 下から上へ（重なり順を安定させる）。上=最新色、下=1日目。
+          const overlap = Math.max(1.2, Math.min(3.5, unit * 0.07));
           for (let j = N - 1; j >= 0; j--) {
             const col = inkOf(drops[N - 1 - j]);
             const topS = j;
@@ -5454,14 +5596,13 @@
             bc.lineTo(xR, bY(botS, xR) + overlap);
             for (let x = xR; x >= xL; x -= step) bc.lineTo(x, bY(botS, x) + overlap);
             bc.closePath();
-            bc.fillStyle = rgbaFromHex(col, 1); // 完全不透明
+            bc.fillStyle = rgbaFromHex(col, 1);
             bc.fill();
           }
         }
 
-        // 境界をゆるやかに溶かしてにじみ（色は保ちつつ定規線を消す程度）
-        // ※ ぼかしすぎるとキワのalphaが落ちるので控えめに
-        const feather = Math.max(3, Math.min(10, (yH / Math.max(1, N)) * 0.16));
+        // 線画ごとの blurRadius で境界だけにじませる（マスク前のみ。上限を抑えてハロー予備軍を減らす）
+        const feather = Math.max(1.2, Math.min(4.5, cfg.blurRadius != null ? cfg.blurRadius : 2.2));
         bx.save();
         bx.globalAlpha = 1;
         bx.globalCompositeOperation = 'source-over';
@@ -5469,7 +5610,6 @@
         drawBlurred(bx, bandCv, feather);
         bx.restore();
 
-        // 水彩のムラ: 各帯の内側に小さなブルーム（隣帯へはみ出さない範囲）
         const rng = mulberry32((seed >>> 0) + 555);
         bx.globalCompositeOperation = 'source-over';
         for (let i = 0; i < N; i++) {
@@ -5484,7 +5624,7 @@
             const by0 = y0 + yH * ty + (rng() - 0.5) * bandH * 0.38;
             const r = Math.min(w, yH) * (0.08 + rng() * 0.1);
             const rg = bx.createRadialGradient(bx0, by0, 0, bx0, by0, r);
-            rg.addColorStop(0, rgbaFromHex(saturateHex(col, 0.2), 0.18));
+            rg.addColorStop(0, rgbaFromHex(saturateHex(col, 0.2), 0.16));
             rg.addColorStop(1, rgbaFromHex(col, 0));
             bx.fillStyle = rg;
             bx.fillRect(0, 0, w, h);
@@ -5493,40 +5633,42 @@
       }
 
       // 完成アート: 選ばれた線画の「シルエット内側だけ」に7色の水彩インクを閉じ込める。
-      // 描画順: (1)背景マット → (2)シルエットで切り抜いた色水 → (3)黒い主線を最前面。
+      // 描画順: (1)背景マット → (2)線画別パラメータで色水＋Blur → (3)ハードマスクで切り抜き → (4)主線。
+      // ★Blurの後にマスク。マスク後にBlurは絶対にしない（外側ハミ出しの典型）。
       function drawOrganicLiquidArt(c, w, h, flower, revealT) {
         if (!flower) return;
         const drops = getBottleDrops(flower);
         const seed = flower.seed >>> 0;
         const rt = revealT == null ? 1 : Math.min(1, Math.max(0, revealT));
         const N = drops.length;
+        const W = Math.max(1, Math.round(w));
+        const H = Math.max(1, Math.round(h));
+        const artCfg = getArtLineConfig(flower);
 
-        // (1) 背景マット
-        drawArtMat(c, w, h);
+        drawArtMat(c, W, H);
 
         const img = getSelectedLineartImg(flower);
         const mask = getSelectedLineartMask(flower);
         const ref = img || mask;
-        // 絵柄の実bboxを基準に、どの線画も同じ見た目サイズ・中央配置へ正規化する。
-        // 整数ピクセルに丸め、マスクと主線の小数ズレ（1px隙間）を防ぐ。
-        let rx = 0, ry = 0, rw = w, rh = h;
+        let rx = 0, ry = 0, rw = W, rh = H;
         if (ref) {
-          const rect = getLineartDrawRect(flower, w, h);
-          rx = Math.round(rect.dx);
-          ry = Math.round(rect.dy);
-          rw = Math.max(1, Math.round(rect.dW));
-          rh = Math.max(1, Math.round(rect.dH));
+          const rect = getLineartDrawRect(flower, W, H);
+          rx = rect.dx; ry = rect.dy; rw = rect.dW; rh = rect.dH;
         }
 
         if (!N) {
-          // 色がまだ無い状態でも「これから染まる線画の輪郭」を常にハッキリ見せる
           if (img) { c.save(); c.globalAlpha = 0.9; c.drawImage(img, rx, ry, rw, rh); c.restore(); }
-          else drawLineArt(c, w, h, seed, 0.82);
+          else drawLineArt(c, W, H, seed, 0.82);
           return;
         }
 
-        // (2) 色水をオフスクリーンに描き、線画シルエットで source-in 相当に切り抜く
-        const buf = sizeBuf(_artBuf, w, h);
+        // 線画ごとの yOffsetTop / yOffsetBottom でインク縦範囲を実絵柄にジャストフィット
+        const yTop = Math.max(0, Math.min(0.45, artCfg.yOffsetTop != null ? artCfg.yOffsetTop : 0.02));
+        const yBot = Math.max(yTop + 0.2, Math.min(1, artCfg.yOffsetBottom != null ? artCfg.yOffsetBottom : 0.98));
+        const gy0 = ry + rh * yTop;
+        const gyH = Math.max(1, rh * (yBot - yTop));
+
+        const buf = sizeBuf(_artBuf, W, H);
         const bx = buf.getContext('2d');
         bx.setTransform(1, 0, 0, 1, 0, 0);
         bx.globalAlpha = 1;
@@ -5535,97 +5677,103 @@
         bx.imageSmoothingEnabled = true;
         bx.imageSmoothingQuality = 'high';
         bx.clearRect(0, 0, buf.width, buf.height);
-        // グラデーションの縦範囲を、切り抜くシルエットの実描画範囲(ry〜ry+rh)へ一致させる。
-        // さらに各色の帯を「シルエットの実面積」で均等分割し、全色が同ボリュームで現れるようにする。
+
         const bandFracs = computeAreaBandFracs(mask, rw, rh, N);
-        paintArtGradient(bx, w, h, drops, seed, ry, rh, bandFracs);
+        // (A) 有機グラデ＋Blur（まだ全画面・マスク前）
+        paintArtGradient(bx, W, H, drops, seed, gy0, gyH, bandFracs, artCfg);
 
         if (mask) {
-          // マスクをわずかに膨張させてから destination-in。
-          //   → インクが主線の下まで潜り込み、アンチエイリアス部の白抜け（隙間）を消す。
-          //   主線は後で最前面に描くので、はみ出しは見えにならない。
-          const grow = Math.max(1.6, Math.min(3.2, Math.min(rw, rh) * 0.0055));
-          const mPad = sizeBuf(_artMaskPadBuf, w, h);
+          // (B) 最後にハードマスクで切り抜き（拡大縮小の半透明フチも二値化で抹殺）
+          //     ★マスク後に Blur / filter は絶対にかけない
+          const mPad = sizeBuf(_artMaskPadBuf, W, H);
           const mx = mPad.getContext('2d');
           mx.setTransform(1, 0, 0, 1, 0, 0);
           mx.globalAlpha = 1;
           mx.globalCompositeOperation = 'source-over';
           mx.filter = 'none';
-          mx.clearRect(0, 0, w, h);
-          stampDilatedMask(mx, mask, rx, ry, rw, rh, grow);
+          mx.clearRect(0, 0, mPad.width, mPad.height);
+          stampTightMask(mx, mask, rx, ry, rw, rh);
+          hardenCanvasAlpha(mPad, artCfg.maskThreshold != null ? artCfg.maskThreshold : 205, false);
 
+          bx.filter = 'none';
+          bx.imageSmoothingEnabled = false;
           bx.globalCompositeOperation = 'destination-in';
-          bx.drawImage(mPad, 0, 0);
+          bx.drawImage(mPad, 0, 0, W, H);
+          // 切り抜き結果も二値化 → 外側の半透明ハローを完全除去、内側は不透明維持
+          hardenCanvasAlpha(buf, 160, true);
+
+          bx.imageSmoothingEnabled = true;
+          bx.imageSmoothingQuality = 'high';
           bx.globalCompositeOperation = 'source-atop';
-          // 水彩境界: フチに向かって同系の深い影が溜まる（ぷっくり＆エッジ濃色）
-          // ※白抜け防止のためエッジ影は控えめ（濃すぎる暗部と紙地のコントラストで隙間に見えやすい）
           const cx = rx + rw * 0.5, cy = ry + rh * 0.5;
           const rr = Math.max(rw, rh) * 0.62;
-          const eg = bx.createRadialGradient(cx, cy, rr * 0.48, cx, cy, rr);
+          const eg = bx.createRadialGradient(cx, cy, rr * 0.52, cx, cy, rr);
           eg.addColorStop(0, 'rgba(18,14,28,0)');
-          eg.addColorStop(1, 'rgba(18,14,28,0.22)');
+          eg.addColorStop(1, 'rgba(18,14,28,0.18)');
           bx.fillStyle = eg;
-          bx.fillRect(0, 0, w, h);
-          // ぷっくりハイライト（上寄り中央の光の膨らみ）— 端まで白が乗るのを避け中央寄りに
+          bx.fillRect(0, 0, W, H);
           bx.globalCompositeOperation = 'screen';
           const hy = ry + rh * 0.32;
-          const hg = bx.createRadialGradient(cx, hy, 0, cx, hy, rr * 0.42);
-          hg.addColorStop(0, 'rgba(255,255,255,0.16)');
+          const hg = bx.createRadialGradient(cx, hy, 0, cx, hy, rr * 0.38);
+          hg.addColorStop(0, 'rgba(255,255,255,0.14)');
           hg.addColorStop(1, 'rgba(255,255,255,0)');
           bx.fillStyle = hg;
-          bx.fillRect(0, 0, w, h);
+          bx.fillRect(0, 0, W, H);
+          // ハイライト後も外側へ薄い光が漏れないよう、もう一度マスクを噛ませる
+          bx.globalCompositeOperation = 'destination-in';
+          bx.imageSmoothingEnabled = false;
+          bx.drawImage(mPad, 0, 0, W, H);
+          hardenCanvasAlpha(buf, 160, true);
           bx.globalCompositeOperation = 'source-over';
+          bx.imageSmoothingEnabled = true;
         }
-        // マスク未ロード時は「主線alphaでクリップ」しない（細線だけ着色→ほぼ白紙になるため）。
-        // グラデーション全体を残し、色が必ず見える状態を担保する（通常はマスク待機済みで到達しない）。
 
-        // 流し込みアニメ演出: rt<1 の間だけ「下から上へ滲み込む水面」でインクを段階表示する。
-        // rt>=1（再描画・保存スナップショット）では一切作用せず、従来の完成描画と完全に一致する。
         if (rt < 1) {
           const bottom = ry + rh;
           const feather = Math.max(8, rh * 0.16);
-          // rt=0で底、rt=1で天井より上まで満ちる水面ライン（下→上）
           const level = bottom - (rh + feather * 2) * rt + feather;
           bx.save();
           bx.globalCompositeOperation = 'destination-out';
           bx.filter = 'none';
-          // 水面より上（まだ染まっていない領域）を柔らかいフェザーで消す
           const wipe = bx.createLinearGradient(0, level - feather, 0, level + feather);
           wipe.addColorStop(0, 'rgba(0,0,0,1)');
           wipe.addColorStop(1, 'rgba(0,0,0,0)');
           bx.fillStyle = wipe;
-          bx.fillRect(0, level - feather, w, feather * 2);
+          bx.fillRect(0, level - feather, W, feather * 2);
           if (level - feather > 0) {
             bx.fillStyle = 'rgba(0,0,0,1)';
-            bx.fillRect(0, 0, w, level - feather);
+            bx.fillRect(0, 0, W, level - feather);
           }
           bx.restore();
         }
 
         c.save();
         c.globalAlpha = 1;
-        c.drawImage(buf, 0, 0, w, h);
+        c.globalCompositeOperation = 'source-over';
+        c.imageSmoothingEnabled = true;
+        c.imageSmoothingQuality = 'high';
+        c.drawImage(buf, 0, 0, W, H);
         c.restore();
 
-        // 布テクスチャを色の上に淡く（水彩紙の質感）
         if (fabricImg && fabricImg.naturalWidth > 0) {
           c.save();
           c.globalAlpha = 0.1 * rt;
           c.globalCompositeOperation = 'multiply';
-          c.drawImage(fabricImg, 0, 0, w, h);
+          c.drawImage(fabricImg, 0, 0, W, H);
           c.restore();
         }
 
-        // (3) 黒い主線を寸分のズレもなく最前面へ。
-        // 主線は注ぐ前(rt=0)から常に100%表示し、色だけが rt で染み込むようにする。
         if (img) {
           c.save();
-          c.globalAlpha = 0.92;
+          c.globalAlpha = 1;
           c.globalCompositeOperation = 'source-over';
+          // 主線はニアレスト寄りで載せ、半透明の色フチを線の芯で確実に覆う
+          c.imageSmoothingEnabled = true;
+          c.imageSmoothingQuality = 'high';
           c.drawImage(img, rx, ry, rw, rh);
           c.restore();
         } else {
-          drawLineArt(c, w, h, seed, 0.82);
+          drawLineArt(c, W, H, seed, 0.82);
         }
       }
 
@@ -6559,8 +6707,12 @@
 
         let artworkImageDataUrl;
         try {
-          // 作品面は不透明マット背景。長辺820pxのJPEG(q0.85)へ圧縮して LocalStorage 肥大を防ぐ。
-          artworkImageDataUrl = toStorableDataUrl(out, 820, 0.85, 'image/jpeg');
+          // ★JPEG禁止: 境界の色がフレーム外へにじむ主因（chroma bleed）。
+          //   不透明マットでも WebP → PNG の順でエッジを保持したまま圧縮する。
+          artworkImageDataUrl = toStorableDataUrl(out, 780, 0.92, 'image/webp');
+          if (!artworkImageDataUrl || artworkImageDataUrl.indexOf('data:image/webp') !== 0) {
+            artworkImageDataUrl = toStorableDataUrl(out, 720, undefined, 'image/png');
+          }
           if (!artworkImageDataUrl) artworkImageDataUrl = out.toDataURL('image/png');
         } catch (err) {
           console.error('■ 保存エラー発生: 作品スナップショットの toDataURL 失敗（canvas汚染の可能性）:', err);
@@ -6652,7 +6804,7 @@
 
         const startGrowth = () => {
           const record = addFlowerDayRecord(savedWord, pickedColor, payload);
-          appendDiaryColorLog(savedWord, pickedColor, record.timestamp);
+          appendDiaryColorLog(savedWord, pickedColor, record.timestamp, record.opacity);
           wordInput.value = '';
           syncHistoriesFromSplashes();
 
@@ -6889,7 +7041,10 @@
       bindFrameButtonClick();
       scheduleDiaryDayUnlockCheck();
       setupPourInteraction();
-      loadLineartImages().then(() => { if (getBottlePhase(currentFlower) === BOTTLE_PHASES.SELECT) buildCanvasCards(); }).catch(() => {});
+      loadLineartImages().then(() => {
+        if (getBottlePhase(currentFlower) === BOTTLE_PHASES.SELECT) buildCanvasCards();
+        remasterGalleryArtworkSnapshots();
+      }).catch(() => {});
       if (canvasConfirmBtn) {
         canvasConfirmBtn.addEventListener('click', () => {
           if (!pendingCanvasId) return;

@@ -2102,8 +2102,9 @@
         const datePart = String(endStr).replace(/[^0-9]/g, ''); // YYYYMMDD
         const a = document.createElement('a');
         a.href = url;
-        // data URL の実MIMEに合わせて拡張子を決定（作品はJPEG保存へ変更済み）
-        const ext = /^data:image\/jpe?g/i.test(url) ? 'jpg' : 'png';
+        // data URL の実MIMEに合わせて拡張子を決定（WebP/PNG優先。旧JPEGも可）
+        const ext = /^data:image\/webp/i.test(url) ? 'webp'
+          : (/^data:image\/jpe?g/i.test(url) ? 'jpg' : 'png');
         a.download = `INSCAPE_Artwork_${datePart || 'artwork'}.${ext}`;
         document.body.appendChild(a);
         a.click();
