@@ -5251,6 +5251,7 @@
 
       // 完成アート用オフスクリーンバッファ（マスク切り抜きの隔離）
       const _artBuf = document.createElement('canvas');
+      const _artBandBuf = document.createElement('canvas');
 
       // 線画シルエットの「実面積」を N 等分する境界フラクション(0..1)を返す。
       //   等高分割だと、幅の広い花頭が上の色を独占し、細い茎に下の色が潰れて詰め込まれる。
@@ -5317,67 +5318,107 @@
         c.restore();
       }
 
-      // 7日分の色を「垂直（上→下）」へ流れる有機的グラデーションで塗る（バッファへ）。
-      // ボトルの積層と完全同期: 最新色(drops[N-1])が一番上、1日目(drops[0])が一番下。
-      // 各色は 1/N の均等ボリュームを占め、その帯中心 (j+0.5)/N に色を配置する。
+      // 7日分の色を「ボトル同様のうねる境界＋水彩のにじみ」で塗る（バッファへ）。
+      // 色順・面積等分は維持。直線 LinearGradient を廃し、波パスの帯＋ぼかしで有機的に。
       function paintArtGradient(bx, w, h, drops, seed, gy0, gyH, bandFracs) {
         const N = drops.length;
-        // 【重要】グラデーションの縦範囲は「線画シルエットの実描画範囲(gy0〜gy0+gyH)」に一致させる。
-        //   全高(0〜h)にすると、80%縮小・中央配置されたシルエットが中央部しか拾えず、
-        //   最上段(最新色)と最下段(1日目)が枠外に押し出されて消えてしまうため。
         const y0 = (gy0 == null) ? 0 : gy0;
         const yH = (gyH == null || gyH <= 0) ? h : gyH;
-        const g = bx.createLinearGradient(0, y0, 0, y0 + yH);
         const inkOf = (drop) => saturateHex(bottleInkColor(drop.color, bottleDensity(drop)), 0.12);
-        // 帯の境界フラクション: 面積等分(bandFracs)があればそれを、無ければ等高(j/N)を使う。
         const fr = (bandFracs && bandFracs.length === N + 1)
           ? bandFracs
           : Array.from({ length: N + 1 }, (_, i) => i / N);
+
+        // スクラッチに波状の帯を描き、ぼかして本番バッファへ写す（定規線を消す）
+        const bandCv = sizeBuf(_artBandBuf, w, h);
+        const bc = bandCv.getContext('2d');
+        bc.setTransform(1, 0, 0, 1, 0, 0);
+        bc.globalAlpha = 1;
+        bc.globalCompositeOperation = 'source-over';
+        bc.filter = 'none';
+        bc.clearRect(0, 0, w, h);
+
         if (N === 1) {
-          const col = inkOf(drops[0]);
-          g.addColorStop(0, rgbaFromHex(col, 0.96));
-          g.addColorStop(1, rgbaFromHex(col, 0.96));
+          bc.fillStyle = rgbaFromHex(inkOf(drops[0]), 0.96);
+          bc.fillRect(0, y0, w, yH);
         } else {
-          // ボトルの地層と同じ発想: 各色を「帯いっぱいにベタ塗り」し、境界だけ細く滲ませる。
-          //   1色につき stop を2つ（帯の上端・下端）置くことで帯内は純色を維持し、
-          //   隣接帯とのあいだ幅 2*trans だけで色が切り替わる → 中間色で濁らない。
-          const trans = 0.012;   // 境界のにじみ幅(比率)。狭いほどパキッと分離
-          let prev = 0;
-          for (let j = 0; j < N; j++) {
-            const col = inkOf(drops[N - 1 - j]);     // 上=最新色, 下=1日目（ボトルと同順）
-            const top = fr[j];
-            const bot = fr[j + 1];
-            let a = (j === 0) ? 0 : top + trans;
-            let b = (j === N - 1) ? 1 : bot - trans;
-            const mid = (top + bot) / 2;
-            if (b < a) { a = mid; b = mid; }          // 極細帯でも順序破綻しないよう保護
-            a = Math.max(prev, Math.min(1, a));
-            b = Math.max(a, Math.min(1, b));
-            g.addColorStop(a, rgbaFromHex(col, 0.96));
-            g.addColorStop(b, rgbaFromHex(col, 0.96));
-            prev = b;
+          const unit = yH / N;
+          const rngW = mulberry32((seed >>> 0) + 707);
+          // 境界 N+1 本（上端〜下端）。各境界に独立したうねり・傾き・谷を持たせる。
+          const bnd = [];
+          for (let s = 0; s <= N; s++) {
+            const baseY = y0 + fr[s] * yH;
+            const isEdge = (s === 0 || s === N);
+            bnd.push({
+              baseY,
+              amp: isEdge ? 0 : Math.min(unit * 0.42, 18) * (0.55 + rngW() * 0.45),
+              freq: 0.55 + rngW() * 1.35,
+              phase: rngW() * Math.PI * 2,
+              amp2: isEdge ? 0 : Math.min(unit * 0.22, 10) * (0.4 + rngW() * 0.6),
+              freq2: 1.5 + rngW() * 2.2,
+              phase2: rngW() * Math.PI * 2,
+              tiltPx: isEdge ? 0 : (rngW() * 2 - 1) * Math.min(unit * 0.32, 12),
+              sag: isEdge ? 0 : Math.min(unit * 0.38, 14) * (0.45 + rngW() * 0.55)
+            });
+          }
+          // 左右を少しはみ出させて端で切れないようにする
+          const xL = -4, xR = w + 4;
+          const step = Math.max(2, Math.round(w / 48));
+          const bY = (s, x) => {
+            const d = bnd[s];
+            const u = Math.max(0, Math.min(1, x / w));
+            return d.baseY
+              + d.tiltPx * (u - 0.5)
+              + d.sag * Math.sin(u * Math.PI)
+              + d.amp * Math.sin(u * d.freq * Math.PI * 2 + d.phase)
+              + d.amp2 * Math.sin(u * d.freq2 * Math.PI * 2 + d.phase2);
+          };
+          // 下から上へ（重なり順を安定させる）。上=最新色、下=1日目。
+          for (let j = N - 1; j >= 0; j--) {
+            const col = inkOf(drops[N - 1 - j]);
+            const topS = j;
+            const botS = j + 1;
+            bc.beginPath();
+            bc.moveTo(xL, bY(topS, xL));
+            for (let x = xL; x <= xR; x += step) bc.lineTo(x, bY(topS, x));
+            bc.lineTo(xR, bY(topS, xR));
+            bc.lineTo(xR, bY(botS, xR));
+            for (let x = xR; x >= xL; x -= step) bc.lineTo(x, bY(botS, x));
+            bc.closePath();
+            bc.fillStyle = rgbaFromHex(col, 0.96);
+            bc.fill();
           }
         }
-        bx.fillStyle = g;
-        bx.fillRect(0, 0, w, h);
-        // 水彩の“気配”: 各色の帯の内側だけに、小さく控えめなブルームを置く。
-        //   （半径を小さく・不透明度も低くし、隣の帯へはみ出して混色させない＝くすみを防ぐ）
+
+        // 境界をゆるやかに溶かしてにじみ（色は保ちつつ定規線を消す程度）
+        const feather = Math.max(4, Math.min(14, (yH / Math.max(1, N)) * 0.22));
+        bx.save();
+        bx.globalAlpha = 1;
+        bx.globalCompositeOperation = 'source-over';
+        bx.filter = 'none';
+        drawBlurred(bx, bandCv, feather);
+        bx.restore();
+
+        // 水彩のムラ: 各帯の内側に小さなブルーム（隣帯へはみ出さない範囲）
         const rng = mulberry32((seed >>> 0) + 555);
+        bx.globalCompositeOperation = 'source-over';
         for (let i = 0; i < N; i++) {
           const drop = drops[i];
           const col = bottleInkColor(drop.color, bottleDensity(drop));
-          // drops[i] の縦位置: 上からの並び j = N-1-i、帯中心・帯幅は面積等分(fr)基準
           const j = N === 1 ? 0 : (N - 1 - i);
           const ty = N === 1 ? 0.5 : (fr[j] + fr[j + 1]) / 2;
-          const bandH = N === 1 ? yH : (fr[j + 1] - fr[j]) * yH;
-          const bx0 = w * 0.5 + (rng() - 0.5) * w * 0.3;
-          const by0 = y0 + yH * ty + (rng() - 0.5) * bandH * 0.35;   // 自分の帯内に収める
-          const r = Math.min(w, h) * (0.1 + rng() * 0.08);     // 小さめ半径
-          const rg = bx.createRadialGradient(bx0, by0, 0, bx0, by0, r);
-          rg.addColorStop(0, rgbaFromHex(saturateHex(col, 0.22), 0.26));  // 純度を足す程度に控えめ
-          rg.addColorStop(1, rgbaFromHex(col, 0));
-          bx.fillStyle = rg;
-          bx.fillRect(0, 0, w, h);
+          const bandH = N === 1 ? yH : Math.max(4, (fr[j + 1] - fr[j]) * yH);
+          const spots = 2 + (rng() > 0.5 ? 1 : 0);
+          for (let s = 0; s < spots; s++) {
+            const bx0 = w * 0.5 + (rng() - 0.5) * w * 0.42;
+            const by0 = y0 + yH * ty + (rng() - 0.5) * bandH * 0.38;
+            const r = Math.min(w, yH) * (0.08 + rng() * 0.1);
+            const rg = bx.createRadialGradient(bx0, by0, 0, bx0, by0, r);
+            rg.addColorStop(0, rgbaFromHex(saturateHex(col, 0.2), 0.22));
+            rg.addColorStop(1, rgbaFromHex(col, 0));
+            bx.fillStyle = rg;
+            bx.fillRect(0, 0, w, h);
+          }
         }
       }
 
