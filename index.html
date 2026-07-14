@@ -5900,7 +5900,8 @@
       // 100%着色状態を保存 → 額装＋完了アラート、という新しい完成演出。
       // ※ 色順・source-inマスク・80%描画/中央揃え・保存(toDataURL)ロジックは一切変更せず、
       //   drawOrganicLiquidArt の revealT(0→1) を時間補間するだけで実現する。
-      // ※ SE はここでは鳴らさない。確認タップのジェスチャ内で先に play し、再生開始後に本関数を呼ぶ。
+      // ※ SE はここでは鳴らさない。ボトル預け時(commitInkLanding)のみ可聴。
+      //    3秒アニメ完了の Promise 解決 → 保存フローへは従来どおり直列で繋がる。
       function runInkFillAnimation() {
         if (inkFillAnim && inkFillAnim.rafId) cancelAnimationFrame(inkFillAnim.rafId);
         const DURATION = 3000;
@@ -5931,8 +5932,9 @@
         });
       }
 
-      // soundStarted: 確認タップ同期で起動した playWaterDrop() の Promise（再生開始で resolve）
-      async function onCanvasSelected(canvasId, soundStarted) {
+      // 線画選択確定 → 3秒インク流し込み（無音）→ 100%保存 → 額装＋完了アラート
+      // ※ SE はボトル預け時のみ。ここでは絶対に鳴らさない。
+      async function onCanvasSelected(canvasId) {
         if (!currentFlower || !isFlowerComplete(currentFlower)) return;
         currentFlower.selectedCanvasId = canvasId;
         saveFlower();
@@ -5941,28 +5943,17 @@
         canvasSelectOverlay.setAttribute('aria-hidden', 'true');
         pourStage.classList.remove('visible');
         pourStage.setAttribute('aria-hidden', 'true');
-        // 線画ロードと「音の再生開始」を並行待ち。
-        //   ・音はクリック同期で既に play() 済み（不発なし）
-        //   ・両方揃った瞬間に3秒アニメを開始 → 音先・アニメ連動
-        const soundP = (soundStarted && typeof soundStarted.then === 'function')
-          ? soundStarted.catch(() => false)
-          : Promise.resolve(false);
-        try {
-          await Promise.all([
-            loadLineartImages().catch((e) => { console.warn('線画ロード待機:', e); }),
-            soundP
-          ]);
-        } catch (_) {}
+        // 線画/マスク画像のロードを必ず待ってから演出開始（白紙化防止）
+        try { await loadLineartImages(); } catch (e) { console.warn('線画ロード待機:', e); }
         // COMPLETEフェーズへ = ボトルステージ非表示 & 本キャンバスに線画を中央大表示。
         setBottlePhase(BOTTLE_PHASES.COMPLETE);
         updateExperienceUI();
         // 非額装レイアウトでメインキャンバスを正しいサイズへ。redrawCanvas(全色)が走るが、
         // 直後の runInkFillAnimation の drawAt(0) が同期的に上書きするためフラッシュは見えない。
         resizeCanvas();
-        // 音の再生開始（＋線画準備完了）を基準点にして3秒アニメ開始
+        // ① 3秒間のインク流し込み（静寂）→ ② 完了後に厳格直列保存
         await runInkFillAnimation();
         updateFrameButtonState();
-        // ③④ 完全着色状態の保存 → 読み戻し検証 → 保存確定後にのみOKアラート、を厳格に直列実行。
         await executeFrameArtworkFlow();
       }
 
@@ -6850,10 +6841,8 @@
       if (canvasConfirmBtn) {
         canvasConfirmBtn.addEventListener('click', () => {
           if (!pendingCanvasId) return;
-          // ★最重要: タップ同期コールスタック内で即座に a.play() を起動（Autoplay拒否を防ぐ）
-          //   await / setTimeout の後ろで play するとスマホで不発する。
-          const soundStarted = playWaterDrop();
-          onCanvasSelected(pendingCanvasId, soundStarted);
+          // 線画流し込みは完全無音。水滴SEはボトル預け時(commitInkLanding)のみ。
+          onCanvasSelected(pendingCanvasId);
         });
       }
       updateExperienceUI();
