@@ -4323,8 +4323,9 @@
       // ── 水滴サウンド（本物の録音を new Audio で再生。数式合成は廃止） ──
       //   ★推奨: 単発の高品質な水滴mp3を sounds/water-drop.mp3 に配置してください。
       //     無い場合は同梱済みCC0録音 sounds/water-drops.mp3 の冒頭だけを自動で鳴らします。
-      //   ★再生は playWaterDrop() のみ。解除(unlock)は音量0の無音プレイで行い、
-      //     文字入力・色選択・単なるタップでは絶対に聞こえないようにする。
+      //   ★可聴再生は playWaterDrop() のみ。
+      //     ・確認ボタン等のユーザージェスチャ内で同期的に a.play() を起動すること（不発防止）
+      //     ・返り値 Promise は「実際に再生が始まった瞬間」で resolve（アニメ同期用）
       const WATER_SOUND_SRC = 'sounds/water-drop.mp3';
       const WATER_SOUND_FALLBACK_SRC = 'sounds/water-drops.mp3';
       const WATER_SOUND_FALLBACK_CAP_MS = 700;   // フォールバック（複数滴）は最初の1滴ぶんだけ再生
@@ -4353,14 +4354,15 @@
         waterPool[0].addEventListener('error', () => {
           if (waterUseFallback) return;
           waterUseFallback = true;
-          waterUnlocked = false;   // 新プールは再解除が必要（無音）
+          waterUnlocked = false;
           buildWaterPool(WATER_SOUND_FALLBACK_SRC);
+          // フォールバックも先読み
+          waterPool.forEach((a) => { try { a.load(); } catch (_) {} });
         }, { once: true });
-        waterPool[0].load();
+        waterPool.forEach((a) => { try { a.load(); } catch (_) {} });
       }
 
-      // Autoplay制限の解除のみ。volume=0＋muted で play→即 pause し、水滴音は一切聴かせない。
-      // （旧実装の muted→play→unmute は、一部スマホで解除音が聞こえてしまうため廃止）
+      // Autoplay制限の無音解除（音量0＋muted）。入力画面では呼ばない。
       function unlockWaterSound(force) {
         initWaterSound();
         if (!waterPool || !waterPool.length) return;
@@ -4372,8 +4374,7 @@
             a.volume = 0;
             const p = a.play();
             const settle = () => {
-              // playWaterDrop がすでに可聴再生を始めていたら触らない（競合で音が途切れるのを防ぐ）
-              if (!a.muted) return;
+              if (!a.muted) return; // 可聴再生中は触らない
               try { a.pause(); a.currentTime = 0; } catch (_) {}
               a.muted = true;
               a.volume = WATER_VOLUME;
@@ -4384,24 +4385,44 @@
         });
       }
 
-      // 水滴音を再生。呼び出してよいのは「ボトルへ預けた瞬間」と「3秒インク充填の開始」のみ。
+      // 水滴音を再生し、「再生が実際に始まった」瞬間で resolve する Promise を返す。
+      // ★必ずユーザージェスチャの同期コールスタック内で呼び出す（awaitの後ろで呼ぶと不発する）。
       function playWaterDrop() {
         initWaterSound();
-        if (!waterPool || !waterPool.length) return;
-        const a = waterPool[waterPoolIdx];
-        waterPoolIdx = (waterPoolIdx + 1) % waterPool.length;
-        try {
-          a.muted = false;
-          a.volume = WATER_VOLUME;
-          a.currentTime = 0;
-          waterUnlocked = true;
-          const p = a.play();
-          if (p && p.catch) p.catch(() => {});
-          if (waterUseFallback) {
-            // 複数滴録音は最初の1滴ぶんで止める
-            setTimeout(() => { try { a.pause(); a.currentTime = 0; a.muted = true; } catch (_) {} }, WATER_SOUND_FALLBACK_CAP_MS);
+        return new Promise((resolve) => {
+          if (!waterPool || !waterPool.length) { resolve(false); return; }
+          const a = waterPool[waterPoolIdx];
+          waterPoolIdx = (waterPoolIdx + 1) % waterPool.length;
+          let settled = false;
+          const finish = (ok) => {
+            if (settled) return;
+            settled = true;
+            try { a.removeEventListener('playing', onPlaying); } catch (_) {}
+            resolve(ok);
+          };
+          const onPlaying = () => finish(true);
+          try {
+            a.muted = false;
+            a.volume = WATER_VOLUME;
+            try { a.currentTime = 0; } catch (_) {}
+            waterUnlocked = true;
+            a.addEventListener('playing', onPlaying);
+            const p = a.play();
+            if (p && p.then) {
+              p.then(() => {
+                // play() resolve ≒ 再生開始。playing が遅れる環境向けフォールバック
+                setTimeout(() => finish(true), 0);
+              }).catch(() => finish(false));
+            } else {
+              finish(true);
+            }
+            if (waterUseFallback) {
+              setTimeout(() => { try { a.pause(); a.currentTime = 0; a.muted = true; } catch (_) {} }, WATER_SOUND_FALLBACK_CAP_MS);
+            }
+          } catch (_) {
+            finish(false);
           }
-        } catch (_) {}
+        });
       }
 
       function hexToRgb(hex) {
@@ -5734,6 +5755,7 @@
       let canvasCardsBuilt = false;
       function buildCanvasCards() {
         if (!canvasCardGrid) return;
+        initWaterSound(); // SELECT画面表示時に水滴音を先読み（確認タップでデコード待ちを消す）
         loadLineartImages();
         if (!canvasCardsBuilt) {
           canvasCardGrid.innerHTML = '';
@@ -5878,13 +5900,11 @@
       // 100%着色状態を保存 → 額装＋完了アラート、という新しい完成演出。
       // ※ 色順・source-inマスク・80%描画/中央揃え・保存(toDataURL)ロジックは一切変更せず、
       //   drawOrganicLiquidArt の revealT(0→1) を時間補間するだけで実現する。
+      // ※ SE はここでは鳴らさない。確認タップのジェスチャ内で先に play し、再生開始後に本関数を呼ぶ。
       function runInkFillAnimation() {
         if (inkFillAnim && inkFillAnim.rafId) cancelAnimationFrame(inkFillAnim.rafId);
         const DURATION = 3000;
         const start = performance.now();
-        // 3秒インク充填の開始瞬間のみ水滴SE（入力・色選択では鳴らさない）
-        playWaterDrop();
-        // 開始フレーム: まず主線のみのスタンバイ状態(rt=0)を描く
         const drawAt = (t) => {
           const { w, h } = getCanvasLogicalSize();
           fillCanvasBackground();
@@ -5911,7 +5931,8 @@
         });
       }
 
-      async function onCanvasSelected(canvasId) {
+      // soundStarted: 確認タップ同期で起動した playWaterDrop() の Promise（再生開始で resolve）
+      async function onCanvasSelected(canvasId, soundStarted) {
         if (!currentFlower || !isFlowerComplete(currentFlower)) return;
         currentFlower.selectedCanvasId = canvasId;
         saveFlower();
@@ -5920,16 +5941,25 @@
         canvasSelectOverlay.setAttribute('aria-hidden', 'true');
         pourStage.classList.remove('visible');
         pourStage.setAttribute('aria-hidden', 'true');
-        // 線画/マスク画像のロード（＆マスク実行時生成）を必ず待ってから演出開始
-        // = source-inマスク・色順同期・toDataURL保存が白紙化せず確実に完了する。
-        try { await loadLineartImages(); } catch (e) { console.warn('線画ロード待機:', e); }
+        // 線画ロードと「音の再生開始」を並行待ち。
+        //   ・音はクリック同期で既に play() 済み（不発なし）
+        //   ・両方揃った瞬間に3秒アニメを開始 → 音先・アニメ連動
+        const soundP = (soundStarted && typeof soundStarted.then === 'function')
+          ? soundStarted.catch(() => false)
+          : Promise.resolve(false);
+        try {
+          await Promise.all([
+            loadLineartImages().catch((e) => { console.warn('線画ロード待機:', e); }),
+            soundP
+          ]);
+        } catch (_) {}
         // COMPLETEフェーズへ = ボトルステージ非表示 & 本キャンバスに線画を中央大表示。
         setBottlePhase(BOTTLE_PHASES.COMPLETE);
         updateExperienceUI();
         // 非額装レイアウトでメインキャンバスを正しいサイズへ。redrawCanvas(全色)が走るが、
         // 直後の runInkFillAnimation の drawAt(0) が同期的に上書きするためフラッシュは見えない。
         resizeCanvas();
-        // ① 3秒間のインク流し込みアニメを実行し、② 100%完了を Promise の resolve で確実に待つ。
+        // 音の再生開始（＋線画準備完了）を基準点にして3秒アニメ開始
         await runInkFillAnimation();
         updateFrameButtonState();
         // ③④ 完全着色状態の保存 → 読み戻し検証 → 保存確定後にのみOKアラート、を厳格に直列実行。
@@ -6797,6 +6827,7 @@
       syncFlowerToSplashes();
       syncHistoriesFromSplashes();
       loadFabricImage().catch(() => {});
+      initWaterSound(); // 起動時に水滴mp3を先読み（確認・預け時の再生遅延を防ぐ）
       // ボトル画像は初期化時に1度だけ読み込み（ループ内でnew Imageしない）。
       // 読み込み完了前でもフォールバックで描画し続けられるよう、先にループを起動する。
       startBottleLoop();
@@ -6818,9 +6849,11 @@
       loadLineartImages().then(() => { if (getBottlePhase(currentFlower) === BOTTLE_PHASES.SELECT) buildCanvasCards(); }).catch(() => {});
       if (canvasConfirmBtn) {
         canvasConfirmBtn.addEventListener('click', () => {
-          // 確認タップのジェスチャ内で無音解除だけ行い、音はアニメ開始時に鳴らす
-          unlockWaterSound();
-          if (pendingCanvasId) onCanvasSelected(pendingCanvasId);
+          if (!pendingCanvasId) return;
+          // ★最重要: タップ同期コールスタック内で即座に a.play() を起動（Autoplay拒否を防ぐ）
+          //   await / setTimeout の後ろで play するとスマホで不発する。
+          const soundStarted = playWaterDrop();
+          onCanvasSelected(pendingCanvasId, soundStarted);
         });
       }
       updateExperienceUI();
