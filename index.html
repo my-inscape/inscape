@@ -1906,7 +1906,8 @@
       const FLOWER_MIN_DAYS = 7;
       const FLOWER_MAX_DAYS = 7;
       const MAX_ENTRIES = 10;
-      const GALLERY_MAX = 28;
+      // LocalStorage容量内で可能な限り蓄積（表示は全件スクロール。件数で3件に切る制限は一切ない）
+      const GALLERY_MAX = 100;
       const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
       const GALLERY_RETENTION_MS = RETENTION_MS;
       const DISABLE_DAILY_DIARY_LOCK = true;
@@ -2509,6 +2510,8 @@
 
       // 容量超過時も「今保存した作品(protectId)の画像だけは絶対に捨てない」退避戦略。
       // 退避の優先度: ①全ボトル画像 → ②保護対象以外の作品画像(古い順) → ③保護対象以外のエントリ丸ごと(古い順)。
+      // ★重要: protectId が無い一括書き換えでは作品画像の削除を絶対にしない。
+      //   （再ベイク肥大化時に古い作品画像を剥がし、回廊で「数件しか見えない」主因になっていた）
       function writeGalleryStore(gallery, protectId) {
         const list = Array.isArray(gallery) ? gallery : [];
         const tryWrite = (entries) => {
@@ -2549,31 +2552,34 @@
         if (r === true) return commit();
         if (r === 'fatal') return false;
 
-        // ② 保護対象以外の「作品画像」を古い順に削除
-        for (let i = 0; i < work.length; i++) {
-          if (isProtected(work[i]) || !work[i].artworkImageDataUrl) continue;
-          delete work[i].artworkImageDataUrl;
-          delete work[i].snapshotPixelW;
-          delete work[i].snapshotPixelH;
+        // ② 保護対象がある「個別保存」でのみ、他作品の画像を古い順に退避する。
+        //    protectId無し（一括再ベイク等）では作品画像を剥がさず失敗を返す。
+        if (protectId != null) {
+          for (let i = 0; i < work.length; i++) {
+            if (isProtected(work[i]) || !work[i].artworkImageDataUrl) continue;
+            delete work[i].artworkImageDataUrl;
+            delete work[i].snapshotPixelW;
+            delete work[i].snapshotPixelH;
+            r = attempt();
+            if (r === true) return commit();
+            if (r === 'fatal') return false;
+          }
+
+          // ③ 保護対象以外のエントリを古い順に丸ごと削除
+          while (work.length > 1) {
+            const removeIdx = work.findIndex((e) => !isProtected(e));
+            if (removeIdx < 0) break;
+            work.splice(removeIdx, 1);
+            r = attempt();
+            if (r === true) return commit();
+            if (r === 'fatal') return false;
+          }
+
+          // ④ ここまでで入らなければ、保護対象のボトル画像も削除（作品画像は死守）
+          work.forEach((e) => { delete e.bottleImageDataUrl; delete e.bottleW; delete e.bottleH; });
           r = attempt();
           if (r === true) return commit();
-          if (r === 'fatal') return false;
         }
-
-        // ③ 保護対象以外のエントリを古い順に丸ごと削除
-        while (work.length > 1) {
-          const removeIdx = work.findIndex((e) => !isProtected(e));
-          if (removeIdx < 0) break;
-          work.splice(removeIdx, 1);
-          r = attempt();
-          if (r === true) return commit();
-          if (r === 'fatal') return false;
-        }
-
-        // ④ ここまでで入らなければ、保護対象のボトル画像も削除（作品画像は死守）
-        work.forEach((e) => { delete e.bottleImageDataUrl; delete e.bottleW; delete e.bottleH; });
-        r = attempt();
-        if (r === true) return commit();
 
         console.error('■ 保存エラー発生: 容量を確保できず、作品画像を永続化できませんでした。');
         return false;
@@ -3681,37 +3687,81 @@
         } catch (_) {}
       }
 
-      // 旧JPEGスナップ／古いマスクロジックで焼けた回廊作品を、現行の線画別マスクで再ベイクする。
-      // gallery.html は artworkImageDataUrl を直接表示するため、ここでの更新がギャラリーにも即反映される。
-      const ART_MASK_VERSION = 3;
+      // 回廊用の軽量スナップショット生成（容量を抑えつつ境界のにじみを最小化）
+      function encodeArtworkDataUrl(sourceCanvas) {
+        // WebP優先（小さい）。未対応時は JPEG。PNGは肥大化して回廊件数を殺すため最終手段のみ。
+        let url = toStorableDataUrl(sourceCanvas, 560, 0.86, 'image/webp');
+        if (!url || url.indexOf('data:image/webp') !== 0) {
+          url = toStorableDataUrl(sourceCanvas, 520, 0.84, 'image/jpeg');
+        }
+        if (!url) url = toStorableDataUrl(sourceCanvas, 480, undefined, 'image/png');
+        return url;
+      }
+
+      // 旧JPEG／画像欠落（容量退避で剥がされた）作品を、軽量エンコードで1件ずつ安全に復元する。
+      // ★一括で巨大WebP/PNGに差し替えてから write すると Quota 退避で古い画像が剝がれ、
+      //   gallery.html の hasValidArtworkImage で「数件しか見えない」偽データロスになる。
+      const ART_MASK_VERSION = 4;
+      function galleryEntryHasFlower(e) {
+        return !!(e && e.flower && (e.flower.center || (Array.isArray(e.flower.petals) && e.flower.petals.length)));
+      }
+      function galleryEntryNeedsRemaster(e) {
+        if (!galleryEntryHasFlower(e)) return false;
+        const url = e.artworkImageDataUrl || '';
+        if (!url || url.length < 512 || url.indexOf('data:image') !== 0) return true;
+        if (/^data:image\/jpe?g/i.test(url) && e.artMaskVersion !== ART_MASK_VERSION) return true;
+        if (e.artMaskVersion !== ART_MASK_VERSION && /^data:image\/png/i.test(url) && url.length > 350000) return true;
+        return false;
+      }
       async function remasterGalleryArtworkSnapshots() {
         try {
           await loadLineartImages();
           await loadFabricImage().catch(() => {});
           const gallery = readGalleryStore();
           if (!Array.isArray(gallery) || !gallery.length) return;
-          let changed = 0;
+          let restored = 0;
+          let skipped = 0;
+          const fabric = (fabricImg && fabricImg.naturalWidth > 0) ? fabricImg : null;
+
           for (let i = 0; i < gallery.length; i++) {
             const e = gallery[i];
-            if (!e || !e.flower) continue;
-            if (e.artMaskVersion === ART_MASK_VERSION && e.artworkImageDataUrl
-                && !/^data:image\/jpe?g/i.test(e.artworkImageDataUrl)) continue;
+            if (!galleryEntryNeedsRemaster(e)) continue;
+            if (!e.id) e.id = `art_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 7)}`;
+            const prevUrl = e.artworkImageDataUrl;
+            const prevVer = e.artMaskVersion;
             const lw = (e.canvasW > 0) ? Math.round(e.canvasW) : CANVAS_LOGICAL_W;
             const lh = (e.canvasH > 0) ? Math.round(e.canvasH) : CANVAS_LOGICAL_H;
-            const fabric = (fabricImg && fabricImg.naturalWidth > 0) ? fabricImg : null;
-            const snap = await renderFlowerSnapshotDataUrl(e.flower, lw, lh, fabric);
-            if (snap && snap.artworkImageDataUrl && snap.artworkImageDataUrl.length > 512) {
-              e.artworkImageDataUrl = snap.artworkImageDataUrl;
-              e.artMaskVersion = ART_MASK_VERSION;
-              if (snap.snapshotPixelW) e.snapshotPixelW = snap.snapshotPixelW;
-              if (snap.snapshotPixelH) e.snapshotPixelH = snap.snapshotPixelH;
-              changed++;
+            let snap = null;
+            try {
+              snap = await renderFlowerSnapshotDataUrl(e.flower, lw, lh, fabric);
+            } catch (err) {
+              console.warn('[gallery-remaster] 再描画失敗:', e.id, err);
+              skipped++;
+              continue;
             }
+            if (!snap || !snap.artworkImageDataUrl || snap.artworkImageDataUrl.length < 512) {
+              skipped++;
+              continue;
+            }
+            e.artworkImageDataUrl = snap.artworkImageDataUrl;
+            e.artMaskVersion = ART_MASK_VERSION;
+            if (snap.snapshotPixelW) e.snapshotPixelW = snap.snapshotPixelW;
+            if (snap.snapshotPixelH) e.snapshotPixelH = snap.snapshotPixelH;
+            // ボトルは容量圧迫の主因になりやすいので再ベイクでは載せ直さない
+            delete e.bottleImageDataUrl;
+            delete e.bottleW;
+            delete e.bottleH;
+            const ok = writeGalleryStore(gallery, e.id);
+            if (!ok) {
+              e.artworkImageDataUrl = prevUrl;
+              e.artMaskVersion = prevVer;
+              skipped++;
+              console.warn('[gallery-remaster] 容量不足で復元スキップ:', e.id);
+              break;
+            }
+            restored++;
           }
-          if (changed > 0) {
-            const ok = writeGalleryStore(gallery);
-            console.log('[gallery-remaster] 作品を再ベイク:', changed, '件', ok ? '保存OK' : '保存失敗(容量?)');
-          }
+          console.log('[gallery-remaster] 復元:', restored, '件 / スキップ:', skipped, '件 / 総エントリ:', gallery.length);
         } catch (err) {
           console.warn('[gallery-remaster] 失敗:', err);
         }
@@ -6707,13 +6757,9 @@
 
         let artworkImageDataUrl;
         try {
-          // ★JPEG禁止: 境界の色がフレーム外へにじむ主因（chroma bleed）。
-          //   不透明マットでも WebP → PNG の順でエッジを保持したまま圧縮する。
-          artworkImageDataUrl = toStorableDataUrl(out, 780, 0.92, 'image/webp');
-          if (!artworkImageDataUrl || artworkImageDataUrl.indexOf('data:image/webp') !== 0) {
-            artworkImageDataUrl = toStorableDataUrl(out, 720, undefined, 'image/png');
-          }
-          if (!artworkImageDataUrl) artworkImageDataUrl = out.toDataURL('image/png');
+          // 回廊蓄積を守る軽量エンコード（巨大PNG一択は LocalStorage 件数を殺す）
+          artworkImageDataUrl = encodeArtworkDataUrl(out);
+          if (!artworkImageDataUrl) artworkImageDataUrl = out.toDataURL('image/webp', 0.86);
         } catch (err) {
           console.error('■ 保存エラー発生: 作品スナップショットの toDataURL 失敗（canvas汚染の可能性）:', err);
           artworkImageDataUrl = null;

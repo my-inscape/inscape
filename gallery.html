@@ -297,7 +297,8 @@
       width: auto;
       max-width: min(94vw, calc(var(--canvas-portrait-w) + 4.5rem));
       height: auto;
-      margin: 0 auto;
+      /* 横スクロール列では auto マージンを使わない（中央寄せで後ろの作品が死角に入るのを防ぐ） */
+      margin: 0;
       text-align: center;
       position: relative;
       padding: 40px 0 20px;
@@ -426,6 +427,23 @@
       box-shadow: none;
       opacity: 0;
       animation: galleryArtFadeIn 0.9s ease forwards;
+    }
+
+    .art-restore-hint {
+      position: absolute;
+      inset: 0;
+      z-index: 3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      text-align: center;
+      font-family: "Yu Mincho", "Hiragino Mincho ProN", Georgia, serif;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      line-height: 1.7;
+      color: rgba(80, 72, 60, 0.72);
+      pointer-events: none;
     }
 
     @keyframes galleryArtFadeIn {
@@ -1595,7 +1613,7 @@
         if (!surface) return null;
 
         let artEl;
-        if (item.artworkImageDataUrl) {
+        if (hasValidArtworkImage(item)) {
           surface.classList.add('art-surface--snapshot');
           const img = document.createElement('img');
           img.className = 'gallery-art-image';
@@ -1611,11 +1629,16 @@
           surface.appendChild(img);
           artEl = img;
         } else {
+          // 画像が容量退避で剥がされていても額縁は残す（キャンバス再訪で再ベイクされる）
           const artCanvas = document.createElement('canvas');
           artCanvas.className = 'gallery-art-canvas';
           applyArtworkSurfaceAspect(surface, item);
           renderRecipeToCanvas(artCanvas, getSplatsFromItem(item), item);
           surface.appendChild(artCanvas);
+          const hint = document.createElement('div');
+          hint.className = 'art-restore-hint';
+          hint.textContent = '画像を復元中…キャンバスを開くと再生されます';
+          surface.appendChild(hint);
           artEl = artCanvas;
         }
 
@@ -1662,23 +1685,35 @@
         c.drawImage(off, 0, 0, targetW, targetH);
       }
 
-      // 有効な完成画像(Base64 PNG)を持つか判定。
-      // recipe描画は廃止済みのため、画像が無い項目は白い額縁になる。表示対象から除外する。
+      // 有効な完成画像(Base64)を持つか判定。
       function hasValidArtworkImage(entry) {
         const url = entry && entry.artworkImageDataUrl;
         return typeof url === 'string' && url.indexOf('data:image') === 0 && url.length > 512;
       }
 
+      // flower（色データ）が残っていれば画像欠落でも回廊に載せる（容量退避の「見せかけの消失」を防ぐ）
+      function galleryEntryHasRecoverableFlower(entry) {
+        const f = entry && entry.flower;
+        return !!(f && (f.center || (Array.isArray(f.petals) && f.petals.length)));
+      }
+
       function loadGallery() {
         const items = [];
+        let rawCount = 0;
+        let skippedEmpty = 0;
 
         try {
           const data = loadGalleryRaw();
           if (Array.isArray(data)) {
+            rawCount = data.length;
             data.forEach((entry, index) => {
               if (!entry) return;
-              // 完成画像を持つ作品のみ表示（白紙フォールバックの空額縁を出さない）
-              if (!hasValidArtworkImage(entry)) return;
+              // 完成画像があるか、flowerから再描画可能なものだけ表示。
+              // ★件数の slice(0,3) 等の表示制限はしない。全件を横スクロール対象にする。
+              if (!hasValidArtworkImage(entry) && !galleryEntryHasRecoverableFlower(entry)) {
+                skippedEmpty++;
+                return;
+              }
               const splats = getSplatsFromItem(entry);
               items.push({
                 ...entry,
@@ -1692,6 +1727,7 @@
           console.warn('inscape_gallery の読み込みに失敗:', err);
         }
 
+        console.log('[gallery] LocalStorage件数:', rawCount, '/ 表示:', items.length, '/ 空スキップ:', skippedEmpty);
         return items;
       }
 
