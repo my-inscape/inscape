@@ -1970,9 +1970,9 @@
   <script src="framed-export.js"></script>
   <script>
   (function () {
-    if (window.INSCAPE_FRAME_EXPORT && window.INSCAPE_FRAME_EXPORT.version >= 6) return;
-    console.warn('[INSCAPE] framed-export.js missing/old — installing inline v6');
-    /* minimal inline twin of framed-export v6 */
+    /* Prefer framed-export.js v7+. Only install emergency twin if missing. */
+    if (window.INSCAPE_FRAME_EXPORT && window.INSCAPE_FRAME_EXPORT.version >= 7) return;
+    console.warn('[INSCAPE] framed-export.js missing/old — installing inline v7');
     function loadImage(src) {
       return new Promise(function (resolve, reject) {
         if (src && src.tagName === 'CANVAS') { resolve(src); return; }
@@ -1982,6 +1982,55 @@
         img.src = src;
         if (img.complete && img.naturalWidth) resolve(img);
       });
+    }
+    function fillPoly(ctx, pts, style) {
+      ctx.beginPath();
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
+      ctx.closePath();
+      ctx.fillStyle = style;
+      ctx.fill();
+    }
+    function paintGold(ctx, ox, oy, boxW, boxH, border) {
+      var ix = ox + border, iy = oy + border, iw = boxW - border * 2, ih = boxH - border * 2;
+      ctx.save();
+      ctx.shadowColor = 'rgba(0,0,0,0.92)';
+      ctx.shadowBlur = 52;
+      ctx.shadowOffsetY = 28;
+      ctx.fillStyle = '#1a1008';
+      ctx.fillRect(ox, oy, boxW, boxH);
+      ctx.restore();
+      ctx.fillStyle = '#1c110a';
+      ctx.fillRect(ox - 1, oy - 1, boxW + 2, boxH + 2);
+      var gTop = ctx.createLinearGradient(ox, oy, ox, oy + border);
+      gTop.addColorStop(0, '#fff8d6'); gTop.addColorStop(0.2, '#ffefa6'); gTop.addColorStop(0.5, '#f3e5ab');
+      gTop.addColorStop(0.75, '#d4af37'); gTop.addColorStop(1, '#70541c');
+      fillPoly(ctx, [[ox, oy], [ox + boxW, oy], [ix + iw, iy], [ix, iy]], gTop);
+      var gLeft = ctx.createLinearGradient(ox, oy, ox + border, oy);
+      gLeft.addColorStop(0, '#ffe9a0'); gLeft.addColorStop(0.35, '#d4af37'); gLeft.addColorStop(1, '#70541c');
+      fillPoly(ctx, [[ox, oy], [ix, iy], [ix, iy + ih], [ox, oy + boxH]], gLeft);
+      var gRight = ctx.createLinearGradient(ox + boxW, oy, ox + boxW - border, oy);
+      gRight.addColorStop(0, '#3d2a0a'); gRight.addColorStop(0.4, '#8a640f'); gRight.addColorStop(1, '#70541c');
+      fillPoly(ctx, [[ox + boxW, oy], [ox + boxW, oy + boxH], [ix + iw, iy + ih], [ix + iw, iy]], gRight);
+      var gBot = ctx.createLinearGradient(ox, oy + boxH, ox, oy + boxH - border);
+      gBot.addColorStop(0, '#2a1c08'); gBot.addColorStop(0.4, '#5c430a'); gBot.addColorStop(1, '#a67c1a');
+      fillPoly(ctx, [[ox, oy + boxH], [ox + boxW, oy + boxH], [ix + iw, iy + ih], [ix, iy + ih]], gBot);
+      ctx.strokeStyle = 'rgba(40,28,8,0.35)';
+      ctx.beginPath();
+      ctx.moveTo(ox, oy); ctx.lineTo(ix, iy);
+      ctx.moveTo(ox + boxW, oy); ctx.lineTo(ix + iw, iy);
+      ctx.moveTo(ox, oy + boxH); ctx.lineTo(ix, iy + ih);
+      ctx.moveTo(ox + boxW, oy + boxH); ctx.lineTo(ix + iw, iy + ih);
+      ctx.stroke();
+      ctx.strokeStyle = '#aa7c11';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(ix + 2, iy + 2, iw - 4, ih - 4);
+      ctx.strokeStyle = 'rgba(255,248,214,0.55)';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(ix + 4, iy + 4); ctx.lineTo(ix + iw - 4, iy + 4);
+      ctx.moveTo(ix + 4, iy + 4); ctx.lineTo(ix + 4, iy + ih - 4);
+      ctx.stroke();
     }
     async function composeFramedPngFile(source, filename) {
       var art;
@@ -1994,33 +2043,30 @@
         art.height = img.naturalHeight || img.height;
         art.getContext('2d').drawImage(img, 0, 0);
       }
-      var W = 1080, H = 1920, border = 28, pad = 22;
+      var W = 1080, H = 1920, border = 36, pad = 18;
       var frame = document.createElement('canvas');
       frame.width = W; frame.height = H;
       var ctx = frame.getContext('2d');
-      ctx.fillStyle = '#0a0a0a';
+      var wall = ctx.createRadialGradient(W * 0.5, H * 0.28, 60, W * 0.5, H * 0.5, H * 0.7);
+      wall.addColorStop(0, '#24201c'); wall.addColorStop(1, '#050505');
+      ctx.fillStyle = wall;
       ctx.fillRect(0, 0, W, H);
-      var maxW = W - 160 - border * 2 - pad * 2;
-      var maxH = H - 340 - border * 2 - pad * 2;
+      var maxW = W - 140 - border * 2 - pad * 2;
+      var maxH = H - 300 - border * 2 - pad * 2;
       var sc = Math.min(maxW / art.width, maxH / art.height);
       var aw = Math.round(art.width * sc), ah = Math.round(art.height * sc);
       var matW = aw + pad * 2, matH = ah + pad * 2;
       var boxW = matW + border * 2, boxH = matH + border * 2;
-      var ox = Math.round((W - boxW) / 2), oy = Math.round(200 + (H - 340 - boxH) / 2);
-      ctx.fillStyle = '#1c110a';
-      ctx.fillRect(ox, oy, boxW, boxH);
-      ctx.fillStyle = '#d4af37';
-      ctx.fillRect(ox, oy, boxW, border);
-      ctx.fillRect(ox, oy, border, boxH);
-      ctx.fillStyle = '#8a640f';
-      ctx.fillRect(ox + boxW - border, oy, border, boxH);
-      ctx.fillRect(ox, oy + boxH - border, boxW, border);
+      var ox = Math.round((W - boxW) / 2), oy = Math.round(160 + (H - 280 - boxH) / 2);
+      paintGold(ctx, ox, oy, boxW, boxH, border);
+      var mx = ox + border, my = oy + border;
       ctx.fillStyle = '#fbf9f5';
-      ctx.fillRect(ox + border, oy + border, matW, matH);
-      ctx.drawImage(art, ox + border + pad, oy + border + pad, aw, ah);
-      ctx.strokeStyle = '#aa7c11';
-      ctx.lineWidth = 4;
-      ctx.strokeRect(ox + border + 2, oy + border + 2, matW - 4, matH - 4);
+      ctx.fillRect(mx, my, matW, matH);
+      var topSh = ctx.createLinearGradient(mx, my, mx, my + 22);
+      topSh.addColorStop(0, 'rgba(0,0,0,0.55)'); topSh.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = topSh;
+      ctx.fillRect(mx, my, matW, 22);
+      ctx.drawImage(art, mx + pad, my + pad, aw, ah);
       ctx.fillStyle = 'rgba(200,200,200,0.7)';
       ctx.font = '300 32px Georgia, serif';
       ctx.textAlign = 'center';
@@ -2033,7 +2079,7 @@
       catch (e) { file = blob; file.name = filename || 'INSCAPE_Artwork.png'; }
       return { canvas: frame, file: file, previewUrl: frame.toDataURL('image/png'), blob: blob };
     }
-    window.INSCAPE_FRAME_EXPORT = { version: 6, composeFramedPngFile: composeFramedPngFile };
+    window.INSCAPE_FRAME_EXPORT = { version: 7, composeFramedPngFile: composeFramedPngFile };
   })();
   </script>
   <script>
