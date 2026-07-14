@@ -2170,7 +2170,7 @@
         if (isDiarySubmitting || isCanvasInteractionLocked()) return;
         // 長押し開始（ユーザー操作）: iOSジャイロ許可を取り、ボトルに振動を伝える
         if (typeof requestBottleMotionPermission === 'function') requestBottleMotionPermission();
-        unlockWaterSound();  // このユーザー操作で水滴音の再生を解禁（フリック時に確実に鳴る）
+        // ※ 水滴SEはここでは鳴らさない／解除もしない（色選択・長押しは静寂のまま）
         if (typeof exciteBottle === 'function') exciteBottle((Math.random() * 2 - 1) * 0.9, 0.4);
         resetChargeState();
         chargeState.active = true;
@@ -4323,10 +4323,13 @@
       // ── 水滴サウンド（本物の録音を new Audio で再生。数式合成は廃止） ──
       //   ★推奨: 単発の高品質な水滴mp3を sounds/water-drop.mp3 に配置してください。
       //     無い場合は同梱済みCC0録音 sounds/water-drops.mp3 の冒頭だけを自動で鳴らします。
+      //   ★再生は playWaterDrop() のみ。解除(unlock)は音量0の無音プレイで行い、
+      //     文字入力・色選択・単なるタップでは絶対に聞こえないようにする。
       const WATER_SOUND_SRC = 'sounds/water-drop.mp3';
       const WATER_SOUND_FALLBACK_SRC = 'sounds/water-drops.mp3';
       const WATER_SOUND_FALLBACK_CAP_MS = 700;   // フォールバック（複数滴）は最初の1滴ぶんだけ再生
       const WATER_POOL_SIZE = 5;                 // 連続タップで音が気持ちよく重なるようプール化
+      const WATER_VOLUME = 0.85;
       let waterPool = null;
       let waterPoolIdx = 0;
       let waterUseFallback = false;
@@ -4337,7 +4340,8 @@
         for (let i = 0; i < WATER_POOL_SIZE; i++) {
           const a = new Audio(src);
           a.preload = 'auto';
-          a.volume = 0.85;
+          a.volume = WATER_VOLUME;
+          a.muted = false;
           waterPool.push(a);
         }
       }
@@ -4349,28 +4353,38 @@
         waterPool[0].addEventListener('error', () => {
           if (waterUseFallback) return;
           waterUseFallback = true;
+          waterUnlocked = false;   // 新プールは再解除が必要（無音）
           buildWaterPool(WATER_SOUND_FALLBACK_SRC);
-          if (waterUnlocked) unlockWaterSound(true);
         }, { once: true });
         waterPool[0].load();
       }
 
-      // ユーザー操作の直後に呼び、Autoplay制限を解除（無音で一度再生→即停止）
+      // Autoplay制限の解除のみ。volume=0＋muted で play→即 pause し、水滴音は一切聴かせない。
+      // （旧実装の muted→play→unmute は、一部スマホで解除音が聞こえてしまうため廃止）
       function unlockWaterSound(force) {
         initWaterSound();
+        if (!waterPool || !waterPool.length) return;
         if (waterUnlocked && !force) return;
         waterUnlocked = true;
         waterPool.forEach((a) => {
-          const v = a.volume;
-          a.muted = true;
-          const p = a.play();
-          const settle = () => { try { a.pause(); a.currentTime = 0; } catch (_) {} a.muted = false; a.volume = v; };
-          if (p && p.then) p.then(settle).catch(() => { a.muted = false; a.volume = v; });
-          else settle();
+          try {
+            a.muted = true;
+            a.volume = 0;
+            const p = a.play();
+            const settle = () => {
+              // playWaterDrop がすでに可聴再生を始めていたら触らない（競合で音が途切れるのを防ぐ）
+              if (!a.muted) return;
+              try { a.pause(); a.currentTime = 0; } catch (_) {}
+              a.muted = true;
+              a.volume = WATER_VOLUME;
+            };
+            if (p && p.then) p.then(settle).catch(settle);
+            else settle();
+          } catch (_) {}
         });
       }
 
-      // 水滴音を再生。currentTime=0 でリセットし、連続タップでも被って心地よく鳴る。
+      // 水滴音を再生。呼び出してよいのは「ボトルへ預けた瞬間」と「3秒インク充填の開始」のみ。
       function playWaterDrop() {
         initWaterSound();
         if (!waterPool || !waterPool.length) return;
@@ -4378,12 +4392,14 @@
         waterPoolIdx = (waterPoolIdx + 1) % waterPool.length;
         try {
           a.muted = false;
+          a.volume = WATER_VOLUME;
           a.currentTime = 0;
+          waterUnlocked = true;
           const p = a.play();
           if (p && p.catch) p.catch(() => {});
           if (waterUseFallback) {
             // 複数滴録音は最初の1滴ぶんで止める
-            setTimeout(() => { try { a.pause(); a.currentTime = 0; } catch (_) {} }, WATER_SOUND_FALLBACK_CAP_MS);
+            setTimeout(() => { try { a.pause(); a.currentTime = 0; a.muted = true; } catch (_) {} }, WATER_SOUND_FALLBACK_CAP_MS);
           }
         } catch (_) {}
       }
@@ -5866,6 +5882,8 @@
         if (inkFillAnim && inkFillAnim.rafId) cancelAnimationFrame(inkFillAnim.rafId);
         const DURATION = 3000;
         const start = performance.now();
+        // 3秒インク充填の開始瞬間のみ水滴SE（入力・色選択では鳴らさない）
+        playWaterDrop();
         // 開始フレーム: まず主線のみのスタンバイ状態(rt=0)を描く
         const drawAt = (t) => {
           const { w, h } = getCanvasLogicalSize();
@@ -6549,7 +6567,6 @@
         if (hasReachedSplashLimit()) return;
 
         onUserActivity();
-        unlockWaterSound();
         isDiarySubmitting = true;
         wordInput.disabled = true;
         setEmotionPaletteDisabled(true);
@@ -6801,6 +6818,8 @@
       loadLineartImages().then(() => { if (getBottlePhase(currentFlower) === BOTTLE_PHASES.SELECT) buildCanvasCards(); }).catch(() => {});
       if (canvasConfirmBtn) {
         canvasConfirmBtn.addEventListener('click', () => {
+          // 確認タップのジェスチャ内で無音解除だけ行い、音はアニメ開始時に鳴らす
+          unlockWaterSound();
           if (pendingCanvasId) onCanvasSelected(pendingCanvasId);
         });
       }
@@ -6820,8 +6839,8 @@
         updateUIState();
       });
 
-      document.addEventListener('touchstart', () => { unlockWaterSound(); }, { once: true });
-      document.addEventListener('click', () => { unlockWaterSound(); }, { once: true });
+      // 水滴SEの document 一括再生は廃止（文字入力タップ等で誤鳴りするため）。
+      // Autoplay解除は playWaterDrop() 内で、実際に鳴らすタイミングのユーザージェスチャに合わせて行う。
       }
 
       bootApp();
