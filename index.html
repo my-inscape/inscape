@@ -13,7 +13,6 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>INSCAPE</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1231,99 +1230,6 @@
       color: rgba(201, 169, 98, 0.65);
     }
 
-    .frame-modal {
-      position: absolute;
-      inset: 0;
-      z-index: 210;
-      background: rgba(8, 9, 11, 0.94);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: calc(1rem + env(safe-area-inset-top)) 1rem calc(1rem + env(safe-area-inset-bottom));
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity 0.5s ease, visibility 0.5s ease;
-    }
-
-    .frame-modal.open {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-
-    .frame-modal-inner {
-      width: 100%;
-      max-height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 0.85rem;
-    }
-
-    .frame-preview-wrap {
-      flex: 1;
-      min-height: 0;
-      width: 100%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: auto;
-    }
-
-    #framePreview {
-      max-width: 100%;
-      max-height: 52vh;
-      display: block;
-      box-shadow:
-        0 8px 32px rgba(0, 0, 0, 0.45),
-        0 24px 80px rgba(0, 0, 0, 0.35);
-    }
-
-    .frame-modal-title {
-      font-size: 0.56rem;
-      letter-spacing: 0.42em;
-      text-indent: 0.42em;
-      color: var(--text-soft);
-      text-align: center;
-    }
-
-    .frame-modal-actions {
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 0.5rem;
-      flex-shrink: 0;
-    }
-
-    .frame-action-btn {
-      width: 100%;
-      padding: 0.85rem;
-      border: 0.5px solid rgba(201, 169, 98, 0.35);
-      border-radius: 1px;
-      background: rgba(201, 169, 98, 0.08);
-      color: rgba(232, 230, 226, 0.85);
-      font-size: 0.62rem;
-      letter-spacing: 0.35em;
-      text-indent: 0.35em;
-      cursor: pointer;
-      text-align: center;
-      text-decoration: none;
-      display: block;
-    }
-
-    .frame-action-btn.secondary {
-      border-color: rgba(255, 255, 255, 0.12);
-      background: transparent;
-      color: rgba(232, 230, 226, 0.55);
-      letter-spacing: 0.2em;
-      text-indent: 0.2em;
-    }
-
-    .frame-action-btn.primary {
-      background: linear-gradient(180deg, rgba(201, 169, 98, 0.18) 0%, rgba(184, 160, 122, 0.08) 100%);
-    }
-
     .frame-complete-dialog {
       position: fixed;
       inset: 0;
@@ -1386,110 +1292,6 @@
       flex-direction: column;
       align-items: stretch;
       gap: 0.55rem;
-    }
-
-    .frame-complete-btn.save-photo {
-      letter-spacing: 0.18em;
-      text-indent: 0.18em;
-    }
-
-    .frame-complete-btn.save-photo[hidden] {
-      display: none !important;
-    }
-
-    /* 写真アプリへ長押し保存するためのフォールバックモーダル */
-    .photo-save-overlay {
-      position: fixed;
-      inset: 0;
-      z-index: 10080;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding:
-        calc(0.85rem + env(safe-area-inset-top))
-        calc(0.85rem + env(safe-area-inset-right))
-        calc(0.85rem + env(safe-area-inset-bottom))
-        calc(0.85rem + env(safe-area-inset-left));
-      background:
-        radial-gradient(ellipse 70% 55% at 50% 45%, rgba(20, 18, 16, 0.97) 0%, rgba(3, 3, 4, 0.98) 100%);
-      opacity: 0;
-      visibility: hidden;
-      pointer-events: none;
-      transition: opacity 0.45s ease, visibility 0.45s ease;
-    }
-
-    .photo-save-overlay.active {
-      opacity: 1;
-      visibility: visible;
-      pointer-events: auto;
-    }
-
-    .photo-save-panel {
-      position: relative;
-      width: min(92vw, 22rem);
-      max-height: 100%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      transform: translateY(18px) scale(0.96);
-      opacity: 0;
-      transition: transform 0.55s cubic-bezier(0.34, 1.15, 0.64, 1), opacity 0.45s ease;
-    }
-
-    .photo-save-overlay.active .photo-save-panel {
-      transform: translateY(0) scale(1);
-      opacity: 1;
-    }
-
-    .photo-save-close {
-      align-self: flex-end;
-      margin-bottom: 0.75rem;
-      font-family: "Yu Mincho", "Hiragino Mincho ProN", Georgia, "Times New Roman", serif;
-      font-size: 1.15rem;
-      font-weight: 300;
-      line-height: 1;
-      color: rgba(232, 230, 226, 0.45);
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 0.45rem 0.65rem;
-    }
-
-    .photo-save-close:hover {
-      color: rgba(243, 229, 171, 0.9);
-    }
-
-    .photo-save-hint {
-      width: 100%;
-      margin-bottom: 1rem;
-      text-align: center;
-      font-family: "Yu Mincho", "Hiragino Mincho ProN", Georgia, "Times New Roman", serif;
-      font-size: 0.62rem;
-      font-weight: 300;
-      line-height: 2;
-      letter-spacing: 0.14em;
-      text-indent: 0.14em;
-      color: rgba(201, 169, 98, 0.72);
-    }
-
-    .photo-save-image-wrap {
-      width: 100%;
-      border-radius: 2px;
-      overflow: hidden;
-      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
-      background: #0a0a0a;
-      line-height: 0;
-    }
-
-    .photo-save-image-wrap img {
-      display: block;
-      width: 100%;
-      height: auto;
-      max-height: min(72vh, 70dvh);
-      object-fit: contain;
-      -webkit-touch-callout: default;
-      -webkit-user-drag: none;
-      user-select: none;
     }
 
     .tooltip {
@@ -1862,19 +1664,6 @@
       </button>
     </div>
 
-    <div class="frame-modal" id="frameModal" aria-hidden="true">
-      <div class="frame-modal-inner">
-        <p class="frame-modal-title">作品 — 額装完了</p>
-        <div class="frame-preview-wrap">
-          <img id="framePreview" alt="額装された花">
-        </div>
-        <div class="frame-modal-actions">
-          <button type="button" class="frame-action-btn primary" id="frameDownload">作品を保存する</button>
-          <button type="button" class="frame-action-btn secondary" id="frameModalClose">閉じる</button>
-        </div>
-      </div>
-    </div>
-
     <div class="app">
       <p class="logo logo--header zen-target" aria-label="INSCAPE">INSCAPE</p>
 
@@ -1930,18 +1719,7 @@
       <div class="frame-complete-inner">
         <p>作品を感情の回廊に大切に飾りました</p>
         <div class="frame-complete-actions">
-          <button type="button" class="frame-complete-btn save-photo" id="frameCompleteSave" hidden>作品を保存する</button>
-          <button type="button" class="frame-complete-btn" id="frameCompleteOk">OK</button>
-        </div>
-      </div>
-    </div>
-
-    <div class="photo-save-overlay" id="photoSaveOverlay" aria-hidden="true" role="dialog" aria-label="写真への保存">
-      <div class="photo-save-panel">
-        <button type="button" class="photo-save-close" id="photoSaveClose" aria-label="閉じる">✕</button>
-        <p class="photo-save-hint">画像を長押しして<br>「写真に追加」または「画像を保存」を選択してください</p>
-        <div class="photo-save-image-wrap">
-          <img id="photoSaveImage" alt="INSCAPE — 完成作品" draggable="false">
+          <button type="button" class="frame-complete-btn" id="frameCompleteOk">感情の回廊へ</button>
         </div>
       </div>
     </div>
@@ -1968,81 +1746,6 @@
   </div>
 
   <script src="embedded-assets.js"></script>
-  <script src="framed-export.js"></script>
-  <script>
-  (function () {
-    /* Prefer framed-export.js v8 (html2canvas). Thin fallback if file missing. */
-    if (window.INSCAPE_FRAME_EXPORT && window.INSCAPE_FRAME_EXPORT.version >= 8) return;
-    console.warn('[INSCAPE] framed-export.js missing/old — installing inline v8 html2canvas stub');
-    function toPngBlob(cv) {
-      return new Promise(function (resolve, reject) {
-        if (!cv || !cv.toBlob) { reject(new Error('canvas')); return; }
-        cv.toBlob(function (b) { b ? resolve(b) : reject(new Error('blob')); }, 'image/png');
-      });
-    }
-    function toFile(blob, name) {
-      try { return new File([blob], name || 'INSCAPE_Artwork.png', { type: 'image/png' }); }
-      catch (e) { blob.name = name || 'INSCAPE_Artwork.png'; return blob; }
-    }
-    function prepareClone(clonedEl) {
-      if (!clonedEl) return;
-      clonedEl.querySelectorAll('.gallery-art-image, .gallery-art-canvas, img, canvas').forEach(function (el) {
-        el.style.setProperty('opacity', '1', 'important');
-        el.style.setProperty('animation', 'none', 'important');
-        el.style.setProperty('visibility', 'visible', 'important');
-      });
-    }
-    async function captureDomFrameToFile(element, filename) {
-      if (typeof html2canvas !== 'function') throw new Error('html2canvas not loaded');
-      if (!element) throw new Error('target missing');
-      var shot = await html2canvas(element, {
-        scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, logging: false,
-        onclone: function (_d, c) { prepareClone(c); }
-      });
-      var W = 1080, H = 1920;
-      var board = document.createElement('canvas');
-      board.width = W; board.height = H;
-      var ctx = board.getContext('2d');
-      var g = ctx.createRadialGradient(W * 0.5, H * 0.28, 40, W * 0.5, H * 0.48, H * 0.72);
-      g.addColorStop(0, '#24201c'); g.addColorStop(1, '#050505');
-      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
-      var maxW = W - 144, maxH = H - 380;
-      var s = Math.min(maxW / shot.width, maxH / shot.height);
-      var dw = shot.width * s, dh = shot.height * s;
-      ctx.drawImage(shot, (W - dw) / 2, 160 + (maxH - dh) / 2, dw, dh);
-      ctx.fillStyle = 'rgba(190,190,190,0.65)';
-      ctx.font = '300 32px Georgia, serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('INSCAPE', W / 2, H - 90);
-      var blob = await toPngBlob(board);
-      return { canvas: board, file: toFile(blob, filename), previewUrl: board.toDataURL('image/png'), blob: blob };
-    }
-    function isVisiblyFramed(el) {
-      try { return (parseFloat(getComputedStyle(el).borderTopWidth) || 0) >= 8; } catch (e) { return false; }
-    }
-    function findLiveFramedTarget() {
-      var list = [
-        document.querySelector('#museumFrame .museum-frame-sculpted'),
-        document.querySelector('.gallery-item--detail .museum-frame-sculpted'),
-        document.querySelector('.museum-frame-sculpted')
-      ];
-      for (var i = 0; i < list.length; i++) if (list[i] && isVisiblyFramed(list[i])) return list[i];
-      return null;
-    }
-    async function composeFramedPngFile(source, filename) {
-      var live = findLiveFramedTarget();
-      if (live) return captureDomFrameToFile(live, filename);
-      throw new Error('live framed DOM required (inline stub)');
-    }
-    window.INSCAPE_FRAME_EXPORT = {
-      version: 8,
-      captureDomFrameToFile: captureDomFrameToFile,
-      composeFramedPngFile: composeFramedPngFile,
-      findLiveFramedTarget: findLiveFramedTarget,
-      isVisiblyFramed: isVisiblyFramed
-    };
-  })();
-  </script>
   <script>
     (function () {
       'use strict';
@@ -2189,18 +1892,8 @@
       const frameCtaOverlay = document.getElementById('frameCtaOverlay');
       const frameProgress = document.getElementById('frameProgress');
       const frameProgressHint = document.getElementById('frameProgressHint');
-      const frameModal = document.getElementById('frameModal');
-      const framePreview = document.getElementById('framePreview');
-      const frameDownload = document.getElementById('frameDownload');
-      const frameModalClose = document.getElementById('frameModalClose');
       const frameCompleteDialog = document.getElementById('frameCompleteDialog');
       const frameCompleteOk = document.getElementById('frameCompleteOk');
-      const frameCompleteSave = document.getElementById('frameCompleteSave');
-      const photoSaveOverlay = document.getElementById('photoSaveOverlay');
-      const photoSaveClose = document.getElementById('photoSaveClose');
-      const photoSaveImage = document.getElementById('photoSaveImage');
-      let lastPhotoSaveDataUrl = null;
-      let photoSaveObjectUrl = null;
       const completionWhisper = document.getElementById('completionWhisper');
       const bottleStage = document.getElementById('bottleStage');
       const bottleCanvas = document.getElementById('bottleCanvas');
@@ -2251,7 +1944,6 @@
       let isZenMode = false;
       let framingCompleted = false;
       let frameProcessing = false;
-      let lastCanvasExportDataUrl = null;
       let isDiarySubmitting = false;
       let canvasTouchStart = null;
       let lastCanvasTapHandledAt = 0;
@@ -2992,12 +2684,6 @@
 
       function refreshCanvasExportSnapshot() {
         redrawCanvas();
-        try {
-          lastCanvasExportDataUrl = canvas.toDataURL('image/png');
-        } catch (err) {
-          console.warn('canvas export snapshot failed:', err);
-          lastCanvasExportDataUrl = null;
-        }
       }
 
       function loadInscapeHistory() {
@@ -3838,7 +3524,7 @@
       }
 
       function resetZenTimer() {
-        if (!zenArmed || frameModal.classList.contains('open') || getGalleryProgress().ready) return;
+        if (!zenArmed || getGalleryProgress().ready) return;
         exitZenMode();
         zenTimer = setTimeout(() => {
           phoneShell.classList.add('zen-fading');
@@ -3863,7 +3549,7 @@
         if (isZenMode || phoneShell.classList.contains('zen-fading')) {
           exitZenMode();
         }
-        if (zenArmed && !frameModal.classList.contains('open') && !getGalleryProgress().ready) {
+        if (zenArmed && !getGalleryProgress().ready) {
           resetZenTimer();
         }
       }
@@ -4325,209 +4011,37 @@
       function showFrameCompleteDialog(gallerySaved, entryCount) {
         return new Promise(resolve => {
           if (!frameCompleteDialog || !frameCompleteOk) {
-            resolve();
+            resolve(false);
             return;
           }
           const messageEl = frameCompleteDialog.querySelector('p');
           if (messageEl) {
             if (gallerySaved === false) {
               messageEl.textContent = '回廊への保存に失敗しました。もう一度お試しください';
+              frameCompleteOk.textContent = 'OK';
             } else if (entryCount) {
               messageEl.textContent = `${entryCount}日間の感情から生まれた作品を、感情の回廊に大切に飾りました`;
+              frameCompleteOk.textContent = '感情の回廊へ';
             } else {
               messageEl.textContent = '作品を感情の回廊に大切に飾りました';
+              frameCompleteOk.textContent = '感情の回廊へ';
             }
+          } else if (gallerySaved) {
+            frameCompleteOk.textContent = '感情の回廊へ';
+          } else {
+            frameCompleteOk.textContent = 'OK';
           }
-          if (frameCompleteSave) {
-            if (gallerySaved && lastPhotoSaveDataUrl) {
-              frameCompleteSave.hidden = false;
-              frameCompleteSave.disabled = false;
-              frameCompleteSave.textContent = '作品を保存する';
-            } else {
-              frameCompleteSave.hidden = true;
-            }
-          }
+
           const close = () => {
             frameCompleteDialog.classList.remove('open');
             frameCompleteDialog.setAttribute('aria-hidden', 'true');
             frameCompleteOk.removeEventListener('click', close);
-            if (frameCompleteSave) frameCompleteSave.onclick = null;
-            resolve();
+            resolve(!!gallerySaved);
           };
-          if (frameCompleteSave) {
-            frameCompleteSave.onclick = async (e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              await saveArtworkToPhotos(lastPhotoSaveDataUrl, frameCompleteSave);
-            };
-          }
           frameCompleteDialog.classList.add('open');
           frameCompleteDialog.setAttribute('aria-hidden', 'false');
           frameCompleteOk.addEventListener('click', close);
         });
-      }
-
-      // スマホは Web Share（共有シート→写真に保存）。PCは Win共有が「ダウンロード」化しやすいので長押しモーダルへ。
-      function isMobilePhotoShareTarget() {
-        const ua = navigator.userAgent || '';
-        if (/Android|iPhone|iPad|iPod/i.test(ua)) return true;
-        if (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1) return true;
-        return false;
-      }
-
-      function closePhotoSaveOverlay() {
-        if (photoSaveOverlay) {
-          photoSaveOverlay.classList.remove('active');
-          photoSaveOverlay.setAttribute('aria-hidden', 'true');
-        }
-        if (photoSaveImage) photoSaveImage.removeAttribute('src');
-        if (photoSaveObjectUrl) {
-          URL.revokeObjectURL(photoSaveObjectUrl);
-          photoSaveObjectUrl = null;
-        }
-      }
-
-      function showPhotoSaveOverlay(dataUrlOrBlob) {
-        if (!photoSaveOverlay || !photoSaveImage || !dataUrlOrBlob) return;
-        closePhotoSaveOverlay();
-        if (typeof dataUrlOrBlob === 'string') {
-          photoSaveImage.src = dataUrlOrBlob;
-        } else {
-          photoSaveObjectUrl = URL.createObjectURL(dataUrlOrBlob);
-          photoSaveImage.src = photoSaveObjectUrl;
-        }
-        photoSaveImage.style.webkitTouchCallout = 'default';
-        photoSaveOverlay.classList.add('active');
-        photoSaveOverlay.setAttribute('aria-hidden', 'false');
-      }
-
-      async function artworkDataUrlToPngFile(dataUrl, filename) {
-        const img = new Image();
-        await new Promise((resolve, reject) => {
-          img.onload = resolve;
-          img.onerror = reject;
-          img.src = dataUrl;
-        });
-        const cv = document.createElement('canvas');
-        cv.width = Math.max(1, img.naturalWidth || img.width);
-        cv.height = Math.max(1, img.naturalHeight || img.height);
-        const ctx = cv.getContext('2d');
-        ctx.fillStyle = '#f7f4eb';
-        ctx.fillRect(0, 0, cv.width, cv.height);
-        ctx.drawImage(img, 0, 0);
-        const blob = await new Promise((resolve, reject) => {
-          cv.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
-        });
-        return new File([blob], filename || 'INSCAPE_Artwork.png', { type: 'image/png' });
-      }
-
-      async function shareImageFileOrShowPreview(file, previewSrc) {
-        if (isMobilePhotoShareTarget() && file && navigator.share && typeof navigator.canShare === 'function') {
-          try {
-            const payload = {
-              files: [file],
-              title: 'INSCAPE - 感情の回廊',
-              text: '今日の私の感情を染め上げた作品です。'
-            };
-            if (navigator.canShare(payload)) {
-              await navigator.share(payload);
-              return 'shared';
-            }
-          } catch (err) {
-            if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) return 'aborted';
-            console.warn('[share] Web Share 失敗 → 長押しモーダルへ:', err);
-          }
-        }
-        showPhotoSaveOverlay(previewSrc || file);
-        return 'preview';
-      }
-
-      // 写真へ保存: 画面上の HTML/CSS ゴールド額縁を html2canvas でそのままスナップショット
-      async function saveArtworkToPhotos(dataUrl, triggerBtn) {
-        var prev = triggerBtn ? triggerBtn.textContent : '';
-        if (triggerBtn) {
-          triggerBtn.disabled = true;
-          triggerBtn.textContent = '額装を生成中…';
-        }
-        try {
-          if (typeof html2canvas !== 'function') {
-            throw new Error('html2canvas not loaded');
-          }
-          var FX = window.INSCAPE_FRAME_EXPORT;
-          if (!FX || typeof FX.captureDomFrameToFile !== 'function') {
-            throw new Error('INSCAPE_FRAME_EXPORT v8 missing');
-          }
-
-          // 額装完了時は #museumFrame 内の立体額縁をライブキャプチャ（手描き再現禁止）
-          if (canvasWrap && !canvasWrap.classList.contains('is-framed')) {
-            canvasWrap.classList.add('is-framed');
-          }
-          var target = (museumFrame && museumFrame.querySelector('.museum-frame-sculpted'))
-            || document.querySelector('.canvas-wrap.is-framed .museum-frame-sculpted')
-            || (FX.findLiveFramedTarget && FX.findLiveFramedTarget());
-
-          var framed;
-          if (target && FX.isVisiblyFramed(target)) {
-            // レイアウト確定を待ってから撮影
-            await new Promise(function (r) {
-              requestAnimationFrame(function () { requestAnimationFrame(r); });
-            });
-            framed = await FX.captureDomFrameToFile(target, 'INSCAPE_Artwork.png', {
-              scale: 3,
-              backgroundColor: null
-            });
-          } else if (dataUrl && typeof FX.composeFramedPngFile === 'function') {
-            // 画面に額縁が無い場合のみ：同じ CSS のオフスクリーン双子をキャプチャ
-            framed = await FX.composeFramedPngFile(dataUrl, 'INSCAPE_Artwork.png');
-          } else {
-            throw new Error('framed DOM target missing');
-          }
-
-          if (!framed || !framed.file || !framed.previewUrl) {
-            throw new Error('framed export empty');
-          }
-          console.log('[save] html2canvas FRAMED', framed.canvas && framed.canvas.width, 'x', framed.canvas && framed.canvas.height);
-          await shareImageFileOrShowPreview(framed.file, framed.previewUrl);
-        } catch (err) {
-          console.error('[save] framed export failed:', err);
-          try {
-            alert('額装画像の生成に失敗しました。ページを再読み込みして再度お試しください。');
-          } catch (_) {}
-        } finally {
-          if (triggerBtn) {
-            triggerBtn.disabled = false;
-            triggerBtn.textContent = prev || '作品を保存する';
-          }
-        }
-      }
-
-      function bindPhotoSaveUi() {
-        if (photoSaveClose) {
-          photoSaveClose.addEventListener('click', (e) => {
-            e.stopPropagation();
-            closePhotoSaveOverlay();
-          });
-        }
-        if (photoSaveOverlay) {
-          photoSaveOverlay.addEventListener('click', (e) => {
-            if (e.target === photoSaveOverlay) closePhotoSaveOverlay();
-          });
-        }
-        if (frameDownload) {
-          frameDownload.addEventListener('click', async (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            const src = (framePreview && framePreview.src) || lastPhotoSaveDataUrl || lastCanvasExportDataUrl;
-            await saveArtworkToPhotos(src, frameDownload);
-          });
-        }
-        if (frameModalClose) {
-          frameModalClose.addEventListener('click', () => {
-            if (!frameModal) return;
-            frameModal.classList.remove('open');
-            frameModal.setAttribute('aria-hidden', 'true');
-          });
-        }
       }
 
       function dayKeyFromTimestamp(ts) {
@@ -4594,7 +4108,7 @@
         const entryCount = getGalleryEntryCount();
         const { ready } = getGalleryProgress();
 
-        if (framingCompleted || frameModal.classList.contains('open')) return;
+        if (framingCompleted) return;
 
         if (!entryCount) {
           hideFrameCta();
@@ -4785,12 +4299,9 @@
         // ③④【厳格な直列保存】setItem＋読み戻し検証が100%完了するまで await でブロックする。
         //    ここを通過するまでは、絶対にOKアラート(モーダル)を出さない。
         let gallerySaved = false;
-        lastPhotoSaveDataUrl = null;
         try {
-          const snapshot = await commitArtworkToGallery(frozenFlower);
+          await commitArtworkToGallery(frozenFlower);
           gallerySaved = true;
-          lastPhotoSaveDataUrl = snapshot && snapshot.artworkImageDataUrl ? snapshot.artworkImageDataUrl : null;
-          if (framePreview && lastPhotoSaveDataUrl) framePreview.src = lastPhotoSaveDataUrl;
           console.log("★ [100%保証] 作品が感情の回廊に定着しました。");
         } catch (error) {
           console.error("■ 保存エラー発生:", error);
@@ -4801,21 +4312,22 @@
         await waitForFrameAnimation(museumFrame, 1500);
         frameProgress.textContent = gallerySaved ? '額装完了' : '保存に失敗しました';
 
-        // ★ LocalStorageへの定着が確認できた後にのみ、OKアラートをフェードイン表示する。
-        await showFrameCompleteDialog(gallerySaved, entryCount);
+        // ★ LocalStorageへの定着が確認できた後にのみ、余韻ダイアログを表示する。
+        const goToGallery = await showFrameCompleteDialog(gallerySaved, entryCount);
 
         if (!frameProcessing) return;
-        if (gallerySaved) {
-          restartAppCycle();
-        } else {
-          framingCompleted = false;
-          frameBtn.classList.remove('processing');
-          frameBtn.classList.add('ready');
-          frameBtn.removeAttribute('aria-disabled');
-          frameCtaOverlay.classList.add('visible', 'ready');
-          frameCtaOverlay.setAttribute('aria-hidden', 'false');
-          bindFrameButtonClick();
+        if (gallerySaved && goToGallery) {
+          window.location.href = 'gallery.html';
+          return;
         }
+        // 回廊への内部保存に失敗した場合のみ、額装CTAを再表示してリトライ可能にする
+        framingCompleted = false;
+        frameBtn.classList.remove('processing');
+        frameBtn.classList.add('ready');
+        frameBtn.removeAttribute('aria-disabled');
+        frameCtaOverlay.classList.add('visible', 'ready');
+        frameCtaOverlay.setAttribute('aria-hidden', 'false');
+        bindFrameButtonClick();
         frameProcessing = false;
         frameBtn.classList.remove('processing');
       }
@@ -7472,7 +6984,6 @@
       updateUIState();
       updateFrameButtonState();
       bindFrameButtonClick();
-      bindPhotoSaveUi();
       scheduleDiaryDayUnlockCheck();
       setupPourInteraction();
       loadLineartImages().then(() => {
