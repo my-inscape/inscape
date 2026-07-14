@@ -1373,13 +1373,122 @@
       letter-spacing: 0.28em;
       text-indent: 0.28em;
       cursor: pointer;
-      font-family: inherit;
-      transition: background 0.3s ease, border-color 0.3s ease;
+      min-width: 6.5rem;
     }
 
     .frame-complete-btn:hover {
       background: rgba(201, 169, 98, 0.18);
-      border-color: rgba(201, 169, 98, 0.55);
+    }
+
+    .frame-complete-actions {
+      display: flex;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.55rem;
+    }
+
+    .frame-complete-btn.save-photo {
+      letter-spacing: 0.18em;
+      text-indent: 0.18em;
+    }
+
+    .frame-complete-btn.save-photo[hidden] {
+      display: none !important;
+    }
+
+    /* 写真アプリへ長押し保存するためのフォールバックモーダル */
+    .photo-save-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10080;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding:
+        calc(0.85rem + env(safe-area-inset-top))
+        calc(0.85rem + env(safe-area-inset-right))
+        calc(0.85rem + env(safe-area-inset-bottom))
+        calc(0.85rem + env(safe-area-inset-left));
+      background:
+        radial-gradient(ellipse 70% 55% at 50% 45%, rgba(20, 18, 16, 0.97) 0%, rgba(3, 3, 4, 0.98) 100%);
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition: opacity 0.45s ease, visibility 0.45s ease;
+    }
+
+    .photo-save-overlay.active {
+      opacity: 1;
+      visibility: visible;
+      pointer-events: auto;
+    }
+
+    .photo-save-panel {
+      position: relative;
+      width: min(92vw, 22rem);
+      max-height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transform: translateY(18px) scale(0.96);
+      opacity: 0;
+      transition: transform 0.55s cubic-bezier(0.34, 1.15, 0.64, 1), opacity 0.45s ease;
+    }
+
+    .photo-save-overlay.active .photo-save-panel {
+      transform: translateY(0) scale(1);
+      opacity: 1;
+    }
+
+    .photo-save-close {
+      align-self: flex-end;
+      margin-bottom: 0.75rem;
+      font-family: "Yu Mincho", "Hiragino Mincho ProN", Georgia, "Times New Roman", serif;
+      font-size: 1.15rem;
+      font-weight: 300;
+      line-height: 1;
+      color: rgba(232, 230, 226, 0.45);
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 0.45rem 0.65rem;
+    }
+
+    .photo-save-close:hover {
+      color: rgba(243, 229, 171, 0.9);
+    }
+
+    .photo-save-hint {
+      width: 100%;
+      margin-bottom: 1rem;
+      text-align: center;
+      font-family: "Yu Mincho", "Hiragino Mincho ProN", Georgia, "Times New Roman", serif;
+      font-size: 0.62rem;
+      font-weight: 300;
+      line-height: 2;
+      letter-spacing: 0.14em;
+      text-indent: 0.14em;
+      color: rgba(201, 169, 98, 0.72);
+    }
+
+    .photo-save-image-wrap {
+      width: 100%;
+      border-radius: 2px;
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.85);
+      background: #0a0a0a;
+      line-height: 0;
+    }
+
+    .photo-save-image-wrap img {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: min(72vh, 70dvh);
+      object-fit: contain;
+      -webkit-touch-callout: default;
+      -webkit-user-drag: none;
+      user-select: none;
     }
 
     .tooltip {
@@ -1759,7 +1868,7 @@
           <img id="framePreview" alt="額装された花">
         </div>
         <div class="frame-modal-actions">
-          <button type="button" class="frame-action-btn primary" id="frameDownload">PNGで保存</button>
+          <button type="button" class="frame-action-btn primary" id="frameDownload">作品を保存する</button>
           <button type="button" class="frame-action-btn secondary" id="frameModalClose">閉じる</button>
         </div>
       </div>
@@ -1819,7 +1928,20 @@
     <div class="frame-complete-dialog" id="frameCompleteDialog" aria-hidden="true">
       <div class="frame-complete-inner">
         <p>作品を感情の回廊に大切に飾りました</p>
-        <button type="button" class="frame-complete-btn" id="frameCompleteOk">OK</button>
+        <div class="frame-complete-actions">
+          <button type="button" class="frame-complete-btn save-photo" id="frameCompleteSave" hidden>作品を保存する</button>
+          <button type="button" class="frame-complete-btn" id="frameCompleteOk">OK</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="photo-save-overlay" id="photoSaveOverlay" aria-hidden="true" role="dialog" aria-label="写真への保存">
+      <div class="photo-save-panel">
+        <button type="button" class="photo-save-close" id="photoSaveClose" aria-label="閉じる">✕</button>
+        <p class="photo-save-hint">画像を長押しして<br>「写真に追加」または「画像を保存」を選択してください</p>
+        <div class="photo-save-image-wrap">
+          <img id="photoSaveImage" alt="INSCAPE — 完成作品" draggable="false">
+        </div>
       </div>
     </div>
 
@@ -1997,6 +2119,12 @@
       const frameModalClose = document.getElementById('frameModalClose');
       const frameCompleteDialog = document.getElementById('frameCompleteDialog');
       const frameCompleteOk = document.getElementById('frameCompleteOk');
+      const frameCompleteSave = document.getElementById('frameCompleteSave');
+      const photoSaveOverlay = document.getElementById('photoSaveOverlay');
+      const photoSaveClose = document.getElementById('photoSaveClose');
+      const photoSaveImage = document.getElementById('photoSaveImage');
+      let lastPhotoSaveDataUrl = null;
+      let photoSaveObjectUrl = null;
       const completionWhisper = document.getElementById('completionWhisper');
       const bottleStage = document.getElementById('bottleStage');
       const bottleCanvas = document.getElementById('bottleCanvas');
@@ -4134,16 +4262,159 @@
               messageEl.textContent = '作品を感情の回廊に大切に飾りました';
             }
           }
+          if (frameCompleteSave) {
+            if (gallerySaved && lastPhotoSaveDataUrl) {
+              frameCompleteSave.hidden = false;
+              frameCompleteSave.disabled = false;
+              frameCompleteSave.textContent = '作品を保存する';
+            } else {
+              frameCompleteSave.hidden = true;
+            }
+          }
           const close = () => {
             frameCompleteDialog.classList.remove('open');
             frameCompleteDialog.setAttribute('aria-hidden', 'true');
             frameCompleteOk.removeEventListener('click', close);
+            if (frameCompleteSave) frameCompleteSave.onclick = null;
             resolve();
           };
+          if (frameCompleteSave) {
+            frameCompleteSave.onclick = async (e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              await saveArtworkToPhotos(lastPhotoSaveDataUrl, frameCompleteSave);
+            };
+          }
           frameCompleteDialog.classList.add('open');
           frameCompleteDialog.setAttribute('aria-hidden', 'false');
           frameCompleteOk.addEventListener('click', close);
         });
+      }
+
+      // スマホは Web Share（共有シート→写真に保存）。PCは Win共有が「ダウンロード」化しやすいので長押しモーダルへ。
+      function isMobilePhotoShareTarget() {
+        const ua = navigator.userAgent || '';
+        if (/Android|iPhone|iPad|iPod/i.test(ua)) return true;
+        if (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1) return true;
+        return false;
+      }
+
+      function closePhotoSaveOverlay() {
+        if (photoSaveOverlay) {
+          photoSaveOverlay.classList.remove('active');
+          photoSaveOverlay.setAttribute('aria-hidden', 'true');
+        }
+        if (photoSaveImage) photoSaveImage.removeAttribute('src');
+        if (photoSaveObjectUrl) {
+          URL.revokeObjectURL(photoSaveObjectUrl);
+          photoSaveObjectUrl = null;
+        }
+      }
+
+      function showPhotoSaveOverlay(dataUrlOrBlob) {
+        if (!photoSaveOverlay || !photoSaveImage || !dataUrlOrBlob) return;
+        closePhotoSaveOverlay();
+        if (typeof dataUrlOrBlob === 'string') {
+          photoSaveImage.src = dataUrlOrBlob;
+        } else {
+          photoSaveObjectUrl = URL.createObjectURL(dataUrlOrBlob);
+          photoSaveImage.src = photoSaveObjectUrl;
+        }
+        photoSaveImage.style.webkitTouchCallout = 'default';
+        photoSaveOverlay.classList.add('active');
+        photoSaveOverlay.setAttribute('aria-hidden', 'false');
+      }
+
+      async function artworkDataUrlToPngFile(dataUrl, filename) {
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = dataUrl;
+        });
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, img.naturalWidth || img.width);
+        cv.height = Math.max(1, img.naturalHeight || img.height);
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = '#f7f4eb';
+        ctx.fillRect(0, 0, cv.width, cv.height);
+        ctx.drawImage(img, 0, 0);
+        const blob = await new Promise((resolve, reject) => {
+          cv.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
+        });
+        return new File([blob], filename || 'INSCAPE_Artwork.png', { type: 'image/png' });
+      }
+
+      async function shareImageFileOrShowPreview(file, previewSrc) {
+        if (isMobilePhotoShareTarget() && file && navigator.share && typeof navigator.canShare === 'function') {
+          try {
+            const payload = {
+              files: [file],
+              title: 'INSCAPE - 感情の回廊',
+              text: '今日の私の感情を染め上げた作品です。'
+            };
+            if (navigator.canShare(payload)) {
+              await navigator.share(payload);
+              return 'shared';
+            }
+          } catch (err) {
+            if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) return 'aborted';
+            console.warn('[share] Web Share 失敗 → 長押しモーダルへ:', err);
+          }
+        }
+        showPhotoSaveOverlay(previewSrc || file);
+        return 'preview';
+      }
+
+      // 写真アプリ向け保存（ブラウザの a.download は使わない）
+      async function saveArtworkToPhotos(dataUrl, triggerBtn) {
+        if (!dataUrl || typeof dataUrl !== 'string') return;
+        const prev = triggerBtn ? triggerBtn.textContent : '';
+        if (triggerBtn) {
+          triggerBtn.disabled = true;
+          triggerBtn.textContent = '保存を準備中…';
+        }
+        try {
+          const file = await artworkDataUrlToPngFile(dataUrl, 'INSCAPE_Artwork.png');
+          await shareImageFileOrShowPreview(file, dataUrl);
+        } catch (err) {
+          console.warn('写真への保存準備に失敗:', err);
+          showPhotoSaveOverlay(dataUrl);
+        } finally {
+          if (triggerBtn) {
+            triggerBtn.disabled = false;
+            triggerBtn.textContent = prev || '作品を保存する';
+          }
+        }
+      }
+
+      function bindPhotoSaveUi() {
+        if (photoSaveClose) {
+          photoSaveClose.addEventListener('click', (e) => {
+            e.stopPropagation();
+            closePhotoSaveOverlay();
+          });
+        }
+        if (photoSaveOverlay) {
+          photoSaveOverlay.addEventListener('click', (e) => {
+            if (e.target === photoSaveOverlay) closePhotoSaveOverlay();
+          });
+        }
+        if (frameDownload) {
+          frameDownload.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            const src = (framePreview && framePreview.src) || lastPhotoSaveDataUrl || lastCanvasExportDataUrl;
+            await saveArtworkToPhotos(src, frameDownload);
+          });
+        }
+        if (frameModalClose) {
+          frameModalClose.addEventListener('click', () => {
+            if (!frameModal) return;
+            frameModal.classList.remove('open');
+            frameModal.setAttribute('aria-hidden', 'true');
+          });
+        }
       }
 
       function dayKeyFromTimestamp(ts) {
@@ -4401,9 +4672,12 @@
         // ③④【厳格な直列保存】setItem＋読み戻し検証が100%完了するまで await でブロックする。
         //    ここを通過するまでは、絶対にOKアラート(モーダル)を出さない。
         let gallerySaved = false;
+        lastPhotoSaveDataUrl = null;
         try {
-          await commitArtworkToGallery(frozenFlower);
+          const snapshot = await commitArtworkToGallery(frozenFlower);
           gallerySaved = true;
+          lastPhotoSaveDataUrl = snapshot && snapshot.artworkImageDataUrl ? snapshot.artworkImageDataUrl : null;
+          if (framePreview && lastPhotoSaveDataUrl) framePreview.src = lastPhotoSaveDataUrl;
           console.log("★ [100%保証] 作品が感情の回廊に定着しました。");
         } catch (error) {
           console.error("■ 保存エラー発生:", error);
@@ -7085,6 +7359,7 @@
       updateUIState();
       updateFrameButtonState();
       bindFrameButtonClick();
+      bindPhotoSaveUi();
       scheduleDiaryDayUnlockCheck();
       setupPourInteraction();
       loadLineartImages().then(() => {
