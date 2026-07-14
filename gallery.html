@@ -1107,6 +1107,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <!-- ボトルの本物のガラス質感を index.html と同一アルゴリズムで再現するための資産＆レンダラー -->
   <script src="embedded-assets.js"></script>
+  <script src="framed-export.js"></script>
   <script src="bottle-render.js"></script>
 </head>
 <body>
@@ -1759,9 +1760,9 @@
       function stripPrivacyTextFromClone(clonedRoot) {
         if (!clonedRoot) return;
         clonedRoot.querySelectorAll(
-          '.art-date, .save-art-btn, .modal-art-actions, ' +
+          '.art-date, .save-art-btn, .detail-save-btn, .modal-art-actions, ' +
           '.museum-brand-logo, .memory-popover, [data-export-hide], .privacy-export-hidden, ' +
-          '.artwork-caption-block'
+          '.artwork-caption-block, .art-period-caption, .gallery-bottle-wrap'
         ).forEach((node) => node.remove());
 
         clonedRoot.querySelectorAll('.gallery-art-canvas, .gallery-art-image').forEach((artEl) => {
@@ -2216,8 +2217,9 @@
       }
 
       // 完成作品を写真アプリへ（Web Share 優先 / 失敗時は長押しモーダル）
+      // ★額装込みで合成してから渡す（内側キャンバスのみの書き出しをやめる）
       // ※ LocalStorage 上の gallery データは変更しない（端末への画像持ち出しのみ）
-      async function downloadArtworkImage(item, triggerBtn) {
+      async function downloadArtworkImage(item, triggerBtn, frameHostEl) {
         const url = item && item.artworkImageDataUrl;
         if (!url) return;
 
@@ -2233,12 +2235,49 @@
         }
 
         try {
-          const file = await artworkDataUrlToPngFile(url, filename);
-          await shareImageFileOrShowPreview(file, url);
+          let file = null;
+          let preview = null;
+
+          // 1) 画面上のゴールド額縁DOMを html2canvas で忠実にキャプチャ（可能なら最優先）
+          if (frameHostEl && typeof html2canvas === 'function') {
+            try {
+              const blob = await captureFramedArtworkBlob(frameHostEl);
+              file = await blobToPngFile(blob, filename);
+              preview = blob;
+            } catch (err) {
+              console.warn('[framed-save] DOMキャプチャ失敗 → Canvas合成へ:', err);
+            }
+          }
+
+          // 2) DOMが取れない場合：CSS額縁と同色のベベルを Canvas 上で合成
+          if (!file) {
+            const FX = window.INSCAPE_FRAME_EXPORT;
+            if (FX && typeof FX.composeFramedPngFile === 'function') {
+              const framed = await FX.composeFramedPngFile(url, filename, {
+                padT: 14, padR: 14, padB: 14, padL: 14, border: 20, outline: 3, margin: 64, maxArtSide: 960
+              });
+              file = framed.file;
+              preview = framed.previewUrl;
+            } else {
+              file = await artworkDataUrlToPngFile(url, filename);
+              preview = url;
+            }
+          }
+
+          await shareImageFileOrShowPreview(file, preview);
         } catch (err) {
           console.warn('作品画像の共有準備に失敗:', err);
-          // 最終手段: 長押しモーダルに dataURL をそのまま出す（a.download は使わない）
-          showSavePreview(url);
+          try {
+            const FX = window.INSCAPE_FRAME_EXPORT;
+            if (FX) {
+              const framed = await FX.composeFramedPngFile(url, filename);
+              showSavePreview(framed.previewUrl);
+            } else {
+              showSavePreview(url);
+            }
+          } catch (_) {
+            showSavePreview(url);
+          }
         } finally {
           if (triggerBtn) {
             triggerBtn.disabled = false;
@@ -2424,7 +2463,8 @@
             saveBtn.setAttribute('aria-label', '作品を写真アプリに保存する');
             saveBtn.addEventListener('click', (e) => {
               e.stopPropagation();
-              downloadArtworkImage(item, saveBtn);
+              // ゴールド額縁（sculpted）のみをキャプチャ（ボトル／ボタンは含めない）
+              downloadArtworkImage(item, saveBtn, sculpted);
             });
             wallDisplay.appendChild(saveBtn);
           }

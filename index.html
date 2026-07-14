@@ -1967,6 +1967,7 @@
   </div>
 
   <script src="embedded-assets.js"></script>
+  <script src="framed-export.js"></script>
   <script>
     (function () {
       'use strict';
@@ -4367,6 +4368,7 @@
       }
 
       // 写真アプリ向け保存（ブラウザの a.download は使わない）
+      // ★作品dataURLにゴールド額装を合成してから共有／長押しモーダルへ渡す
       async function saveArtworkToPhotos(dataUrl, triggerBtn) {
         if (!dataUrl || typeof dataUrl !== 'string') return;
         const prev = triggerBtn ? triggerBtn.textContent : '';
@@ -4375,8 +4377,20 @@
           triggerBtn.textContent = '保存を準備中…';
         }
         try {
-          const file = await artworkDataUrlToPngFile(dataUrl, 'INSCAPE_Artwork.png');
-          await shareImageFileOrShowPreview(file, dataUrl);
+          let file;
+          let preview = dataUrl;
+          const FX = window.INSCAPE_FRAME_EXPORT;
+          if (FX && typeof FX.composeFramedPngFile === 'function') {
+            // index 額装時のマット余白（padding: 28 22 32）に近い比率
+            const framed = await FX.composeFramedPngFile(dataUrl, 'INSCAPE_Artwork.png', {
+              padT: 28, padR: 22, padB: 32, padL: 22, border: 20, outline: 3, margin: 72, maxArtSide: 960
+            });
+            file = framed.file;
+            preview = framed.previewUrl;
+          } else {
+            file = await artworkDataUrlToPngFile(dataUrl, 'INSCAPE_Artwork.png');
+          }
+          await shareImageFileOrShowPreview(file, preview);
         } catch (err) {
           console.warn('写真への保存準備に失敗:', err);
           showPhotoSaveOverlay(dataUrl);
