@@ -1108,6 +1108,11 @@
   <!-- ボトルの本物のガラス質感を index.html と同一アルゴリズムで再現するための資産＆レンダラー -->
   <script src="embedded-assets.js"></script>
   <script src="framed-export.js"></script>
+  <script>
+    if (!window.INSCAPE_FRAME_EXPORT || !window.INSCAPE_FRAME_EXPORT.composeFramedPngFile) {
+      console.error('[INSCAPE] framed-export.js が読み込めていません。額装保存ができません。');
+    }
+  </script>
   <script src="bottle-render.js"></script>
 </head>
 <body>
@@ -1962,15 +1967,25 @@
         const prevLabel = triggerBtn ? triggerBtn.textContent : '';
         if (triggerBtn) {
           triggerBtn.disabled = true;
-          triggerBtn.textContent = '保存を準備中…';
+          triggerBtn.textContent = '額装を生成中…';
         }
 
         try {
-          const blob = await captureFramedArtworkBlob(containerEl);
-          const file = await blobToPngFile(blob, 'INSCAPE_Artwork.png');
-          await shareImageFileOrShowPreview(file, blob);
+          // 表示中の作品 img/src または item の dataURL を額装合成（html2canvasは使わない）
+          const artImg = containerEl.querySelector && containerEl.querySelector('.gallery-art-image, img');
+          const item = containerEl._galleryItem || (containerEl.closest && containerEl.closest('.gallery-item') && containerEl.closest('.gallery-item')._galleryItem);
+          const src = (item && item.artworkImageDataUrl)
+            || (artImg && artImg.currentSrc)
+            || (artImg && artImg.src);
+          if (!src) throw new Error('artwork source missing');
+          const FX = window.INSCAPE_FRAME_EXPORT;
+          if (!FX) throw new Error('INSCAPE_FRAME_EXPORT missing');
+          const framed = await FX.composeFramedPngFile(src, 'INSCAPE_Artwork.png', {
+            exportW: 1080, exportH: 1920
+          });
+          await shareImageFileOrShowPreview(framed.file, framed.previewUrl);
         } catch (err) {
-          console.warn('額装画像の保存に失敗:', err);
+          console.error('額装画像の保存に失敗（素の作品は共有しません）:', err);
         } finally {
           if (triggerBtn) {
             triggerBtn.disabled = false;
@@ -2246,9 +2261,8 @@
         }
       }
 
-      // 完成作品を写真アプリへ（Web Share 優先 / 失敗時は長押しモーダル）
-      // ★作品 dataURL を Image にロード完了させてから額装合成（html2canvasの白抜けを避ける）
-      // ※ LocalStorage 上の gallery データは変更しない（端末への画像持ち出しのみ）
+      // 完成作品を写真アプリへ
+      // ★必ず額装済み frameCanvas の File のみを共有。素の artworkImageDataUrl は絶対に渡さない。
       async function downloadArtworkImage(item, triggerBtn, frameHostEl) {
         const url = item && item.artworkImageDataUrl;
         if (!url) return;
@@ -2261,53 +2275,38 @@
         const prevLabel = triggerBtn ? triggerBtn.textContent : '';
         if (triggerBtn) {
           triggerBtn.disabled = true;
-          triggerBtn.textContent = '保存を準備中…';
+          triggerBtn.textContent = '額装を生成中…';
         }
 
         try {
-          let file = null;
-          let preview = null;
           const FX = window.INSCAPE_FRAME_EXPORT;
-
-          // 1) 【最優先】保存済み作品 dataURL → Image.onload/decode → ゴールド額装 Canvas 合成
-          //    html2canvas は CSS opacity:0 の作品IMGを白紙で拾うため、ここでは使わない。
-          if (FX && typeof FX.composeFramedPngFile === 'function') {
-            const framed = await FX.composeFramedPngFile(url, filename, {
-              padT: 14, padR: 14, padB: 14, padL: 14, border: 20, outline: 3, margin: 64, maxArtSide: 960
-            });
-            file = framed.file;
-            preview = framed.previewUrl;
+          if (!FX || typeof FX.composeFramedPngFile !== 'function') {
+            throw new Error('INSCAPE_FRAME_EXPORT 未読込（framed-export.js）');
           }
 
-          // 2) フォールバック: DOMキャプチャ（クローン上で opacity 強制可視化済み）
-          if (!file && frameHostEl && typeof html2canvas === 'function') {
-            try {
-              const blob = await captureFramedArtworkBlob(frameHostEl);
-              file = await blobToPngFile(blob, filename);
-              preview = blob;
-            } catch (err) {
-              console.warn('[framed-save] DOMキャプチャ失敗:', err);
-            }
+          // 唯一の正規ルート: 作品 dataURL → Image 確定 → frameCanvas 合成 → その File を共有
+          const framed = await FX.composeFramedPngFile(url, filename, {
+            exportW: 1080, exportH: 1920, border: 28, outline: 4,
+            padT: 20, padR: 20, padB: 22, padL: 20
+          });
+          if (!framed || !framed.file || !framed.previewUrl) {
+            throw new Error('framed export returned empty');
           }
 
-          if (!file) {
-            file = await artworkDataUrlToPngFile(url, filename);
-            preview = url;
-          }
-
-          await shareImageFileOrShowPreview(file, preview);
+          await shareImageFileOrShowPreview(framed.file, framed.previewUrl);
         } catch (err) {
-          console.warn('作品画像の共有準備に失敗:', err);
+          console.error('■ 額装保存に失敗（素の作品は共有しません）:', err);
+          // DOMキャプチャは白抜けリスクがあるため使わず、額装プレビューのみ再試行
           try {
             const FX = window.INSCAPE_FRAME_EXPORT;
             if (FX) {
-              const framed = await FX.composeFramedPngFile(url, filename);
+              const framed = await FX.composeFramedPngFile(url, filename, {
+                exportW: 1080, exportH: 1920
+              });
               showSavePreview(framed.previewUrl);
-            } else {
-              showSavePreview(url);
             }
-          } catch (_) {
-            showSavePreview(url);
+          } catch (err2) {
+            console.error('■ 額装プレビューも失敗:', err2);
           }
         } finally {
           if (triggerBtn) {
