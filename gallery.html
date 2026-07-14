@@ -1892,10 +1892,18 @@
         }
       }
 
-      // 第一優先: Web Share（共有シート→写真に保存）
+      // 第一優先: スマホのみ Web Share（共有シート→写真に保存）
+      // PCで navigator.share があると「ファイル保存」になりやすいのでモバイル限定。
       // 第二優先: 長押し誘導モーダル（ブラウザDLには落とさない）
+      function isLikelyMobileShareTarget() {
+        const ua = navigator.userAgent || '';
+        if (/Android|iPhone|iPad|iPod/i.test(ua)) return true;
+        if (navigator.platform === 'MacIntel' && (navigator.maxTouchPoints || 0) > 1) return true;
+        return false;
+      }
+
       async function shareImageFileOrShowPreview(file, previewSrc) {
-        if (file && navigator.share && typeof navigator.canShare === 'function') {
+        if (isLikelyMobileShareTarget() && file && navigator.share && typeof navigator.canShare === 'function') {
           try {
             const payload = {
               files: [file],
@@ -1907,7 +1915,6 @@
               return 'shared';
             }
           } catch (err) {
-            // ユーザーが共有シートを閉じた場合は何もしない
             if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
               return 'aborted';
             }
