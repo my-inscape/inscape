@@ -1051,24 +1051,34 @@
     .save-preview-close {
       align-self: flex-end;
       margin-bottom: 0.85rem;
-      font-size: 0.48rem;
-      letter-spacing: 0.18em;
-      color: rgba(232, 230, 226, 0.32);
+      font-family: "Yu Mincho", "Hiragino Mincho ProN", Georgia, "Times New Roman", serif;
+      font-size: 1.15rem;
+      font-weight: 300;
+      letter-spacing: 0;
+      line-height: 1;
+      color: rgba(232, 230, 226, 0.45);
       background: none;
       border: none;
       cursor: pointer;
-      padding: 0.45rem 0.5rem;
+      padding: 0.45rem 0.65rem;
+      transition: color 0.3s ease;
+    }
+
+    .save-preview-close:hover {
+      color: rgba(243, 229, 171, 0.9);
     }
 
     .save-preview-hint {
       width: 100%;
       margin-bottom: 1rem;
       text-align: center;
-      font-size: 0.58rem;
+      font-family: "Yu Mincho", "Hiragino Mincho ProN", Georgia, "Times New Roman", serif;
+      font-size: 0.62rem;
       font-weight: 300;
       line-height: 2;
-      letter-spacing: 0.12em;
-      color: rgba(201, 169, 98, 0.62);
+      letter-spacing: 0.14em;
+      text-indent: 0.14em;
+      color: rgba(201, 169, 98, 0.72);
     }
 
     .save-preview-image-wrap {
@@ -1090,6 +1100,8 @@
       touch-action: manipulation;
       user-select: none;
       -webkit-user-select: none;
+      /* 長押し保存を邪魔しない（ドラッグ誤認を防ぐだけ） */
+      -webkit-user-drag: none;
     }
   </style>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -1811,14 +1823,21 @@
         }
       }
 
-      function showSavePreview(blob) {
+      function showSavePreview(blobOrUrl) {
         const overlay = document.getElementById('savePreviewOverlay');
         const img = document.getElementById('savePreviewImage');
-        if (!overlay || !img || !blob) return;
+        if (!overlay || !img || !blobOrUrl) return;
 
         closeSavePreview();
-        savePreviewObjectUrl = URL.createObjectURL(blob);
-        img.src = savePreviewObjectUrl;
+        if (typeof blobOrUrl === 'string') {
+          img.src = blobOrUrl;
+        } else {
+          savePreviewObjectUrl = URL.createObjectURL(blobOrUrl);
+          img.src = savePreviewObjectUrl;
+        }
+        // 長押しでカメラロールへ入れられるよう、iOSのコールアウトを許可
+        img.style.webkitTouchCallout = 'default';
+        img.style.pointerEvents = 'auto';
         overlay.classList.add('active');
         overlay.setAttribute('aria-hidden', 'false');
       }
@@ -1840,6 +1859,65 @@
         }
       }
 
+      // dataURL → PNG File（共有・写真アプリ互換を最大化）
+      async function artworkDataUrlToPngFile(dataUrl, filename) {
+        const img = new Image();
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = dataUrl;
+        });
+        const cv = document.createElement('canvas');
+        cv.width = Math.max(1, img.naturalWidth || img.width);
+        cv.height = Math.max(1, img.naturalHeight || img.height);
+        const ctx = cv.getContext('2d');
+        ctx.fillStyle = '#f7f4eb';
+        ctx.fillRect(0, 0, cv.width, cv.height);
+        ctx.drawImage(img, 0, 0);
+        const blob = await new Promise((resolve, reject) => {
+          cv.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
+        });
+        return new File([blob], filename || 'INSCAPE_Artwork.png', { type: 'image/png' });
+      }
+
+      async function blobToPngFile(blob, filename) {
+        if (blob && blob.type === 'image/png') {
+          return new File([blob], filename || 'INSCAPE_Artwork.png', { type: 'image/png' });
+        }
+        const url = URL.createObjectURL(blob);
+        try {
+          return await artworkDataUrlToPngFile(url, filename);
+        } finally {
+          URL.revokeObjectURL(url);
+        }
+      }
+
+      // 第一優先: Web Share（共有シート→写真に保存）
+      // 第二優先: 長押し誘導モーダル（ブラウザDLには落とさない）
+      async function shareImageFileOrShowPreview(file, previewSrc) {
+        if (file && navigator.share && typeof navigator.canShare === 'function') {
+          try {
+            const payload = {
+              files: [file],
+              title: 'INSCAPE - 感情の回廊',
+              text: '今日の私の感情を染め上げた作品です。'
+            };
+            if (navigator.canShare(payload)) {
+              await navigator.share(payload);
+              return 'shared';
+            }
+          } catch (err) {
+            // ユーザーが共有シートを閉じた場合は何もしない
+            if (err && (err.name === 'AbortError' || err.name === 'NotAllowedError')) {
+              return 'aborted';
+            }
+            console.warn('[share] Web Share 失敗 → 長押しモーダルへ:', err);
+          }
+        }
+        showSavePreview(previewSrc || file);
+        return 'preview';
+      }
+
       async function saveFramedArtwork(containerEl, triggerBtn) {
         if (!containerEl) return;
 
@@ -1851,7 +1929,8 @@
 
         try {
           const blob = await captureFramedArtworkBlob(containerEl);
-          showSavePreview(blob);
+          const file = await blobToPngFile(blob, 'INSCAPE_Artwork.png');
+          await shareImageFileOrShowPreview(file, blob);
         } catch (err) {
           console.warn('額装画像の保存に失敗:', err);
         } finally {
@@ -2129,22 +2208,36 @@
         }
       }
 
-      // 完成作品(artworkImageDataUrl)を INSCAPE_Artwork_[日付].png としてローカル保存
-      function downloadArtworkImage(item) {
+      // 完成作品を写真アプリへ（Web Share 優先 / 失敗時は長押しモーダル）
+      // ※ LocalStorage 上の gallery データは変更しない（端末への画像持ち出しのみ）
+      async function downloadArtworkImage(item, triggerBtn) {
         const url = item && item.artworkImageDataUrl;
         if (!url) return;
+
         const range = computeArtworkPeriodRange(item);
         const endStr = (range && range.end) ? range.end : formatDotDate(new Date());
-        const datePart = String(endStr).replace(/[^0-9]/g, ''); // YYYYMMDD
-        const a = document.createElement('a');
-        a.href = url;
-        // data URL の実MIMEに合わせて拡張子を決定（WebP/PNG優先。旧JPEGも可）
-        const ext = /^data:image\/webp/i.test(url) ? 'webp'
-          : (/^data:image\/jpe?g/i.test(url) ? 'jpg' : 'png');
-        a.download = `INSCAPE_Artwork_${datePart || 'artwork'}.${ext}`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        const datePart = String(endStr).replace(/[^0-9]/g, '');
+        const filename = `INSCAPE_Artwork_${datePart || 'artwork'}.png`;
+
+        const prevLabel = triggerBtn ? triggerBtn.textContent : '';
+        if (triggerBtn) {
+          triggerBtn.disabled = true;
+          triggerBtn.textContent = '保存を準備中…';
+        }
+
+        try {
+          const file = await artworkDataUrlToPngFile(url, filename);
+          await shareImageFileOrShowPreview(file, url);
+        } catch (err) {
+          console.warn('作品画像の共有準備に失敗:', err);
+          // 最終手段: 長押しモーダルに dataURL をそのまま出す（a.download は使わない）
+          showSavePreview(url);
+        } finally {
+          if (triggerBtn) {
+            triggerBtn.disabled = false;
+            triggerBtn.textContent = prevLabel || '作品を保存する';
+          }
+        }
       }
 
       // flower(center+petals)の7色から「感情のボトル」を再描画する。
@@ -2315,16 +2408,16 @@
           // (3) 作品タイトルと期間（例: 7日間の感情が注がれた作品（07.07 - 07.13））
           wallDisplay.appendChild(createPeriodCaptionElement(item, true));
 
-          // (4) 作品を保存（ダウンロード）ボタン
+          // (4) 作品を写真へ保存（Web Share → 長押しモーダル）
           if (item.artworkImageDataUrl) {
             const saveBtn = document.createElement('button');
             saveBtn.type = 'button';
             saveBtn.className = 'detail-save-btn';
             saveBtn.textContent = '作品を保存する';
-            saveBtn.setAttribute('aria-label', '作品を端末に保存する');
+            saveBtn.setAttribute('aria-label', '作品を写真アプリに保存する');
             saveBtn.addEventListener('click', (e) => {
               e.stopPropagation();
-              downloadArtworkImage(item);
+              downloadArtworkImage(item, saveBtn);
             });
             wallDisplay.appendChild(saveBtn);
           }
@@ -2862,10 +2955,10 @@
     <p class="memory-popover-text"></p>
     <button type="button" class="memory-popover-close" id="memoryPopoverClose">閉じる</button>
   </div>
-  <div class="save-preview-overlay" id="savePreviewOverlay" aria-hidden="true" role="dialog" aria-label="保存プレビュー">
+  <div class="save-preview-overlay" id="savePreviewOverlay" aria-hidden="true" role="dialog" aria-label="写真への保存">
     <div class="save-preview-panel">
-      <button type="button" class="save-preview-close" id="savePreviewClose" aria-label="閉じる">CLOSE</button>
-      <p class="save-preview-hint">画像を長押しして<br>「写真に追加」を選択して保存してください</p>
+      <button type="button" class="save-preview-close" id="savePreviewClose" aria-label="閉じる">✕</button>
+      <p class="save-preview-hint">画像を長押しして<br>「写真に追加」または「画像を保存」を選択してください</p>
       <div class="save-preview-image-wrap">
         <img id="savePreviewImage" alt="INSCAPE — 額装作品" draggable="false">
       </div>
