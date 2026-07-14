@@ -1784,6 +1784,25 @@
         });
       }
 
+      function prepareCloneForArtworkCapture(clonedEl) {
+        if (!clonedEl) return;
+        stripPrivacyTextFromClone(clonedEl);
+        clonedEl.classList.add('museum-wall-export');
+        // ★真原因対策: .gallery-art-image は opacity:0 + CSSアニメ開始のため、
+        //   html2canvas が「真っ白なマット」だけを拾ってしまう。クローン上で強制可視化する。
+        clonedEl.querySelectorAll('.gallery-art-image, .gallery-art-canvas, img, canvas').forEach((el) => {
+          el.style.setProperty('opacity', '1', 'important');
+          el.style.setProperty('visibility', 'visible', 'important');
+          el.style.setProperty('animation', 'none', 'important');
+          el.style.setProperty('transform', 'none', 'important');
+          el.style.setProperty('filter', 'none', 'important');
+        });
+        clonedEl.querySelectorAll('.art-surface').forEach((el) => {
+          el.style.setProperty('opacity', '1', 'important');
+          el.style.setProperty('background-color', '#f7f4eb', 'important');
+        });
+      }
+
       async function captureFramedArtworkBlob(containerEl) {
         const frameEl = getFrameCaptureTarget(containerEl);
         if (!frameEl) throw new Error('frame target missing');
@@ -1794,16 +1813,27 @@
           hideMemoryPopover();
         }
 
+        // 表示中の作品 img がロード完了していることを確認
+        const liveImgs = frameEl.querySelectorAll('.gallery-art-image, img');
+        await Promise.all(Array.prototype.map.call(liveImgs, (img) => {
+          if (img.complete && (img.naturalWidth || 0) > 0) return Promise.resolve();
+          return new Promise((resolve) => {
+            img.addEventListener('load', resolve, { once: true });
+            img.addEventListener('error', resolve, { once: true });
+            setTimeout(resolve, 1200);
+          });
+        }));
+
         const scale = Math.min(2.5, Math.max(1.5, window.devicePixelRatio || 1.5));
         const artCanvas = await html2canvas(frameEl, {
           scale,
           useCORS: true,
-          allowTaint: false,
-          backgroundColor: null,
+          allowTaint: true,
+          backgroundColor: '#0a0a0a',
           logging: false,
+          imageTimeout: 8000,
           onclone: (_doc, clonedEl) => {
-            stripPrivacyTextFromClone(clonedEl);
-            clonedEl.classList.add('museum-wall-export');
+            prepareCloneForArtworkCapture(clonedEl);
           }
         });
 
@@ -2217,7 +2247,7 @@
       }
 
       // 完成作品を写真アプリへ（Web Share 優先 / 失敗時は長押しモーダル）
-      // ★額装込みで合成してから渡す（内側キャンバスのみの書き出しをやめる）
+      // ★作品 dataURL を Image にロード完了させてから額装合成（html2canvasの白抜けを避ける）
       // ※ LocalStorage 上の gallery データは変更しない（端末への画像持ち出しのみ）
       async function downloadArtworkImage(item, triggerBtn, frameHostEl) {
         const url = item && item.artworkImageDataUrl;
@@ -2237,31 +2267,32 @@
         try {
           let file = null;
           let preview = null;
+          const FX = window.INSCAPE_FRAME_EXPORT;
 
-          // 1) 画面上のゴールド額縁DOMを html2canvas で忠実にキャプチャ（可能なら最優先）
-          if (frameHostEl && typeof html2canvas === 'function') {
+          // 1) 【最優先】保存済み作品 dataURL → Image.onload/decode → ゴールド額装 Canvas 合成
+          //    html2canvas は CSS opacity:0 の作品IMGを白紙で拾うため、ここでは使わない。
+          if (FX && typeof FX.composeFramedPngFile === 'function') {
+            const framed = await FX.composeFramedPngFile(url, filename, {
+              padT: 14, padR: 14, padB: 14, padL: 14, border: 20, outline: 3, margin: 64, maxArtSide: 960
+            });
+            file = framed.file;
+            preview = framed.previewUrl;
+          }
+
+          // 2) フォールバック: DOMキャプチャ（クローン上で opacity 強制可視化済み）
+          if (!file && frameHostEl && typeof html2canvas === 'function') {
             try {
               const blob = await captureFramedArtworkBlob(frameHostEl);
               file = await blobToPngFile(blob, filename);
               preview = blob;
             } catch (err) {
-              console.warn('[framed-save] DOMキャプチャ失敗 → Canvas合成へ:', err);
+              console.warn('[framed-save] DOMキャプチャ失敗:', err);
             }
           }
 
-          // 2) DOMが取れない場合：CSS額縁と同色のベベルを Canvas 上で合成
           if (!file) {
-            const FX = window.INSCAPE_FRAME_EXPORT;
-            if (FX && typeof FX.composeFramedPngFile === 'function') {
-              const framed = await FX.composeFramedPngFile(url, filename, {
-                padT: 14, padR: 14, padB: 14, padL: 14, border: 20, outline: 3, margin: 64, maxArtSide: 960
-              });
-              file = framed.file;
-              preview = framed.previewUrl;
-            } else {
-              file = await artworkDataUrlToPngFile(url, filename);
-              preview = url;
-            }
+            file = await artworkDataUrlToPngFile(url, filename);
+            preview = url;
           }
 
           await shareImageFileOrShowPreview(file, preview);
