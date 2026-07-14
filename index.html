@@ -5289,6 +5289,35 @@
       // 完成アート用オフスクリーンバッファ（マスク切り抜きの隔離）
       const _artBuf = document.createElement('canvas');
       const _artBandBuf = document.createElement('canvas');
+      const _artMaskPadBuf = document.createElement('canvas');
+
+      // マスクをわずかに膨張させて描く（主線の下までインクを潜らせ、キワの白抜けを消す）。
+      // destination-in 直前のクリップ用。複数回オフセット描画で形態学的ダイレート相当。
+      function stampDilatedMask(dest, mask, dx, dy, dw, dh, growPx) {
+        const g = Math.max(0, growPx || 0);
+        dest.save();
+        dest.globalCompositeOperation = 'source-over';
+        dest.globalAlpha = 1;
+        dest.filter = 'none';
+        dest.imageSmoothingEnabled = true;
+        dest.imageSmoothingQuality = 'high';
+        if (g < 0.25) {
+          dest.drawImage(mask, dx, dy, dw, dh);
+        } else {
+          const rings = Math.max(4, Math.min(12, Math.ceil(g * 4)));
+          for (let i = 0; i < rings; i++) {
+            const ang = (i / rings) * Math.PI * 2;
+            dest.drawImage(mask, dx + Math.cos(ang) * g, dy + Math.sin(ang) * g, dw, dh);
+          }
+          // さらに十字方向を補強（細いヒゲ線も埋める）
+          dest.drawImage(mask, dx + g, dy, dw, dh);
+          dest.drawImage(mask, dx - g, dy, dw, dh);
+          dest.drawImage(mask, dx, dy + g, dw, dh);
+          dest.drawImage(mask, dx, dy - g, dw, dh);
+          dest.drawImage(mask, dx, dy, dw, dh);
+        }
+        dest.restore();
+      }
 
       // 線画シルエットの「実面積」を N 等分する境界フラクション(0..1)を返す。
       //   等高分割だと、幅の広い花頭が上の色を独占し、細い茎に下の色が潰れて詰め込まれる。
@@ -5376,8 +5405,9 @@
         bc.clearRect(0, 0, w, h);
 
         if (N === 1) {
-          bc.fillStyle = rgbaFromHex(inkOf(drops[0]), 0.96);
-          bc.fillRect(0, y0, w, yH);
+          // ★不透明: destination-in 後にキワが半透明で白抜けしないよう alpha=1
+          bc.fillStyle = rgbaFromHex(inkOf(drops[0]), 1);
+          bc.fillRect(0, Math.floor(y0) - 2, w, Math.ceil(yH) + 4);
         } else {
           const unit = yH / N;
           const rngW = mulberry32((seed >>> 0) + 707);
@@ -5398,9 +5428,9 @@
               sag: isEdge ? 0 : Math.min(unit * 0.38, 14) * (0.45 + rngW() * 0.55)
             });
           }
-          // 左右を少しはみ出させて端で切れないようにする
-          const xL = -4, xR = w + 4;
-          const step = Math.max(2, Math.round(w / 48));
+          // 左右を十分はみ出させて端で切れないようにする
+          const xL = -8, xR = w + 8;
+          const step = Math.max(1, Math.round(w / 64));
           const bY = (s, x) => {
             const d = bnd[s];
             const u = Math.max(0, Math.min(1, x / w));
@@ -5410,25 +5440,28 @@
               + d.amp * Math.sin(u * d.freq * Math.PI * 2 + d.phase)
               + d.amp2 * Math.sin(u * d.freq2 * Math.PI * 2 + d.phase2);
           };
+          // 帯同士のわずかな重ね（アンチエイリアスの糸状隙間を潰す）
+          const overlap = Math.max(1.5, Math.min(4, unit * 0.08));
           // 下から上へ（重なり順を安定させる）。上=最新色、下=1日目。
           for (let j = N - 1; j >= 0; j--) {
             const col = inkOf(drops[N - 1 - j]);
             const topS = j;
             const botS = j + 1;
             bc.beginPath();
-            bc.moveTo(xL, bY(topS, xL));
-            for (let x = xL; x <= xR; x += step) bc.lineTo(x, bY(topS, x));
-            bc.lineTo(xR, bY(topS, xR));
-            bc.lineTo(xR, bY(botS, xR));
-            for (let x = xR; x >= xL; x -= step) bc.lineTo(x, bY(botS, x));
+            bc.moveTo(xL, bY(topS, xL) - overlap);
+            for (let x = xL; x <= xR; x += step) bc.lineTo(x, bY(topS, x) - overlap);
+            bc.lineTo(xR, bY(topS, xR) - overlap);
+            bc.lineTo(xR, bY(botS, xR) + overlap);
+            for (let x = xR; x >= xL; x -= step) bc.lineTo(x, bY(botS, x) + overlap);
             bc.closePath();
-            bc.fillStyle = rgbaFromHex(col, 0.96);
+            bc.fillStyle = rgbaFromHex(col, 1); // 完全不透明
             bc.fill();
           }
         }
 
         // 境界をゆるやかに溶かしてにじみ（色は保ちつつ定規線を消す程度）
-        const feather = Math.max(4, Math.min(14, (yH / Math.max(1, N)) * 0.22));
+        // ※ ぼかしすぎるとキワのalphaが落ちるので控えめに
+        const feather = Math.max(3, Math.min(10, (yH / Math.max(1, N)) * 0.16));
         bx.save();
         bx.globalAlpha = 1;
         bx.globalCompositeOperation = 'source-over';
@@ -5451,7 +5484,7 @@
             const by0 = y0 + yH * ty + (rng() - 0.5) * bandH * 0.38;
             const r = Math.min(w, yH) * (0.08 + rng() * 0.1);
             const rg = bx.createRadialGradient(bx0, by0, 0, bx0, by0, r);
-            rg.addColorStop(0, rgbaFromHex(saturateHex(col, 0.2), 0.22));
+            rg.addColorStop(0, rgbaFromHex(saturateHex(col, 0.2), 0.18));
             rg.addColorStop(1, rgbaFromHex(col, 0));
             bx.fillStyle = rg;
             bx.fillRect(0, 0, w, h);
@@ -5475,10 +5508,14 @@
         const mask = getSelectedLineartMask(flower);
         const ref = img || mask;
         // 絵柄の実bboxを基準に、どの線画も同じ見た目サイズ・中央配置へ正規化する。
+        // 整数ピクセルに丸め、マスクと主線の小数ズレ（1px隙間）を防ぐ。
         let rx = 0, ry = 0, rw = w, rh = h;
         if (ref) {
           const rect = getLineartDrawRect(flower, w, h);
-          rx = rect.dx; ry = rect.dy; rw = rect.dW; rh = rect.dH;
+          rx = Math.round(rect.dx);
+          ry = Math.round(rect.dy);
+          rw = Math.max(1, Math.round(rect.dW));
+          rh = Math.max(1, Math.round(rect.dH));
         }
 
         if (!N) {
@@ -5495,6 +5532,8 @@
         bx.globalAlpha = 1;
         bx.globalCompositeOperation = 'source-over';
         bx.filter = 'none';
+        bx.imageSmoothingEnabled = true;
+        bx.imageSmoothingQuality = 'high';
         bx.clearRect(0, 0, buf.width, buf.height);
         // グラデーションの縦範囲を、切り抜くシルエットの実描画範囲(ry〜ry+rh)へ一致させる。
         // さらに各色の帯を「シルエットの実面積」で均等分割し、全色が同ボリュームで現れるようにする。
@@ -5502,23 +5541,36 @@
         paintArtGradient(bx, w, h, drops, seed, ry, rh, bandFracs);
 
         if (mask) {
-          // シルエット内側だけを残す（外側は完全に消える）
+          // マスクをわずかに膨張させてから destination-in。
+          //   → インクが主線の下まで潜り込み、アンチエイリアス部の白抜け（隙間）を消す。
+          //   主線は後で最前面に描くので、はみ出しは見えにならない。
+          const grow = Math.max(1.6, Math.min(3.2, Math.min(rw, rh) * 0.0055));
+          const mPad = sizeBuf(_artMaskPadBuf, w, h);
+          const mx = mPad.getContext('2d');
+          mx.setTransform(1, 0, 0, 1, 0, 0);
+          mx.globalAlpha = 1;
+          mx.globalCompositeOperation = 'source-over';
+          mx.filter = 'none';
+          mx.clearRect(0, 0, w, h);
+          stampDilatedMask(mx, mask, rx, ry, rw, rh, grow);
+
           bx.globalCompositeOperation = 'destination-in';
-          bx.drawImage(mask, rx, ry, rw, rh);
+          bx.drawImage(mPad, 0, 0);
           bx.globalCompositeOperation = 'source-atop';
           // 水彩境界: フチに向かって同系の深い影が溜まる（ぷっくり＆エッジ濃色）
+          // ※白抜け防止のためエッジ影は控えめ（濃すぎる暗部と紙地のコントラストで隙間に見えやすい）
           const cx = rx + rw * 0.5, cy = ry + rh * 0.5;
           const rr = Math.max(rw, rh) * 0.62;
-          const eg = bx.createRadialGradient(cx, cy, rr * 0.42, cx, cy, rr);
+          const eg = bx.createRadialGradient(cx, cy, rr * 0.48, cx, cy, rr);
           eg.addColorStop(0, 'rgba(18,14,28,0)');
-          eg.addColorStop(1, 'rgba(18,14,28,0.34)');
+          eg.addColorStop(1, 'rgba(18,14,28,0.22)');
           bx.fillStyle = eg;
           bx.fillRect(0, 0, w, h);
-          // ぷっくりハイライト（上寄り中央の光の膨らみ）
+          // ぷっくりハイライト（上寄り中央の光の膨らみ）— 端まで白が乗るのを避け中央寄りに
           bx.globalCompositeOperation = 'screen';
           const hy = ry + rh * 0.32;
-          const hg = bx.createRadialGradient(cx, hy, 0, cx, hy, rr * 0.5);
-          hg.addColorStop(0, 'rgba(255,255,255,0.24)');
+          const hg = bx.createRadialGradient(cx, hy, 0, cx, hy, rr * 0.42);
+          hg.addColorStop(0, 'rgba(255,255,255,0.16)');
           hg.addColorStop(1, 'rgba(255,255,255,0)');
           bx.fillStyle = hg;
           bx.fillRect(0, 0, w, h);
