@@ -13,6 +13,7 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>INSCAPE</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -1970,116 +1971,76 @@
   <script src="framed-export.js"></script>
   <script>
   (function () {
-    /* Prefer framed-export.js v7+. Only install emergency twin if missing. */
-    if (window.INSCAPE_FRAME_EXPORT && window.INSCAPE_FRAME_EXPORT.version >= 7) return;
-    console.warn('[INSCAPE] framed-export.js missing/old — installing inline v7');
-    function loadImage(src) {
+    /* Prefer framed-export.js v8 (html2canvas). Thin fallback if file missing. */
+    if (window.INSCAPE_FRAME_EXPORT && window.INSCAPE_FRAME_EXPORT.version >= 8) return;
+    console.warn('[INSCAPE] framed-export.js missing/old — installing inline v8 html2canvas stub');
+    function toPngBlob(cv) {
       return new Promise(function (resolve, reject) {
-        if (src && src.tagName === 'CANVAS') { resolve(src); return; }
-        var img = new Image();
-        img.onload = function () { resolve(img); };
-        img.onerror = function () { reject(new Error('img fail')); };
-        img.src = src;
-        if (img.complete && img.naturalWidth) resolve(img);
+        if (!cv || !cv.toBlob) { reject(new Error('canvas')); return; }
+        cv.toBlob(function (b) { b ? resolve(b) : reject(new Error('blob')); }, 'image/png');
       });
     }
-    function fillPoly(ctx, pts, style) {
-      ctx.beginPath();
-      ctx.moveTo(pts[0][0], pts[0][1]);
-      for (var i = 1; i < pts.length; i++) ctx.lineTo(pts[i][0], pts[i][1]);
-      ctx.closePath();
-      ctx.fillStyle = style;
-      ctx.fill();
+    function toFile(blob, name) {
+      try { return new File([blob], name || 'INSCAPE_Artwork.png', { type: 'image/png' }); }
+      catch (e) { blob.name = name || 'INSCAPE_Artwork.png'; return blob; }
     }
-    function paintGold(ctx, ox, oy, boxW, boxH, border) {
-      var ix = ox + border, iy = oy + border, iw = boxW - border * 2, ih = boxH - border * 2;
-      ctx.save();
-      ctx.shadowColor = 'rgba(0,0,0,0.92)';
-      ctx.shadowBlur = 52;
-      ctx.shadowOffsetY = 28;
-      ctx.fillStyle = '#1a1008';
-      ctx.fillRect(ox, oy, boxW, boxH);
-      ctx.restore();
-      ctx.fillStyle = '#1c110a';
-      ctx.fillRect(ox - 1, oy - 1, boxW + 2, boxH + 2);
-      var gTop = ctx.createLinearGradient(ox, oy, ox, oy + border);
-      gTop.addColorStop(0, '#fff8d6'); gTop.addColorStop(0.2, '#ffefa6'); gTop.addColorStop(0.5, '#f3e5ab');
-      gTop.addColorStop(0.75, '#d4af37'); gTop.addColorStop(1, '#70541c');
-      fillPoly(ctx, [[ox, oy], [ox + boxW, oy], [ix + iw, iy], [ix, iy]], gTop);
-      var gLeft = ctx.createLinearGradient(ox, oy, ox + border, oy);
-      gLeft.addColorStop(0, '#ffe9a0'); gLeft.addColorStop(0.35, '#d4af37'); gLeft.addColorStop(1, '#70541c');
-      fillPoly(ctx, [[ox, oy], [ix, iy], [ix, iy + ih], [ox, oy + boxH]], gLeft);
-      var gRight = ctx.createLinearGradient(ox + boxW, oy, ox + boxW - border, oy);
-      gRight.addColorStop(0, '#3d2a0a'); gRight.addColorStop(0.4, '#8a640f'); gRight.addColorStop(1, '#70541c');
-      fillPoly(ctx, [[ox + boxW, oy], [ox + boxW, oy + boxH], [ix + iw, iy + ih], [ix + iw, iy]], gRight);
-      var gBot = ctx.createLinearGradient(ox, oy + boxH, ox, oy + boxH - border);
-      gBot.addColorStop(0, '#2a1c08'); gBot.addColorStop(0.4, '#5c430a'); gBot.addColorStop(1, '#a67c1a');
-      fillPoly(ctx, [[ox, oy + boxH], [ox + boxW, oy + boxH], [ix + iw, iy + ih], [ix, iy + ih]], gBot);
-      ctx.strokeStyle = 'rgba(40,28,8,0.35)';
-      ctx.beginPath();
-      ctx.moveTo(ox, oy); ctx.lineTo(ix, iy);
-      ctx.moveTo(ox + boxW, oy); ctx.lineTo(ix + iw, iy);
-      ctx.moveTo(ox, oy + boxH); ctx.lineTo(ix, iy + ih);
-      ctx.moveTo(ox + boxW, oy + boxH); ctx.lineTo(ix + iw, iy + ih);
-      ctx.stroke();
-      ctx.strokeStyle = '#aa7c11';
-      ctx.lineWidth = 3;
-      ctx.strokeRect(ix + 2, iy + 2, iw - 4, ih - 4);
-      ctx.strokeStyle = 'rgba(255,248,214,0.55)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(ix + 4, iy + 4); ctx.lineTo(ix + iw - 4, iy + 4);
-      ctx.moveTo(ix + 4, iy + 4); ctx.lineTo(ix + 4, iy + ih - 4);
-      ctx.stroke();
+    function prepareClone(clonedEl) {
+      if (!clonedEl) return;
+      clonedEl.querySelectorAll('.gallery-art-image, .gallery-art-canvas, img, canvas').forEach(function (el) {
+        el.style.setProperty('opacity', '1', 'important');
+        el.style.setProperty('animation', 'none', 'important');
+        el.style.setProperty('visibility', 'visible', 'important');
+      });
     }
-    async function composeFramedPngFile(source, filename) {
-      var art;
-      if (source && source.tagName === 'CANVAS') {
-        art = source;
-      } else {
-        var img = await loadImage(source);
-        art = document.createElement('canvas');
-        art.width = img.naturalWidth || img.width;
-        art.height = img.naturalHeight || img.height;
-        art.getContext('2d').drawImage(img, 0, 0);
-      }
-      var W = 1080, H = 1920, border = 36, pad = 18;
-      var frame = document.createElement('canvas');
-      frame.width = W; frame.height = H;
-      var ctx = frame.getContext('2d');
-      var wall = ctx.createRadialGradient(W * 0.5, H * 0.28, 60, W * 0.5, H * 0.5, H * 0.7);
-      wall.addColorStop(0, '#24201c'); wall.addColorStop(1, '#050505');
-      ctx.fillStyle = wall;
-      ctx.fillRect(0, 0, W, H);
-      var maxW = W - 140 - border * 2 - pad * 2;
-      var maxH = H - 300 - border * 2 - pad * 2;
-      var sc = Math.min(maxW / art.width, maxH / art.height);
-      var aw = Math.round(art.width * sc), ah = Math.round(art.height * sc);
-      var matW = aw + pad * 2, matH = ah + pad * 2;
-      var boxW = matW + border * 2, boxH = matH + border * 2;
-      var ox = Math.round((W - boxW) / 2), oy = Math.round(160 + (H - 280 - boxH) / 2);
-      paintGold(ctx, ox, oy, boxW, boxH, border);
-      var mx = ox + border, my = oy + border;
-      ctx.fillStyle = '#fbf9f5';
-      ctx.fillRect(mx, my, matW, matH);
-      var topSh = ctx.createLinearGradient(mx, my, mx, my + 22);
-      topSh.addColorStop(0, 'rgba(0,0,0,0.55)'); topSh.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = topSh;
-      ctx.fillRect(mx, my, matW, 22);
-      ctx.drawImage(art, mx + pad, my + pad, aw, ah);
-      ctx.fillStyle = 'rgba(200,200,200,0.7)';
+    async function captureDomFrameToFile(element, filename) {
+      if (typeof html2canvas !== 'function') throw new Error('html2canvas not loaded');
+      if (!element) throw new Error('target missing');
+      var shot = await html2canvas(element, {
+        scale: 3, useCORS: true, allowTaint: true, backgroundColor: null, logging: false,
+        onclone: function (_d, c) { prepareClone(c); }
+      });
+      var W = 1080, H = 1920;
+      var board = document.createElement('canvas');
+      board.width = W; board.height = H;
+      var ctx = board.getContext('2d');
+      var g = ctx.createRadialGradient(W * 0.5, H * 0.28, 40, W * 0.5, H * 0.48, H * 0.72);
+      g.addColorStop(0, '#24201c'); g.addColorStop(1, '#050505');
+      ctx.fillStyle = g; ctx.fillRect(0, 0, W, H);
+      var maxW = W - 144, maxH = H - 380;
+      var s = Math.min(maxW / shot.width, maxH / shot.height);
+      var dw = shot.width * s, dh = shot.height * s;
+      ctx.drawImage(shot, (W - dw) / 2, 160 + (maxH - dh) / 2, dw, dh);
+      ctx.fillStyle = 'rgba(190,190,190,0.65)';
       ctx.font = '300 32px Georgia, serif';
       ctx.textAlign = 'center';
       ctx.fillText('INSCAPE', W / 2, H - 90);
-      var blob = await new Promise(function (res, rej) {
-        frame.toBlob(function (b) { b ? res(b) : rej(new Error('blob')); }, 'image/png');
-      });
-      var file;
-      try { file = new File([blob], filename || 'INSCAPE_Artwork.png', { type: 'image/png' }); }
-      catch (e) { file = blob; file.name = filename || 'INSCAPE_Artwork.png'; }
-      return { canvas: frame, file: file, previewUrl: frame.toDataURL('image/png'), blob: blob };
+      var blob = await toPngBlob(board);
+      return { canvas: board, file: toFile(blob, filename), previewUrl: board.toDataURL('image/png'), blob: blob };
     }
-    window.INSCAPE_FRAME_EXPORT = { version: 7, composeFramedPngFile: composeFramedPngFile };
+    function isVisiblyFramed(el) {
+      try { return (parseFloat(getComputedStyle(el).borderTopWidth) || 0) >= 8; } catch (e) { return false; }
+    }
+    function findLiveFramedTarget() {
+      var list = [
+        document.querySelector('#museumFrame .museum-frame-sculpted'),
+        document.querySelector('.gallery-item--detail .museum-frame-sculpted'),
+        document.querySelector('.museum-frame-sculpted')
+      ];
+      for (var i = 0; i < list.length; i++) if (list[i] && isVisiblyFramed(list[i])) return list[i];
+      return null;
+    }
+    async function composeFramedPngFile(source, filename) {
+      var live = findLiveFramedTarget();
+      if (live) return captureDomFrameToFile(live, filename);
+      throw new Error('live framed DOM required (inline stub)');
+    }
+    window.INSCAPE_FRAME_EXPORT = {
+      version: 8,
+      captureDomFrameToFile: captureDomFrameToFile,
+      composeFramedPngFile: composeFramedPngFile,
+      findLiveFramedTarget: findLiveFramedTarget,
+      isVisiblyFramed: isVisiblyFramed
+    };
   })();
   </script>
   <script>
@@ -4481,27 +4442,51 @@
         return 'preview';
       }
 
-      // 写真へ保存: 必ず額装 frameCanvas の File のみ共有（素の作品は渡さない）
+      // 写真へ保存: 画面上の HTML/CSS ゴールド額縁を html2canvas でそのままスナップショット
       async function saveArtworkToPhotos(dataUrl, triggerBtn) {
-        if (!dataUrl || typeof dataUrl !== 'string') {
-          console.warn('[save] no dataUrl');
-          return;
-        }
         var prev = triggerBtn ? triggerBtn.textContent : '';
         if (triggerBtn) {
           triggerBtn.disabled = true;
           triggerBtn.textContent = '額装を生成中…';
         }
         try {
-          var FX = window.INSCAPE_FRAME_EXPORT;
-          if (!FX || typeof FX.composeFramedPngFile !== 'function') {
-            throw new Error('INSCAPE_FRAME_EXPORT missing');
+          if (typeof html2canvas !== 'function') {
+            throw new Error('html2canvas not loaded');
           }
-          var framed = await FX.composeFramedPngFile(dataUrl, 'INSCAPE_Artwork.png');
+          var FX = window.INSCAPE_FRAME_EXPORT;
+          if (!FX || typeof FX.captureDomFrameToFile !== 'function') {
+            throw new Error('INSCAPE_FRAME_EXPORT v8 missing');
+          }
+
+          // 額装完了時は #museumFrame 内の立体額縁をライブキャプチャ（手描き再現禁止）
+          if (canvasWrap && !canvasWrap.classList.contains('is-framed')) {
+            canvasWrap.classList.add('is-framed');
+          }
+          var target = (museumFrame && museumFrame.querySelector('.museum-frame-sculpted'))
+            || document.querySelector('.canvas-wrap.is-framed .museum-frame-sculpted')
+            || (FX.findLiveFramedTarget && FX.findLiveFramedTarget());
+
+          var framed;
+          if (target && FX.isVisiblyFramed(target)) {
+            // レイアウト確定を待ってから撮影
+            await new Promise(function (r) {
+              requestAnimationFrame(function () { requestAnimationFrame(r); });
+            });
+            framed = await FX.captureDomFrameToFile(target, 'INSCAPE_Artwork.png', {
+              scale: 3,
+              backgroundColor: null
+            });
+          } else if (dataUrl && typeof FX.composeFramedPngFile === 'function') {
+            // 画面に額縁が無い場合のみ：同じ CSS のオフスクリーン双子をキャプチャ
+            framed = await FX.composeFramedPngFile(dataUrl, 'INSCAPE_Artwork.png');
+          } else {
+            throw new Error('framed DOM target missing');
+          }
+
           if (!framed || !framed.file || !framed.previewUrl) {
             throw new Error('framed export empty');
           }
-          console.log('[save] sharing FRAMED file', framed.canvas && framed.canvas.width, 'x', framed.canvas && framed.canvas.height);
+          console.log('[save] html2canvas FRAMED', framed.canvas && framed.canvas.width, 'x', framed.canvas && framed.canvas.height);
           await shareImageFileOrShowPreview(framed.file, framed.previewUrl);
         } catch (err) {
           console.error('[save] framed export failed:', err);
