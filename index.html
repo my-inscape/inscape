@@ -1969,6 +1969,74 @@
   <script src="embedded-assets.js"></script>
   <script src="framed-export.js"></script>
   <script>
+  (function () {
+    if (window.INSCAPE_FRAME_EXPORT && window.INSCAPE_FRAME_EXPORT.version >= 6) return;
+    console.warn('[INSCAPE] framed-export.js missing/old — installing inline v6');
+    /* minimal inline twin of framed-export v6 */
+    function loadImage(src) {
+      return new Promise(function (resolve, reject) {
+        if (src && src.tagName === 'CANVAS') { resolve(src); return; }
+        var img = new Image();
+        img.onload = function () { resolve(img); };
+        img.onerror = function () { reject(new Error('img fail')); };
+        img.src = src;
+        if (img.complete && img.naturalWidth) resolve(img);
+      });
+    }
+    async function composeFramedPngFile(source, filename) {
+      var art;
+      if (source && source.tagName === 'CANVAS') {
+        art = source;
+      } else {
+        var img = await loadImage(source);
+        art = document.createElement('canvas');
+        art.width = img.naturalWidth || img.width;
+        art.height = img.naturalHeight || img.height;
+        art.getContext('2d').drawImage(img, 0, 0);
+      }
+      var W = 1080, H = 1920, border = 28, pad = 22;
+      var frame = document.createElement('canvas');
+      frame.width = W; frame.height = H;
+      var ctx = frame.getContext('2d');
+      ctx.fillStyle = '#0a0a0a';
+      ctx.fillRect(0, 0, W, H);
+      var maxW = W - 160 - border * 2 - pad * 2;
+      var maxH = H - 340 - border * 2 - pad * 2;
+      var sc = Math.min(maxW / art.width, maxH / art.height);
+      var aw = Math.round(art.width * sc), ah = Math.round(art.height * sc);
+      var matW = aw + pad * 2, matH = ah + pad * 2;
+      var boxW = matW + border * 2, boxH = matH + border * 2;
+      var ox = Math.round((W - boxW) / 2), oy = Math.round(200 + (H - 340 - boxH) / 2);
+      ctx.fillStyle = '#1c110a';
+      ctx.fillRect(ox, oy, boxW, boxH);
+      ctx.fillStyle = '#d4af37';
+      ctx.fillRect(ox, oy, boxW, border);
+      ctx.fillRect(ox, oy, border, boxH);
+      ctx.fillStyle = '#8a640f';
+      ctx.fillRect(ox + boxW - border, oy, border, boxH);
+      ctx.fillRect(ox, oy + boxH - border, boxW, border);
+      ctx.fillStyle = '#fbf9f5';
+      ctx.fillRect(ox + border, oy + border, matW, matH);
+      ctx.drawImage(art, ox + border + pad, oy + border + pad, aw, ah);
+      ctx.strokeStyle = '#aa7c11';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(ox + border + 2, oy + border + 2, matW - 4, matH - 4);
+      ctx.fillStyle = 'rgba(200,200,200,0.7)';
+      ctx.font = '300 32px Georgia, serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('INSCAPE', W / 2, H - 90);
+      var blob = await new Promise(function (res, rej) {
+        frame.toBlob(function (b) { b ? res(b) : rej(new Error('blob')); }, 'image/png');
+      });
+      var file;
+      try { file = new File([blob], filename || 'INSCAPE_Artwork.png', { type: 'image/png' }); }
+      catch (e) { file = blob; file.name = filename || 'INSCAPE_Artwork.png'; }
+      return { canvas: frame, file: file, previewUrl: frame.toDataURL('image/png'), blob: blob };
+    }
+    window.INSCAPE_FRAME_EXPORT = { version: 6, composeFramedPngFile: composeFramedPngFile };
+  })();
+  </script>
+  <script>
     (function () {
       'use strict';
 
@@ -4367,36 +4435,33 @@
         return 'preview';
       }
 
-      // 写真アプリ向け保存（ブラウザの a.download は使わない）
-      // ★作品 dataURL を Image.onload/decode 完了後にゴールド額装へ合成してから共有
+      // 写真へ保存: 必ず額装 frameCanvas の File のみ共有（素の作品は渡さない）
       async function saveArtworkToPhotos(dataUrl, triggerBtn) {
-        if (!dataUrl || typeof dataUrl !== 'string') return;
-        const prev = triggerBtn ? triggerBtn.textContent : '';
+        if (!dataUrl || typeof dataUrl !== 'string') {
+          console.warn('[save] no dataUrl');
+          return;
+        }
+        var prev = triggerBtn ? triggerBtn.textContent : '';
         if (triggerBtn) {
           triggerBtn.disabled = true;
-          triggerBtn.textContent = '保存を準備中…';
+          triggerBtn.textContent = '額装を生成中…';
         }
         try {
-          let file;
-          let preview = dataUrl;
-          const FX = window.INSCAPE_FRAME_EXPORT;
-          if (FX && typeof FX.composeFramedPngFile === 'function') {
-            // index 額装時のマット余白（padding: 28 22 32）に近い比率
-            // composeFramedPngFile 内部で Image ロード完了を待ってから drawImage する
-            const framed = await FX.composeFramedPngFile(dataUrl, 'INSCAPE_Artwork.png', {
-              padT: 28, padR: 22, padB: 32, padL: 22, border: 20, outline: 3, margin: 72, maxArtSide: 960
-            });
-            file = framed.file;
-            preview = framed.previewUrl;
-          } else {
-            // フォールバックでも一度 Image 経由で確定してから File 化
-            file = await artworkDataUrlToPngFile(dataUrl, 'INSCAPE_Artwork.png');
-            preview = dataUrl;
+          var FX = window.INSCAPE_FRAME_EXPORT;
+          if (!FX || typeof FX.composeFramedPngFile !== 'function') {
+            throw new Error('INSCAPE_FRAME_EXPORT missing');
           }
-          await shareImageFileOrShowPreview(file, preview);
+          var framed = await FX.composeFramedPngFile(dataUrl, 'INSCAPE_Artwork.png');
+          if (!framed || !framed.file || !framed.previewUrl) {
+            throw new Error('framed export empty');
+          }
+          console.log('[save] sharing FRAMED file', framed.canvas && framed.canvas.width, 'x', framed.canvas && framed.canvas.height);
+          await shareImageFileOrShowPreview(framed.file, framed.previewUrl);
         } catch (err) {
-          console.warn('写真への保存準備に失敗:', err);
-          showPhotoSaveOverlay(dataUrl);
+          console.error('[save] framed export failed:', err);
+          try {
+            alert('額装画像の生成に失敗しました。ページを再読み込みして再度お試しください。');
+          } catch (_) {}
         } finally {
           if (triggerBtn) {
             triggerBtn.disabled = false;
