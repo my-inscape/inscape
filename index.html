@@ -1757,6 +1757,8 @@
       const ALL_DIARIES_KEY = 'inscape_all_diaries';
       const LAST_DIARY_DATE_KEY = 'inscape_last_diary_date_v2';
       const LAST_EXPLOSION_AT_KEY = 'inscape_last_explosion_at';
+      /** ISO日時。ボトルへの1日1回記録（朝6時リセット）判定の正 */
+      const LAST_RECORDED_DATE_KEY = 'inscape_last_recorded_date';
       const COMPLETION_WHISPER_KEY = 'inscape_completion_whisper_v1';
       const FLOWER_KEY = 'inscape_flower_v2';
       const BOTTLE_PHASES = { DEPOSIT: 'deposit', SELECT: 'select', POUR: 'pour', COMPLETE: 'complete' };
@@ -1811,7 +1813,9 @@
       const GALLERY_MAX = 100;
       const RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
       const GALLERY_RETENTION_MS = RETENTION_MS;
-      const DISABLE_DAILY_DIARY_LOCK = true;
+      // 1日1回ボトル記録制限を有効化（朝6時リセット）
+      const DISABLE_DAILY_DIARY_LOCK = false;
+      const DAILY_RECORD_LOCK_MESSAGE = '本日の記録は完了しました。次の記録は朝6時以降です';
       const ZEN_IDLE_MS = 5000;
       const ZEN_FADE_MS = 2000;
       const CANVAS_LOGICAL_W = 270;
@@ -2358,6 +2362,7 @@
       }
 
       function getDiaryDayKey(date = new Date()) {
+        // 日記日境界は「毎朝6時」（6時前はまだ前日扱い）
         const offsetTime = new Date(date.getTime() - (6 * 60 * 60 * 1000));
         const y = offsetTime.getFullYear();
         const mo = String(offsetTime.getMonth() + 1).padStart(2, '0');
@@ -2392,6 +2397,67 @@
         const n = Number(ts);
         if (!n || n <= 0) return '';
         return getDiaryDayKey(new Date(n));
+      }
+
+      /** 直近の「朝6時」境界（現在が6時前なら昨日の朝6時） */
+      function getLast6AMBoundary(now = new Date()) {
+        const last6AM = new Date(now);
+        last6AM.setHours(6, 0, 0, 0);
+        if (now < last6AM) {
+          last6AM.setDate(last6AM.getDate() - 1);
+        }
+        return last6AM;
+      }
+
+      /**
+       * 1日1回記録可否。前回記録が直近の朝6時より前なら記録可能。
+       * @param {string|number|Date|null|undefined} lastRecordedTime
+       */
+      function canRecord(lastRecordedTime) {
+        if (DISABLE_DAILY_DIARY_LOCK) return true;
+        if (lastRecordedTime == null || lastRecordedTime === '') return true;
+        const lastRecorded = lastRecordedTime instanceof Date
+          ? lastRecordedTime
+          : new Date(lastRecordedTime);
+        if (Number.isNaN(lastRecorded.getTime())) return true;
+        return lastRecorded.getTime() < getLast6AMBoundary(new Date()).getTime();
+      }
+
+      function readLastRecordedDate() {
+        try {
+          const iso = localStorage.getItem(LAST_RECORDED_DATE_KEY);
+          if (iso) {
+            const d = new Date(iso);
+            if (!Number.isNaN(d.getTime())) return d;
+          }
+          const atRaw = localStorage.getItem(LAST_EXPLOSION_AT_KEY);
+          if (atRaw) {
+            const at = Number(atRaw);
+            if (at > 0) return new Date(at);
+          }
+          // 旧形式 YYYY-MM-DD（日記日キー）→ その日記日の開始＝当日6:00 として解釈
+          const legacy = localStorage.getItem(LAST_DIARY_DATE_KEY);
+          if (legacy) {
+            const key = normalizeDiaryDayKey(legacy);
+            const m = key.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (m) {
+              return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]), 6, 0, 0, 0);
+            }
+          }
+        } catch (_) {}
+        return null;
+      }
+
+      function writeLastRecordedDate(when = new Date()) {
+        const now = when instanceof Date ? when : new Date(when);
+        const dayKey = getDiaryDayKey(now);
+        try {
+          localStorage.setItem(LAST_RECORDED_DATE_KEY, now.toISOString());
+          localStorage.setItem(LAST_EXPLOSION_AT_KEY, String(now.getTime()));
+          localStorage.setItem(LAST_DIARY_DATE_KEY, dayKey);
+        } catch (err) {
+          console.warn('記録フラグの保存に失敗:', err);
+        }
       }
 
       function readGalleryStore() {
@@ -2523,30 +2589,13 @@
 
       function hasPostedToday() {
         if (DISABLE_DAILY_DIARY_LOCK) return false;
-        try {
-          const atRaw = localStorage.getItem(LAST_EXPLOSION_AT_KEY);
-          if (atRaw) {
-            const at = Number(atRaw);
-            if (at > 0) return getDiaryDayKeyFromTimestamp(at) === getDiaryDayKey();
-          }
-          const legacy = localStorage.getItem(LAST_DIARY_DATE_KEY);
-          if (!legacy) return false;
-          return normalizeDiaryDayKey(legacy) === getDiaryDayKey();
-        } catch {
-          return false;
-        }
+        // 直近の朝6時より前の記録なら、新しい「日記日」として記録可能
+        return !canRecord(readLastRecordedDate());
       }
 
       function lockDiaryForToday() {
         if (DISABLE_DAILY_DIARY_LOCK) return;
-        const now = Date.now();
-        const dayKey = getDiaryDayKey(new Date(now));
-        try {
-          localStorage.setItem(LAST_EXPLOSION_AT_KEY, String(now));
-          localStorage.setItem(LAST_DIARY_DATE_KEY, dayKey);
-        } catch (err) {
-          console.warn('日記ロックの保存に失敗:', err);
-        }
+        writeLastRecordedDate(new Date());
       }
 
       function isCanvasInteractionLocked() {
@@ -2609,6 +2658,11 @@
         setTimeout(() => revealCompletionWhisper(text), 600);
       }
 
+      function showDailyRecordLockMessage() {
+        if (!completionWhisper) return;
+        revealCompletionWhisper(DAILY_RECORD_LOCK_MESSAGE);
+      }
+
       function hideCompletionWhisper() {
         if (!completionWhisper) return;
         completionWhisper.classList.remove('visible');
@@ -2617,17 +2671,14 @@
 
       function restoreCompletionWhisperIfNeeded() {
         if (!hasPostedToday()) return;
-        const text = loadStoredCompletionWhisper();
-        if (text) revealCompletionWhisper(text);
+        // 制限中は仕様メッセージを優先表示（再訪時）
+        showDailyRecordLockMessage();
       }
 
       function getMsUntilNextDiaryReset() {
         const now = new Date();
-        const next = new Date(now);
-        next.setHours(6, 0, 0, 0);
-        if (now.getTime() >= next.getTime()) {
-          next.setDate(next.getDate() + 1);
-        }
+        const next = new Date(getLast6AMBoundary(now));
+        next.setDate(next.getDate() + 1);
         return Math.max(1000, next.getTime() - now.getTime());
       }
 
@@ -2635,7 +2686,8 @@
         if (diaryUnlockTimer) clearTimeout(diaryUnlockTimer);
         diaryUnlockTimer = setTimeout(() => {
           diaryUnlockTimer = null;
-          if (!hasPostedToday()) {
+          // 朝6時を跨いだら制限解除＋メッセージ消去
+          if (canRecord(readLastRecordedDate())) {
             hideCompletionWhisper();
             try {
               localStorage.removeItem(COMPLETION_WHISPER_KEY);
@@ -2649,6 +2701,7 @@
 
       function applyDailyLockUI() {
         const locked = isCanvasInteractionLocked();
+        const dailyLocked = hasPostedToday();
 
         if (appEl) appEl.classList.toggle('daily-locked', locked);
         phoneShell.classList.toggle('daily-locked', locked);
@@ -2664,6 +2717,7 @@
             });
           }
           canvasWrap.classList.remove('submit-ready');
+          if (dailyLocked) showDailyRecordLockMessage();
         } else {
           if (inputWrap) inputWrap.classList.remove('locked-hidden');
           if (emotionPalette) emotionPalette.classList.remove('locked-hidden');
@@ -6831,7 +6885,7 @@
             lockDiaryForToday();
             applyDailyLockUI();
             updateUIState();
-            showCompletionWhisper(true);
+            // 1日制限中は仕様メッセージを表示（applyDailyLockUI 内で DAILY_RECORD_LOCK_MESSAGE）
           });
         };
 
