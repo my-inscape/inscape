@@ -4182,12 +4182,15 @@
         shockCtx.clearRect(0, 0, shockCanvas.width, shockCanvas.height);
 
         framingCompleted = false;
+        frameProcessing = false;
         zenArmed = false;
         exitZenMode();
 
         hideFrameCta();
         canvasSelectOverlay.classList.remove('visible');
+        canvasSelectOverlay.setAttribute('aria-hidden', 'true');
         pourStage.classList.remove('visible');
+        pourStage.setAttribute('aria-hidden', 'true');
         frameProgressHint.classList.remove('visible');
         frameProgressHint.textContent = '';
         frameProgress.textContent = '';
@@ -4200,6 +4203,37 @@
         updateExperienceUI();
         updateFrameButtonState();
         redrawCanvas();
+        redrawBottle();
+      }
+
+      /**
+       * 回廊に既に定着済みの完成サイクルか？
+       * （キャンバス復帰時に完成アニメが無限ループするのを防ぐ判定）
+       */
+      function isFlowerCycleAlreadyArchived(flower) {
+        if (!flower || !isFlowerComplete(flower)) return false;
+        if (getBottlePhase(flower) !== BOTTLE_PHASES.COMPLETE) return false;
+        const cycleKey = buildArtworkCycleKeyFromFlower(flower);
+        if (!cycleKey) return false;
+        try {
+          const back = readGalleryStore();
+          return Array.isArray(back) && back.some((e) => e && e.cycleKey === cycleKey);
+        } catch (_) {
+          return false;
+        }
+      }
+
+      /**
+       * 進行中フラグ（inscape_flower_v2）だけ先に消す。
+       * 画面上の完成絵・ダイアログ表示はそのまま残し、リロード／キャンバス復帰の再アニメを防ぐ。
+       */
+      function clearActiveFlowerCycleFromStorage() {
+        try {
+          localStorage.removeItem(FLOWER_KEY);
+        } catch (_) {}
+        currentFlower = null;
+        splashes = [];
+        try { saveSplashes(); } catch (_) {}
       }
 
       function clearCssFrameFromCanvas() {
@@ -4302,6 +4336,8 @@
         try {
           await commitArtworkToGallery(frozenFlower);
           gallerySaved = true;
+          // 回廊へ定着した瞬間に進行サイクルを消す（キャンバス復帰時の完成再再生を防ぐ）
+          clearActiveFlowerCycleFromStorage();
           console.log("★ [100%保証] 作品が感情の回廊に定着しました。");
         } catch (error) {
           console.error("■ 保存エラー発生:", error);
@@ -4317,6 +4353,8 @@
 
         if (!frameProcessing) return;
         if (gallerySaved && goToGallery) {
+          // UI・メモリ状態も初期化し、感情の回廊へ
+          restartAppCycle();
           window.location.href = 'gallery.html';
           return;
         }
@@ -6964,6 +7002,12 @@
       migrateHistoriesToRecipes();
       migrateGalleryStorage();
       currentFlower = loadFlower();
+      // すでに回廊へ飾った完成サイクルが残っている場合は初期化（復帰ループ復旧）
+      if (isFlowerCycleAlreadyArchived(currentFlower)) {
+        console.log('[boot] archived flower cycle detected — resetting to empty bottle');
+        currentFlower = null;
+        try { localStorage.removeItem(FLOWER_KEY); } catch (_) {}
+      }
       syncFlowerToSplashes();
       syncHistoriesFromSplashes();
       loadFabricImage().catch(() => {});
@@ -6982,6 +7026,7 @@
       applyDailyLockUI();
       restoreCompletionWhisperIfNeeded();
       updateUIState();
+      // ロード後に完成済みが残っていない場合だけ通常更新（残っていた場合は上でクリア済み）
       updateFrameButtonState();
       bindFrameButtonClick();
       scheduleDiaryDayUnlockCheck();
