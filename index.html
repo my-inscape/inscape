@@ -4224,16 +4224,33 @@
       }
 
       /**
-       * 進行中フラグ（inscape_flower_v2）だけ先に消す。
-       * 画面上の完成絵・ダイアログ表示はそのまま残し、リロード／キャンバス復帰の再アニメを防ぐ。
+       * 進行サイクルを永続領域だけクリアする（画面は触らない）。
+       * 額縁表示中に redraw を誘発しないため、DOM/Canvas は変更しない。
        */
-      function clearActiveFlowerCycleFromStorage() {
+      function persistCycleResetForNextVisit() {
+        try { localStorage.removeItem(FLOWER_KEY); } catch (_) {}
+        try { localStorage.removeItem(HISTORY_KEY); } catch (_) {}
         try {
-          localStorage.removeItem(FLOWER_KEY);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify([]));
         } catch (_) {}
+      }
+
+      /**
+       * 「感情の回廊へ」押下直後専用。
+       * 1) LocalStorage を先に空サイクルへ（復帰ループ防止）
+       * 2) メモリをクリア（次ページ遷移で画面は捨てられるので redraw しない）
+       */
+      function retireCycleThenGoToGallery() {
+        persistCycleResetForNextVisit();
         currentFlower = null;
         splashes = [];
-        try { saveSplashes(); } catch (_) {}
+        flowerAnim = { active: false, kind: 'none', progress: 1, index: -1 };
+        bottleAnim = { active: false, progress: 0, layerIndex: -1 };
+        pourState = { active: false, tilt: 0, pourT: 0, rafId: null };
+        framingCompleted = false;
+        frameProcessing = false;
+        zenArmed = false;
+        window.location.href = 'gallery.html';
       }
 
       function clearCssFrameFromCanvas() {
@@ -4336,8 +4353,9 @@
         try {
           await commitArtworkToGallery(frozenFlower);
           gallerySaved = true;
-          // 回廊へ定着した瞬間に進行サイクルを消す（キャンバス復帰時の完成再再生を防ぐ）
-          clearActiveFlowerCycleFromStorage();
+          // ※ここでは currentFlower を消さない。
+          //   額装 resize / redrawCanvas が currentFlower を参照するため、消すと額縁内が灰色になる。
+          //   リセットは「感情の回廊へ」押下時（retireCycleThenGoToGallery）のみ。
           console.log("★ [100%保証] 作品が感情の回廊に定着しました。");
         } catch (error) {
           console.error("■ 保存エラー発生:", error);
@@ -4353,9 +4371,7 @@
 
         if (!frameProcessing) return;
         if (gallerySaved && goToGallery) {
-          // UI・メモリ状態も初期化し、感情の回廊へ
-          restartAppCycle();
-          window.location.href = 'gallery.html';
+          retireCycleThenGoToGallery();
           return;
         }
         // 回廊への内部保存に失敗した場合のみ、額装CTAを再表示してリトライ可能にする
