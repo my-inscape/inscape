@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#000000">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="INSCAPE">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <title>招待 — INSCAPE</title>
+  <script src="inscape-api-config.js"></script>
+  <script src="inscape-auth.js"></script>
+  <script src="inscape-data.js"></script>
+  <script>
+    INSCAPE_AUTH.requireAtelierAccess();
+    if (window.INSCAPE_DATA) INSCAPE_DATA.migrateAndLoad();
+  </script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    html, body {
+      min-height: 100%;
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", "Hiragino Sans", sans-serif;
+      background: #030303;
+      color: #e8e6e2;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      background:
+        radial-gradient(ellipse 90% 55% at 50% -8%, rgba(201, 169, 98, 0.07) 0%, transparent 50%),
+        #030303;
+    }
+
+    .page-top {
+      padding:
+        calc(0.85rem + env(safe-area-inset-top))
+        calc(0.65rem + env(safe-area-inset-right))
+        0
+        calc(0.65rem + env(safe-area-inset-left));
+    }
+
+    .site-nav {
+      display: flex;
+      align-items: stretch;
+      justify-content: center;
+      gap: 0.12rem;
+      flex-wrap: wrap;
+      margin-bottom: 1.25rem;
+    }
+
+    .site-nav-link {
+      flex: 1 1 0;
+      min-width: 2.4rem;
+      max-width: 4.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.28rem;
+      letter-spacing: 0.03em;
+      color: rgba(232, 230, 226, 0.45);
+      text-decoration: none;
+      padding: 0.34rem 0.16rem;
+      border: 0.5px solid rgba(255, 255, 255, 0.1);
+      border-radius: 2px;
+      background: rgba(18, 19, 22, 0.72);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .site-nav-link.is-current {
+      color: rgba(201, 169, 98, 0.62);
+      border-color: rgba(201, 169, 98, 0.22);
+      background: rgba(201, 169, 98, 0.06);
+      pointer-events: none;
+    }
+
+    .page-main {
+      flex: 1;
+      width: 100%;
+      max-width: 28rem;
+      margin: 0 auto;
+      padding: 0 1.1rem 2.5rem;
+    }
+
+    .page-title {
+      font-size: 0.82rem;
+      font-weight: 400;
+      letter-spacing: 0.28em;
+      text-indent: 0.28em;
+      text-align: center;
+      margin-bottom: 0.35rem;
+    }
+
+    .page-sub {
+      font-size: 0.58rem;
+      letter-spacing: 0.14em;
+      text-align: center;
+      color: rgba(232, 230, 226, 0.38);
+      margin-bottom: 2rem;
+    }
+
+    .invite-panel {
+      border: 0.5px solid rgba(255, 255, 255, 0.08);
+      border-radius: 4px;
+      background: rgba(12, 12, 14, 0.82);
+      padding: 1.35rem 1rem 1.1rem;
+    }
+
+    .invite-heading {
+      font-size: 0.68rem;
+      font-weight: 400;
+      line-height: 1.85;
+      letter-spacing: 0.1em;
+      color: rgba(232, 230, 226, 0.72);
+      margin-bottom: 1.25rem;
+      text-align: center;
+    }
+
+    .invite-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .invite-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      gap: 0.45rem 0.65rem;
+      padding: 0.85rem 0.75rem;
+      border: 0.5px solid rgba(201, 169, 98, 0.14);
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.02);
+      transition: opacity 0.35s ease, border-color 0.35s ease;
+    }
+
+    .invite-row.is-used {
+      opacity: 0.42;
+      border-color: rgba(255, 255, 255, 0.06);
+    }
+
+    .invite-code {
+      grid-column: 1;
+      grid-row: 1;
+      font-family: "Segoe UI", "Hiragino Sans", sans-serif;
+      font-size: 0.78rem;
+      letter-spacing: 0.22em;
+      color: rgba(201, 169, 98, 0.88);
+    }
+
+    .invite-row.is-used .invite-code {
+      color: rgba(232, 230, 226, 0.35);
+      text-decoration: line-through;
+    }
+
+    .invite-status {
+      grid-column: 2;
+      grid-row: 1;
+      align-self: center;
+      font-size: 0.52rem;
+      letter-spacing: 0.12em;
+      color: rgba(107, 158, 120, 0.85);
+    }
+
+    .invite-row.is-used .invite-status {
+      color: rgba(232, 230, 226, 0.32);
+    }
+
+    .invite-actions {
+      grid-column: 1 / -1;
+      grid-row: 2;
+      display: flex;
+      gap: 0.45rem;
+    }
+
+    .invite-btn {
+      flex: 1;
+      background: transparent;
+      border: 0.5px solid rgba(255, 255, 255, 0.12);
+      color: rgba(232, 230, 226, 0.62);
+      font-family: inherit;
+      font-size: 0.56rem;
+      letter-spacing: 0.1em;
+      padding: 0.55rem 0.35rem;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    .invite-btn:hover:not(:disabled) {
+      border-color: rgba(201, 169, 98, 0.28);
+      color: rgba(201, 169, 98, 0.82);
+    }
+
+    .invite-btn:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .invite-empty,
+    .invite-error {
+      font-size: 0.62rem;
+      letter-spacing: 0.08em;
+      text-align: center;
+      color: rgba(232, 230, 226, 0.42);
+      padding: 1rem 0;
+    }
+
+    .invite-error {
+      color: rgba(201, 122, 122, 0.85);
+    }
+
+    .invite-note {
+      margin-top: 1.1rem;
+      font-size: 0.52rem;
+      line-height: 1.9;
+      letter-spacing: 0.08em;
+      text-align: center;
+      color: rgba(232, 230, 226, 0.28);
+    }
+  </style>
+</head>
+<body>
+  <div class="page-top">
+    <nav class="site-nav" aria-label="ナビゲーション">
+      <a class="site-nav-link" href="atelier.html">キャンバス</a>
+      <a class="site-nav-link" href="gallery.html">感情の回廊</a>
+      <a class="site-nav-link" href="mycolors.html">今日の私の色</a>
+      <a class="site-nav-link" href="shirushi.html">標</a>
+      <a class="site-nav-link is-current" href="invites.html" aria-current="page">招待</a>
+    </nav>
+  </div>
+
+  <main class="page-main">
+    <h1 class="page-title">招待</h1>
+    <p class="page-sub">INVITATION</p>
+
+    <section class="invite-panel" aria-labelledby="invite-heading">
+      <h2 class="invite-heading" id="invite-heading">あなたが信頼する表現者へ贈る、3つの招待コード</h2>
+      <div class="invite-list" id="invite-list" aria-live="polite"></div>
+      <p class="invite-note">各コードは1回のみ有効です。使用状況は自動で更新されます。</p>
+    </section>
+  </main>
+
+  <script src="inscape-invites.js"></script>
+  <script>
+    INSCAPE_INVITES.mountInviteSection('invite-list');
+  </script>
+</body>
+</html>

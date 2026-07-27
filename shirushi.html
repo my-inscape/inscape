@@ -13,6 +13,13 @@
   <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>標 — INSCAPE</title>
+  <script src="inscape-api-config.js"></script>
+  <script src="inscape-auth.js"></script>
+  <script src="inscape-data.js"></script>
+  <script>
+    INSCAPE_AUTH.requireAtelierAccess();
+    if (window.INSCAPE_DATA) INSCAPE_DATA.migrateAndLoad();
+  </script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -713,10 +720,11 @@
   <div class="mycolors-shell">
     <header class="page-header">
       <nav class="site-nav" aria-label="ナビゲーション">
-        <a class="site-nav-link" href="index.html">キャンバス</a>
+        <a class="site-nav-link" href="atelier.html">キャンバス</a>
         <a class="site-nav-link" href="gallery.html">感情の回廊</a>
         <a class="site-nav-link" href="mycolors.html">今日の私の色</a>
         <a class="site-nav-link is-current" href="shirushi.html" aria-current="page">標</a>
+        <a class="site-nav-link" href="invites.html">招待</a>
       </nav>
       <h1 class="page-title">標</h1>
       <p class="page-subtitle">Milestone</p>
