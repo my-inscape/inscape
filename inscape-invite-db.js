@@ -7,6 +7,7 @@
 
   var STORAGE_KEY = 'inscape_invite_codes_db';
   var SESSIONS_KEY = 'inscape_invite_session_children_v1';
+  var SKIP_SEEDS_KEY = 'inscape_invite_skip_seeds_v1';
   var LEGACY_KEYS = ['inscape_mock_codes', 'inscape_mock_invite_db_v1'];
   var ALPHA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
 
@@ -189,9 +190,29 @@
 
   function initDb() {
     migrateLegacyOnce();
+    var skipSeeds = false;
+    try {
+      skipSeeds = global.localStorage.getItem(SKIP_SEEDS_KEY) === '1';
+    } catch (e) { /* ignore */ }
+    if (skipSeeds) {
+      var emptyList = loadAll();
+      log('DB initialized (' + emptyList.length + ' codes, seeds skipped)');
+      return emptyList;
+    }
     var list = ensureSeedsOnly();
     log('DB initialized (' + list.length + ' codes)');
     return list;
+  }
+
+  function clearAllForAdmin() {
+    LEGACY_KEYS.forEach(function (key) {
+      try { global.localStorage.removeItem(key); } catch (e) { /* ignore */ }
+    });
+    try { global.localStorage.removeItem(STORAGE_KEY); } catch (e) { /* ignore */ }
+    try { global.localStorage.removeItem(SESSIONS_KEY); } catch (e) { /* ignore */ }
+    try { global.localStorage.setItem(SKIP_SEEDS_KEY, '1'); } catch (e) { /* ignore */ }
+    saveAll([]);
+    return [];
   }
 
   function randomAlphaSuffix(minLen, maxLen) {
@@ -400,6 +421,7 @@
     saveSessionChildren: saveSessionChildren,
     getSessionChildKeys: getSessionChildKeys,
     repairSessionCodes: repairSessionCodes,
+    clearAllForAdmin: clearAllForAdmin,
     log: log
   };
 

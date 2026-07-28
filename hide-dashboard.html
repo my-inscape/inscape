@@ -147,6 +147,22 @@
       color: rgba(196, 165, 116, 0.85);
       letter-spacing: 0.06em;
     }
+    .header-actions {
+      margin-top: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.65rem;
+      align-items: center;
+    }
+    button.btn-danger {
+      background: rgba(201, 122, 122, 0.08);
+      border-color: rgba(201, 122, 122, 0.38);
+      color: rgba(201, 122, 122, 0.88);
+    }
+    button.btn-danger:hover {
+      background: rgba(201, 122, 122, 0.16);
+      border-color: rgba(201, 122, 122, 0.55);
+    }
   </style>
   <script src="inscape-invite-db.js"></script>
 </head>
@@ -157,6 +173,9 @@
       <p class="sub">Invitation operations — producer only</p>
       <p class="privacy-note">日記本文・色データはサーバーに保存されていません。本画面からも閲覧できません。</p>
       <p class="mode-banner" id="mode-banner" hidden></p>
+      <div class="header-actions">
+        <button type="button" class="btn-danger" id="reset-all-btn">【管理者用】テストデータをすべて初期化（全削除）</button>
+      </div>
     </header>
 
     <section>
@@ -344,6 +363,42 @@
         return INSCAPE_INVITE_DB.issueMasterCode(origin, code || undefined);
       }
 
+      function clearLocalInviteStorage() {
+        if (window.INSCAPE_INVITE_DB && INSCAPE_INVITE_DB.clearAllForAdmin) {
+          INSCAPE_INVITE_DB.clearAllForAdmin();
+          return;
+        }
+        ['inscape_invite_codes_db', 'inscape_mock_codes', 'inscape_mock_invite_db_v1',
+          'inscape_invite_session_children_v1', 'inscape_invite_skip_seeds_v1'].forEach(function (key) {
+          try { localStorage.removeItem(key); } catch (e) { /* ignore */ }
+        });
+        try { localStorage.setItem('inscape_invite_skip_seeds_v1', '1'); } catch (e) { /* ignore */ }
+      }
+
+      function resetAllTestData() {
+        var confirmMsg = '本当にテストデータをすべて削除して初期化しますか？\n\n' +
+          '招待コード（TEST-UNLIMITED 等）がすべて消去され、一覧は空になります。この操作は取り消せません。';
+        if (!window.confirm(confirmMsg)) return;
+
+        var btn = document.getElementById('reset-all-btn');
+        if (btn) btn.disabled = true;
+
+        function finishReset() {
+          clearLocalInviteStorage();
+          window.location.reload();
+        }
+
+        if (forceLocal || !window.fetch) {
+          finishReset();
+          return;
+        }
+
+        api('/api/reset', { method: 'POST' }).then(finishReset).catch(function (err) {
+          showModeBanner('API 初期化失敗 — localStorage のみクリア (' + err.message + ')');
+          finishReset();
+        });
+      }
+
       document.getElementById('issue-btn').addEventListener('click', function () {
         var msg = document.getElementById('issue-msg');
         msg.className = 'msg';
@@ -392,6 +447,8 @@
           }
         });
       });
+
+      document.getElementById('reset-all-btn').addEventListener('click', resetAllTestData);
 
       loadAll();
     })();

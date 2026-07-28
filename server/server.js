@@ -428,8 +428,24 @@ app.post(`${ADMIN_ROUTE}/api/codes`, requireAdminStealth, (req, res) => {
   }
 });
 
+app.post(`${ADMIN_ROUTE}/api/reset`, requireAdminStealth, (req, res) => {
+  try {
+    const wipe = db.transaction(() => {
+      db.prepare('DELETE FROM invitation_codes').run();
+      db.prepare('DELETE FROM sessions').run();
+    });
+    wipe();
+    return res.json({ ok: true, cleared: true });
+  } catch (err) {
+    return res.status(500).json({ ok: false, error: err.message || 'Failed to reset database' });
+  }
+});
+
 app.use((req, res, next) => {
-  if (req.path.startsWith(ADMIN_ROUTE + '/') && req.path !== `${ADMIN_ROUTE}/api/overview` && req.path !== `${ADMIN_ROUTE}/api/codes`) {
+  if (req.path.startsWith(ADMIN_ROUTE + '/') &&
+      req.path !== `${ADMIN_ROUTE}/api/overview` &&
+      req.path !== `${ADMIN_ROUTE}/api/codes` &&
+      req.path !== `${ADMIN_ROUTE}/api/reset`) {
     return sendNotFound(req, res);
   }
   next();
