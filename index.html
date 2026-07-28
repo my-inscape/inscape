@@ -158,6 +158,11 @@
     }
 
     .enter-btn:disabled {
+      opacity: 0.38;
+      cursor: not-allowed;
+    }
+
+    .enter-btn.is-busy:disabled {
       opacity: 0.45;
       cursor: wait;
     }
@@ -206,6 +211,7 @@
           id="invite-code"
           type="text"
           inputmode="text"
+          enterkeyhint="go"
           autocapitalize="characters"
           autocorrect="off"
           spellcheck="false"
@@ -229,23 +235,49 @@
       var input = document.getElementById('invite-code');
       var btn = document.getElementById('enter-btn');
       var errEl = document.getElementById('gate-error');
+      var submitting = false;
 
-      form.addEventListener('submit', function (e) {
-        e.preventDefault();
+      function syncEnterButton() {
+        var hasText = !!(input.value && input.value.trim());
+        btn.disabled = submitting || !hasText;
+        btn.classList.toggle('is-busy', submitting);
+      }
+
+      function submitGate() {
+        if (submitting) return;
         errEl.textContent = '';
         var raw = input.value;
         if (!raw || !raw.trim()) {
           errEl.textContent = '招待コードを入力してください';
+          syncEnterButton();
           return;
         }
-        btn.disabled = true;
+        submitting = true;
+        syncEnterButton();
         INSCAPE_AUTH.redeemInvite(raw).then(function () {
           window.location.href = 'atelier.html';
         }).catch(function (err) {
           errEl.textContent = err.message || '認証に失敗しました';
-          btn.disabled = false;
+        }).finally(function () {
+          submitting = false;
+          syncEnterButton();
         });
+      }
+
+      form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        submitGate();
       });
+
+      input.addEventListener('input', syncEnterButton);
+      input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' || e.keyCode === 13) {
+          e.preventDefault();
+          submitGate();
+        }
+      });
+
+      syncEnterButton();
 
       document.getElementById('waitlist-link').addEventListener('click', function (e) {
         e.preventDefault();
