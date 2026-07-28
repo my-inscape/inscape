@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>INSCAPE — Operations</title>
+  <style>
+    :root {
+      --bg: #0a0a0b;
+      --panel: #141416;
+      --line: rgba(255,255,255,0.07);
+      --text: #eceae6;
+      --muted: rgba(236,234,230,0.48);
+      --gold: #c4a574;
+      --ok: #6b9e78;
+      --warn: #b8866b;
+      --accent: rgba(196,165,116,0.12);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: "Segoe UI", "Hiragino Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1.75rem 3rem;
+    }
+    .wrap { max-width: 1180px; margin: 0 auto; }
+    header { margin-bottom: 2rem; border-bottom: 1px solid var(--line); padding-bottom: 1.25rem; }
+    h1 { font-size: 0.95rem; font-weight: 500; letter-spacing: 0.24em; }
+    .sub { margin-top: 0.4rem; font-size: 0.72rem; color: var(--muted); letter-spacing: 0.06em; }
+    .privacy-note {
+      margin-top: 0.75rem;
+      font-size: 0.68rem;
+      color: rgba(107, 158, 120, 0.85);
+      letter-spacing: 0.04em;
+    }
+    section { margin-bottom: 2rem; }
+    h2 {
+      font-size: 0.78rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      color: var(--muted);
+      margin-bottom: 0.85rem;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      gap: 0.85rem;
+    }
+    .stat-card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 1rem 1.1rem;
+    }
+    .stat-route {
+      font-size: 0.82rem;
+      letter-spacing: 0.12em;
+      color: var(--gold);
+      margin-bottom: 0.65rem;
+    }
+    .stat-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+    }
+    .stat-row strong { color: var(--text); font-weight: 500; }
+    .bar-track {
+      height: 4px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 2px;
+      margin-top: 0.65rem;
+      overflow: hidden;
+    }
+    .bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), var(--warn));
+      border-radius: 2px;
+      transition: width 0.4s ease;
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 1.25rem;
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.74rem;
+    }
+    th, td {
+      text-align: left;
+      padding: 0.6rem 0.55rem;
+      border-bottom: 1px solid var(--line);
+      white-space: nowrap;
+    }
+    th { color: var(--muted); font-weight: 500; letter-spacing: 0.06em; }
+    tr:hover td { background: rgba(255,255,255,0.02); }
+    .badge-used { color: var(--warn); }
+    .badge-open { color: var(--ok); }
+    .issue-form {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 1rem;
+      align-items: end;
+    }
+    label {
+      display: block;
+      font-size: 0.68rem;
+      color: var(--muted);
+      margin-bottom: 0.35rem;
+      letter-spacing: 0.06em;
+    }
+    input[type="text"] {
+      width: 100%;
+      background: #0a0a0b;
+      border: 1px solid var(--line);
+      color: var(--text);
+      padding: 0.55rem 0.7rem;
+      border-radius: 4px;
+      font-size: 0.82rem;
+    }
+    button {
+      background: var(--accent);
+      border: 1px solid rgba(196,165,116,0.35);
+      color: var(--gold);
+      padding: 0.58rem 1.1rem;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.72rem;
+      letter-spacing: 0.1em;
+    }
+    button:hover { background: rgba(196,165,116,0.18); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    .msg { margin-top: 0.75rem; font-size: 0.72rem; min-height: 1rem; }
+    .msg.ok { color: var(--ok); }
+    .msg.err { color: #c97a7a; }
+    .empty { color: var(--muted); font-size: 0.72rem; padding: 0.5rem 0; }
+    .mode-banner {
+      margin-top: 0.65rem;
+      font-size: 0.68rem;
+      color: rgba(196, 165, 116, 0.85);
+      letter-spacing: 0.06em;
+    }
+  </style>
+  <script src="../../inscape-invite-db.js"></script>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>INSCAPE</h1>
+      <p class="sub">Invitation operations — producer only</p>
+      <p class="privacy-note">日記本文・色データはサーバーに保存されていません。本画面からも閲覧できません。</p>
+      <p class="mode-banner" id="mode-banner" hidden></p>
+    </header>
+
+    <section>
+      <h2>大元ルート別 — アクティブ数 / 消化率</h2>
+      <div class="stats-grid" id="stats-grid">
+        <p class="empty">読み込み中…</p>
+      </div>
+    </section>
+
+    <section>
+      <h2>招待コード一覧</h2>
+      <div class="panel">
+        <table>
+          <thead>
+            <tr>
+              <th>code</th>
+              <th>origin_route</th>
+              <th>status</th>
+              <th>used_at</th>
+            </tr>
+          </thead>
+          <tbody id="codes-body"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section>
+      <h2>マスターコード手動発行</h2>
+      <div class="panel">
+        <div class="issue-form">
+          <div>
+            <label for="origin-route">大元ルート (origin_route)</label>
+            <input type="text" id="origin-route" placeholder="例: SILENT">
+          </div>
+          <div>
+            <label for="custom-code">コード（空欄で自動生成）</label>
+            <input type="text" id="custom-code" placeholder="例: SILENT-MASTER">
+          </div>
+          <div>
+            <button type="button" id="issue-btn">発行する</button>
+          </div>
+        </div>
+        <p class="msg" id="issue-msg"></p>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (function () {
+      var BASE = window.location.pathname.replace(/\/$/, '');
+      var isFileProtocol = window.location.protocol === 'file:';
+      var forceLocal = isFileProtocol;
+
+      function showModeBanner(text) {
+        var el = document.getElementById('mode-banner');
+        if (el) {
+          el.textContent = text;
+          el.hidden = false;
+        }
+      }
+
+      function api(path, opts) {
+        return fetch(BASE + path, opts || {}).then(function (res) {
+          if (res.status === 404) throw new Error('Not Found');
+          return res.json().then(function (data) {
+            if (!res.ok) throw new Error((data && data.error) || 'Request failed');
+            return data;
+          });
+        });
+      }
+
+      function formatUsedAtJst(value) {
+        if (value == null || value === '') return '—';
+        var d = new Date(value);
+        if (Number.isNaN(d.getTime())) return '—';
+        var parts = new Intl.DateTimeFormat('ja-JP', {
+          timeZone: 'Asia/Tokyo',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false
+        }).formatToParts(d);
+        var map = {};
+        parts.forEach(function (p) {
+          if (p.type !== 'literal') map[p.type] = p.value;
+        });
+        return map.year + '/' + map.month + '/' + map.day + ' ' + map.hour + ':' + map.minute;
+      }
+
+      function codesForDisplay(rawList) {
+        return (rawList || []).map(function (item) {
+          return {
+            code: item.code,
+            origin_route: item.origin_route,
+            is_used: !!item.is_used,
+            used_at: item.used_at || null
+          };
+        }).sort(function (a, b) {
+          if (a.origin_route !== b.origin_route) return a.origin_route < b.origin_route ? -1 : 1;
+          return a.code < b.code ? -1 : 1;
+        });
+      }
+
+      function loadFromLocalStorage() {
+        if (!window.INSCAPE_INVITE_DB) {
+          throw new Error('inscape-invite-db.js を読み込めませんでした');
+        }
+        INSCAPE_INVITE_DB.initDb();
+        var list = INSCAPE_INVITE_DB.loadAll();
+        var routes = INSCAPE_INVITE_DB.computeRouteStats(list);
+        var codes = codesForDisplay(list);
+        INSCAPE_INVITE_DB.log('Dashboard loaded from localStorage', codes.length + ' codes');
+        return { routes: routes, codes: codes };
+      }
+
+      function renderStats(routes) {
+        var grid = document.getElementById('stats-grid');
+        if (!routes || !routes.length) {
+          grid.innerHTML = '<p class="empty">データがありません</p>';
+          return;
+        }
+        grid.innerHTML = routes.map(function (r) {
+          return '<div class="stat-card">' +
+            '<div class="stat-route">' + r.origin_route + '</div>' +
+            '<div class="stat-row"><span>総数</span><strong>' + r.total + '</strong></div>' +
+            '<div class="stat-row"><span>アクティブ（未使用）</span><strong>' + r.active + '</strong></div>' +
+            '<div class="stat-row"><span>消化率</span><strong>' + r.consumption_rate + '%</strong></div>' +
+            '<div class="bar-track"><div class="bar-fill" style="width:' + r.consumption_rate + '%"></div></div>' +
+            '</div>';
+        }).join('');
+      }
+
+      function renderCodes(codes) {
+        var body = document.getElementById('codes-body');
+        body.innerHTML = (codes || []).map(function (row) {
+          var status = row.is_used
+            ? '<span class="badge-used">使用済み</span>'
+            : '<span class="badge-open">未使用</span>';
+          return '<tr><td>' + row.code + '</td><td>' + row.origin_route + '</td><td>' +
+            status + '</td><td>' + formatUsedAtJst(row.used_at) + '</td></tr>';
+        }).join('');
+      }
+
+      function renderAll(data) {
+        renderStats(data.routes);
+        renderCodes(data.codes);
+      }
+
+      function loadAll() {
+        if (forceLocal) {
+          showModeBanner('ローカルテストモード — localStorage (' +
+            (window.INSCAPE_INVITE_DB ? INSCAPE_INVITE_DB.STORAGE_KEY : 'inscape_invite_codes_db') + ')');
+          try {
+            renderAll(loadFromLocalStorage());
+            return Promise.resolve();
+          } catch (err) {
+            document.getElementById('stats-grid').innerHTML =
+              '<p class="empty">' + (err.message || '読み込み失敗') + '</p>';
+            return Promise.reject(err);
+          }
+        }
+
+        return Promise.all([
+          api('/api/overview'),
+          api('/api/codes')
+        ]).then(function (results) {
+          renderAll({ routes: results[0].routes, codes: results[1].codes });
+        }).catch(function (err) {
+          showModeBanner('API 取得失敗 — localStorage フォールバック (' + err.message + ')');
+          try {
+            renderAll(loadFromLocalStorage());
+          } catch (localErr) {
+            document.getElementById('stats-grid').innerHTML =
+              '<p class="empty">' + (localErr.message || '読み込み失敗') + '</p>';
+          }
+        });
+      }
+
+      function issueLocal(origin, code) {
+        if (!window.INSCAPE_INVITE_DB) {
+          throw new Error('inscape-invite-db.js を読み込めませんでした');
+        }
+        return INSCAPE_INVITE_DB.issueMasterCode(origin, code || undefined);
+      }
+
+      document.getElementById('issue-btn').addEventListener('click', function () {
+        var msg = document.getElementById('issue-msg');
+        msg.className = 'msg';
+        msg.textContent = '';
+        var origin = document.getElementById('origin-route').value.trim();
+        var code = document.getElementById('custom-code').value.trim();
+        if (!origin && !code) {
+          msg.className = 'msg err';
+          msg.textContent = 'origin_route または code を入力してください';
+          return;
+        }
+
+        if (forceLocal || !window.fetch) {
+          try {
+            var created = issueLocal(origin, code);
+            msg.className = 'msg ok';
+            msg.textContent = '発行しました（localStorage）: ' + created.code;
+            document.getElementById('custom-code').value = '';
+            renderAll(loadFromLocalStorage());
+          } catch (err) {
+            msg.className = 'msg err';
+            msg.textContent = err.message || '発行に失敗しました';
+          }
+          return;
+        }
+
+        api('/api/codes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ origin_route: origin || undefined, code: code || undefined })
+        }).then(function (data) {
+          msg.className = 'msg ok';
+          msg.textContent = '発行しました: ' + data.code;
+          document.getElementById('custom-code').value = '';
+          return loadAll();
+        }).catch(function (err) {
+          try {
+            var createdFallback = issueLocal(origin, code);
+            msg.className = 'msg ok';
+            msg.textContent = '発行しました（localStorage）: ' + createdFallback.code;
+            document.getElementById('custom-code').value = '';
+            renderAll(loadFromLocalStorage());
+          } catch (localErr) {
+            msg.className = 'msg err';
+            msg.textContent = localErr.message || err.message || '発行に失敗しました';
+          }
+        });
+      });
+
+      loadAll();
+    })();
+  </script>
+</body>
+</html>
