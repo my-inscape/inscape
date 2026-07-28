@@ -1821,7 +1821,6 @@
           console.warn('inscape_gallery の読み込みに失敗:', err);
         }
 
-        console.log('[gallery] LocalStorage件数:', rawCount, '/ 表示:', items.length, '/ 空スキップ:', skippedEmpty);
         return items;
       }
 
@@ -2382,7 +2381,6 @@
           if (!framed || !framed.file || !framed.previewUrl) {
             throw new Error('framed export empty');
           }
-          console.log('[gallery-save] html2canvas FRAMED');
           await shareImageFileOrShowPreview(framed.file, framed.previewUrl);
         } catch (err) {
           console.error('[gallery-save] failed:', err);

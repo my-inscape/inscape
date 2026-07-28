@@ -14,11 +14,8 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <title>INSCAPE — アトリエ</title>
   <script src="inscape-api-config.js"></script>
-  <script src="inscape-invite-db.js"></script>
-  <script src="inscape-auth-mock.js"></script>
   <script src="inscape-auth.js"></script>
   <script src="inscape-data.js"></script>
-  <script src="inscape-test-logout.js"></script>
   <script>
     INSCAPE_AUTH.requireAtelierAccess();
   </script>
@@ -3715,7 +3712,6 @@
             }
             restored++;
           }
-          console.log('[gallery-remaster] 復元:', restored, '件 / スキップ:', skipped, '件 / 総エントリ:', gallery.length);
         } catch (err) {
           console.warn('[gallery-remaster] 失敗:', err);
         }
@@ -3895,39 +3891,12 @@
             gallery = gallery.slice(-GALLERY_MAX);
           }
 
-          // 【保存直前ログ】これから永続化する対象データが100%生存していることを証明する。
-          const artUrl = entry.artworkImageDataUrl || '';
-          console.log('■ [保存直前] 感情の回廊へ書き込むデータ:');
-          console.table([{
-            作品ID: entry.id,
-            線画ID: entry.selectedCanvasId,
-            画像URL長: artUrl.length,
-            画像KB: Math.round(artUrl.length / 1024),
-            日数: entry.flowerDays,
-            期間: entry.period,
-            総エントリ数: gallery.length
-          }]);
-
           const saved = writeGalleryStore(gallery, entry.id);
           if (!saved) {
             console.error('■ 保存エラー発生: 回廊への保存に失敗しました（容量確保不可）');
             return false;
           }
 
-          // 【保存直後ログ】LocalStorageから読み戻して、当該作品の画像が定着したことを証明する。
-          const verifyBack = readGalleryStore();
-          const savedEntry = Array.isArray(verifyBack)
-            ? verifyBack.find((e) => e && e.id === entry.id)
-            : null;
-          const savedUrl = (savedEntry && savedEntry.artworkImageDataUrl) || '';
-          console.log('■ [保存直後] LocalStorage(inscape_gallery) 読み戻し検証:');
-          console.table([{
-            作品ID: savedEntry ? savedEntry.id : '(消失)',
-            画像URL長: savedUrl.length,
-            画像KB: Math.round(savedUrl.length / 1024),
-            画像生存: savedUrl.length >= 512 ? 'YES' : 'NO',
-            保存後総数: Array.isArray(verifyBack) ? verifyBack.length : 0
-          }]);
           return saved;
         } catch (err) {
           console.error('■ 保存エラー発生: 回廊レシピ保存で例外:', err);
@@ -4423,7 +4392,6 @@
           // ※ここでは currentFlower を消さない。
           //   額装 resize / redrawCanvas が currentFlower を参照するため、消すと額縁内が灰色になる。
           //   リセットは「感情の回廊へ」押下時（retireCycleThenGoToGallery）のみ。
-          console.log("★ [100%保証] 作品が感情の回廊に定着しました。");
         } catch (error) {
           console.error("■ 保存エラー発生:", error);
           gallerySaved = false;
@@ -6784,12 +6752,6 @@
           console.error('■ 保存エラー発生: 作品スナップショットの toDataURL 失敗（canvas汚染の可能性）:', err);
           artworkImageDataUrl = null;
         }
-        console.log('[gallery-save] 作品画像 dataURL 生成:', {
-          ok: !!artworkImageDataUrl && artworkImageDataUrl.length > 512,
-          length: artworkImageDataUrl ? artworkImageDataUrl.length : 0,
-          approxKB: artworkImageDataUrl ? Math.round(artworkImageDataUrl.length / 1024) : 0,
-          head: artworkImageDataUrl ? artworkImageDataUrl.slice(0, 40) : null
-        });
         // ボトル画像の生成失敗（万一のtaint等）で、完成した作品画像まで巻き添えで失わないよう分離。
         let bottleSnap = { bottleImageDataUrl: null, bottleW: 0, bottleH: 0 };
         try {
@@ -7094,7 +7056,6 @@
       currentFlower = loadFlower();
       // すでに回廊へ飾った完成サイクルが残っている場合は初期化（復帰ループ復旧）
       if (isFlowerCycleAlreadyArchived(currentFlower)) {
-        console.log('[boot] archived flower cycle detected — resetting to empty bottle');
         currentFlower = null;
         try { localStorage.removeItem(FLOWER_KEY); } catch (_) {}
       }
