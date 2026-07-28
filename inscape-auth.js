@@ -36,13 +36,15 @@
     }
   }
 
-  function saveAccess(token, originRoute, inviteCode) {
+  function saveAccess(token, originRoute, inviteCode, opts) {
+    opts = opts || {};
     var payload = {
       ok: true,
       token: token,
       origin_route: originRoute || '',
       invite_code: inviteCode || '',
-      saved_at: new Date().toISOString()
+      saved_at: new Date().toISOString(),
+      auth_source: opts.auth_source || 'server'
     };
     global.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
     if (originRoute) {
@@ -74,7 +76,7 @@
   /** Clear login session only — keeps inscape_invite_codes_db and diary data */
   function logoutToLp() {
     clearAccess();
-    global.location.href = LP_PATH;
+    global.location.href = appPath(LP_PATH);
   }
 
   function isAuthenticated() {
@@ -232,6 +234,29 @@
     });
   }
 
+  function isLocalSession(access) {
+    if (!access) return false;
+    if (access.auth_source === 'local' || access._local) return true;
+    if (global.INSCAPE_INVITE_DB && access.token) {
+      var childKeys = global.INSCAPE_INVITE_DB.getSessionChildKeys(access.token);
+      if (childKeys && childKeys.length) return true;
+    }
+    return false;
+  }
+
+  function appPath(filename) {
+    var path = global.location && global.location.pathname ? global.location.pathname : '';
+    var base = path.replace(/[^/]*$/, '');
+    return base + filename;
+  }
+
+  function verifyLocalSessionOnly() {
+    if (global.INSCAPE_LOCAL_REDEEM && global.INSCAPE_LOCAL_REDEEM.verifySession) {
+      return global.INSCAPE_LOCAL_REDEEM.verifySession();
+    }
+    return Promise.resolve(isAuthenticated());
+  }
+
   function verifySession() {
     if (global.INSCAPE_MOCK && global.INSCAPE_MOCK.verifySession) {
       return global.INSCAPE_MOCK.verifySession();
@@ -241,14 +266,17 @@
     if (!access) {
       return Promise.resolve(false);
     }
-    return fetch(apiUrl('/api/session/verify'), {
+
+    if (isLocalSession(access)) {
+      return verifyLocalSessionOnly();
+    }
+
+    return fetchWithTimeout(apiUrl('/api/session/verify'), {
       headers: getAuthHeaders()
-    }).then(function (res) {
-      if (!res.ok) {
-        clearAccess();
-        return false;
-      }
-      return true;
+    }, 8000).then(function (res) {
+      if (res.ok) return true;
+      clearAccess();
+      return false;
     }).catch(function () {
       return isAuthenticated();
     });
@@ -257,7 +285,7 @@
   function redirectToLp() {
     var path = global.location.pathname || '';
     if (path.endsWith('/' + LP_PATH) || path.endsWith('/')) return;
-    global.location.replace(LP_PATH);
+    global.location.replace(appPath(LP_PATH));
   }
 
   function requireAtelierAccess() {
@@ -274,16 +302,18 @@
     if (!isAuthenticated()) return;
     var path = global.location.pathname || '';
     if (path.endsWith('/' + ATELIER_PATH)) return;
-    global.location.replace(ATELIER_PATH);
+    global.location.replace(appPath(ATELIER_PATH));
   }
 
   global.INSCAPE_AUTH = {
     normalizeCode: normalizeCode,
     isAlphabetInviteCode: isAlphabetInviteCode,
     isAuthenticated: isAuthenticated,
+    isLocalSession: function () { return isLocalSession(readAccess()); },
     getOriginRoute: getOriginRoute,
     getToken: getToken,
     getAuthHeaders: getAuthHeaders,
+    appPath: appPath,
     redeemInvite: redeemInvite,
     fetchMyInviteCodes: fetchMyInviteCodes,
     verifySession: verifySession,

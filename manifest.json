@@ -4,7 +4,7 @@
   "description": "言葉を色に紡ぐ、静かな日記アプリ",
   "start_url": "./index.html",
   "scope": "./",
-  "id": "./index.html",
+  "id": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#000000",

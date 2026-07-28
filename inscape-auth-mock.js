@@ -30,7 +30,8 @@
       token: data.token,
       origin_route: data.origin_route,
       invite_code: data.invite_code,
-      saved_at: new Date().toISOString()
+      saved_at: new Date().toISOString(),
+      auth_source: 'local'
     };
     global.localStorage.setItem('inscape_atelier_access_v1', JSON.stringify(payload));
     if (data.origin_route) {
