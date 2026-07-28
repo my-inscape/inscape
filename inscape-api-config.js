@@ -1,11 +1,11 @@
 /**
- * INSCAPE API endpoint — production (GitHub Pages / my-inscape.com)
+ * INSCAPE API endpoint — production (Render / GitHub Pages / my-inscape.com)
  * Loaded before inscape-auth.js on every gated page.
  */
 (function (global) {
   'use strict';
 
-  var PRODUCTION_API = 'https://my-inscape.com';
+  var PRODUCTION_API = 'https://inscape.onrender.com';
   var LOCAL_API = 'http://localhost:8787';
   var host = (global.location && global.location.hostname) || '';
   var isFile = global.location && global.location.protocol === 'file:';
@@ -44,7 +44,9 @@
     return;
   }
 
-  if (host === 'my-inscape.com' || host === 'www.my-inscape.com' ||
+  // Same-origin: static + API served from the same host
+  if (host === 'inscape.onrender.com' ||
+      host === 'my-inscape.com' || host === 'www.my-inscape.com' ||
       (host && host.endsWith('.my-inscape.com'))) {
     global.INSCAPE_API_BASE = '';
     return;
