@@ -229,6 +229,35 @@
       text-align: center;
       color: rgba(232, 230, 226, 0.28);
     }
+
+    .test-logout-wrap {
+      margin-top: 1.75rem;
+      padding-top: 1.25rem;
+      border-top: 0.5px solid rgba(255, 255, 255, 0.06);
+      text-align: center;
+    }
+
+    .test-logout-btn {
+      display: inline-block;
+      width: 100%;
+      max-width: 18rem;
+      background: transparent;
+      border: 0.5px solid rgba(201, 122, 122, 0.35);
+      color: rgba(201, 122, 122, 0.78);
+      font-family: inherit;
+      font-size: 0.56rem;
+      letter-spacing: 0.08em;
+      line-height: 1.6;
+      padding: 0.75rem 1rem;
+      cursor: pointer;
+      border-radius: 2px;
+    }
+
+    .test-logout-btn:active {
+      border-color: rgba(201, 122, 122, 0.55);
+      color: rgba(201, 122, 122, 0.95);
+      background: rgba(201, 122, 122, 0.08);
+    }
   </style>
 </head>
 <body>
@@ -251,12 +280,23 @@
       <div class="invite-list" id="invite-list" aria-live="polite"></div>
       <p class="invite-note">各コードは1回のみ有効です。使用状況は自動で更新されます。</p>
     </section>
+
+    <div class="test-logout-wrap">
+      <button type="button" class="test-logout-btn" id="test-logout-btn">
+        【テスト用】ログアウトしてLPに戻る
+      </button>
+    </div>
   </main>
 
   <script src="inscape-invites.js"></script>
-  <script src="inscape-test-logout.js"></script>
   <script>
     INSCAPE_INVITES.mountInviteSection('invite-list');
+
+    document.getElementById('test-logout-btn').addEventListener('click', function () {
+      if (window.INSCAPE_AUTH && INSCAPE_AUTH.logoutToLp) {
+        INSCAPE_AUTH.logoutToLp();
+      }
+    });
   </script>
 </body>
 </html>
