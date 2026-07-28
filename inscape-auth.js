@@ -8,8 +8,15 @@
   var LP_PATH = 'index.html';
   var ATELIER_PATH = 'atelier.html';
 
-  var API_BASE = (typeof global.INSCAPE_API_BASE === 'string' && global.INSCAPE_API_BASE) ||
-    (global.location && global.location.protocol === 'file:' ? 'http://localhost:8787' : '');
+  function resolveApiBase() {
+    if (typeof global.INSCAPE_API_BASE === 'string') {
+      return global.INSCAPE_API_BASE;
+    }
+    if (global.location && global.location.protocol === 'file:') {
+      return 'http://localhost:8787';
+    }
+    return '';
+  }
 
   function normalizeCode(raw) {
     return String(raw || '')
@@ -104,7 +111,7 @@
   }
 
   function apiUrl(path) {
-    var base = (API_BASE || '').replace(/\/$/, '');
+    var base = resolveApiBase().replace(/\/$/, '');
     return base + path;
   }
 
@@ -188,7 +195,7 @@
       }
       if (global.INSCAPE_INVITE_DB) {
         var lookup = global.INSCAPE_INVITE_DB.lookupForRedeem(code);
-        if (lookup.ok && lookup.item) {
+        if (lookup.ok && lookup.item && isApiFallbackEligible(err)) {
           return tryLocalRedeem(rawCode);
         }
       }

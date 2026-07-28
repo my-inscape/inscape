@@ -44,15 +44,18 @@
     return;
   }
 
-  // Same-origin: static + API served from the same host
-  if (host === 'inscape.onrender.com' ||
-      host === 'my-inscape.com' || host === 'www.my-inscape.com' ||
-      (host && host.endsWith('.my-inscape.com'))) {
+  // Same-origin only when static + API are served together on Render
+  if (host === 'inscape.onrender.com') {
     global.INSCAPE_API_BASE = '';
     return;
   }
 
   if (host && host.endsWith('.github.io')) {
+    global.INSCAPE_API_BASE = PRODUCTION_API;
+    return;
+  }
+
+  if (host === 'my-inscape.com' || host === 'www.my-inscape.com') {
     global.INSCAPE_API_BASE = PRODUCTION_API;
     return;
   }
