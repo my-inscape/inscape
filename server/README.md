@@ -19,7 +19,7 @@ Server runs at `http://localhost:8787` and serves static files from the project 
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `INSCAPE_ADMIN_ROUTE` | `/x9k2-pvw8-m4rt` | Stealth admin URL path |
-| `INSCAPE_ADMIN_SECRET_KEY` | `YourSecretPass` | Query key for first access (`?key=...`) |
+| `INSCAPE_ADMIN_SECRET_KEY` | `Urawa1shuon` | Query key for first access (`?key=...`) |
 | `PORT` | `8787` | Server port |
 
 ## Stealth admin dashboard
@@ -29,7 +29,7 @@ Unauthorized access returns **404 Not Found** (page existence is hidden).
 **First access (issues HttpOnly cookie, then redirects without key in URL):**
 
 ```
-http://localhost:8787/x9k2-pvw8-m4rt?key=YourSecretPass
+http://localhost:8787/x9k2-pvw8-m4rt?key=Urawa1shuon
 ```
 
 **Subsequent access (cookie only):**
