@@ -255,7 +255,7 @@
         submitting = true;
         syncEnterButton();
         INSCAPE_AUTH.redeemInvite(raw).then(function () {
-          window.location.href = 'atelier.html';
+          window.location.href = INSCAPE_AUTH.appPath('atelier.html');
         }).catch(function (err) {
           errEl.textContent = err.message || '認証に失敗しました';
         }).finally(function () {
