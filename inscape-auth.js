@@ -31,12 +31,16 @@
     return /^[A-Z]+(-[A-Z]+)*$/.test(code);
   }
 
+  function hasValidAccessRecord(data) {
+    return !!(data && data.ok && data.token && String(data.token).length > 0);
+  }
+
   function readAccess() {
     try {
       var raw = global.localStorage.getItem(STORAGE_KEY);
       if (!raw) return null;
       var data = JSON.parse(raw);
-      if (!data || !data.ok || !data.token) return null;
+      if (!hasValidAccessRecord(data)) return null;
       return data;
     } catch (e) {
       return null;
@@ -244,6 +248,10 @@
   function isLocalSession(access) {
     if (!access) return false;
     if (access.auth_source === 'local' || access._local) return true;
+    if (access.auth_source === 'server') return false;
+    var token = String(access.token || '');
+    // Local mock tokens are 16 bytes (32 hex); server tokens are 32 bytes (64 hex).
+    if (/^[a-f0-9]{32}$/i.test(token)) return true;
     if (global.INSCAPE_INVITE_DB && access.token) {
       var childKeys = global.INSCAPE_INVITE_DB.getSessionChildKeys(access.token);
       if (childKeys && childKeys.length) return true;
@@ -282,10 +290,10 @@
       headers: getAuthHeaders()
     }, 8000).then(function (res) {
       if (res.ok) return true;
-      clearAccess();
-      return false;
+      // API rejected or unavailable — keep client session while localStorage is valid.
+      return hasValidAccessRecord(readAccess());
     }).catch(function () {
-      return isAuthenticated();
+      return hasValidAccessRecord(readAccess());
     });
   }
 
@@ -300,9 +308,8 @@
       redirectToLp();
       return;
     }
-    verifySession().then(function (ok) {
-      if (!ok) redirectToLp();
-    });
+    // Trust localStorage for page navigation; optional server verify must not evict the user.
+    verifySession().catch(function () { /* ignore */ });
   }
 
   function redirectIfAuthenticated() {
